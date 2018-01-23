@@ -11,7 +11,19 @@ Encoding: UTF-8
 LazyData: true
 Depends: R (>= 3.4.1)
 Imports:
-  packrat (>= 0.4.8)
-Suggests: knitr,
-    rmarkdown
+  ggplot2 (>= 2.2.1),
+  ggrastr (>= 0.1.5),
+  dplyr (>= 0.7.4),
+  dropestr (>= 0.6.0),
+  sessioninfo (>= 1.0.0),
+  Matrix (>= 1.2)
+Remotes:
+  hms-dbmi/dropEst,
+  VPetukhov/ggrastr
+Suggests: 
+  pagoda2,
+  RColorBrewer,
+  pheatmap,
+  knitr,
+  rmarkdown
 VignetteBuilder: knitr
