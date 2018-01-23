@@ -1,0 +1,17 @@
+Package: dropEstAnalysis
+Type: Package
+Title: Analysis to produce figures from dropEst paper
+Version: 0.6.0
+Authors@R: c(
+    person("Viktor", "Petukhov", email = "viktor.s.petukhov@ya.ru", role = c("cre", "aut")),
+    person("Peter", "Kharchenko", email = "peter_kharchenko@hms.harvard.edu", role = "aut"))
+Description: Analysis to produce figures from dropEst paper
+License: BSD 3-Clause
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 3.4.1)
+Imports:
+  packrat (>= 0.4.8)
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
