@@ -33,4 +33,5 @@ cat(sprintf("**Code version:** %s", code_version))
 rm(code_version)
 
 # ---- session-info ----
-sessioninfo::session_info()
+data.frame(value=unlist(sessioninfo::platform_info()))
+as.data.frame(sessioninfo::package_info())[c('package', 'loadedversion', 'date', 'source')]

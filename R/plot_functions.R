@@ -64,6 +64,7 @@ HeatmapLegendGuide <- function(title, barwidth=1.3, guide=ggplot2::guide_colorba
 PlotFiltrationResults <- function(pgd, clusters, filtered.cbs, rescued.clusters, raster.width=NULL, raster.height=NULL,
                                   rescued.alpha=0.9, rescued.size=2, rescued.stroke=0.4, unchanged.alpha=0.4,
                                   unchanged.size=0.5) {
+  clusters <- as.factor(clusters)
   filt.clusters <- rep("none", length(filtered.cbs)) %>% setNames(filtered.cbs)
   filt.df <- PlotPagodaEmbeding(pgd, clusters=filt.clusters, return.df=T)
   rescued.df <- PlotPagodaEmbeding(pgd, clusters=rescued.clusters, return.df=T)

@@ -16,3 +16,5 @@ output:
 4. Cell barcode merge validation
 
 ## Content by figures
+1. ---
+2. [Supp. Fig. Frozen BMMCs filtration](low_quality_cells__validation_bmmc1.Rmd#final_figure)

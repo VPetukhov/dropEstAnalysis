@@ -9,15 +9,12 @@ output: html_document
 knitr::read_chunk("../../analysis/chunks.R")
 ```
 
-<!-- Update knitr chunk options -->
 ```{r knitr-opts-chunk, include=FALSE}
 ```
 
-<!-- Insert the date the file was last updated -->
 ```{r last-updated, echo=FALSE, results='asis'}
 ```
 
-<!-- Insert the code version (Git commit SHA1) if Git repository exists and R package git2r is installed -->
 ```{r code-version, echo=FALSE, results='asis'}
 ```
 
