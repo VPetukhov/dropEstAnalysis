@@ -1,0 +1,220 @@
+---
+title: "Annotation of 10x 8k PBMCs from a Healthy Donor dataset"
+author: "Viktor Petukhov"
+date: 2018-01-24
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+<!-- Update knitr chunk options -->
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+<!-- Insert the date the file was last updated -->
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+<!-- Insert the code version (Git commit SHA1) if Git repository exists and R package git2r is installed -->
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(dropestr)
+library(dropEstAnalysis)
+library(Matrix)
+
+theme_set(theme_base)
+
+set.seed(42)
+kDataPath <- '../../data/'
+
+kDropEstData <- paste0(kDataPath, 'dropest/10x/pbmc8k/')
+kAnnotationData <- paste0(kDataPath, 'annotation/')
+
+kEstFolder <- paste0(kDropEstData, 'est_11_11_umi_quality/')
+k10xFolder <- paste0(kDropEstData, 'filtered_gene_bc_matrices/GRCh38/')
+```
+
+## Read data
+[Link to original dataset](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/pbmc8k).
+
+```{r}
+holder <- readRDS(paste0(kEstFolder, 'pbmc8k_no_umi.rds'))
+genes <- read.table(paste0(k10xFolder, 'genes.tsv')) %>% 
+  filter(V2 %in% names(which(table(V2) == 1)))
+gene_id_to_names <- setNames(genes$V2, genes$V1)
+holder$cm_raw <- holder$cm_raw[grep("^[^;]+$", rownames(holder$cm_raw)),]
+```
+
+```{r}
+umis_per_cell <- sort(Matrix::colSums(holder$cm_raw), decreasing=T)
+est_cell_num <- EstimateCellsNumber(umis_per_cell)
+```
+
+```{r, message=FALSE}
+scores <- ScorePipelineCells(holder, mit.chromosome.name='MT', 
+                             predict.all=T)[names(umis_per_cell)]
+PlotCellScores(scores, cells.number=est_cell_num)
+```
+
+Pagoda run:  
+```{r, message=FALSE}
+real_cbs <- names(scores)[1:est_cell_num$expected]
+real_cbs <- real_cbs[scores[real_cbs] > 0.9]
+
+r_cm <- holder$cm_raw[, real_cbs]
+r_cm <- r_cm[intersect(rownames(r_cm), names(gene_id_to_names)), ]
+rownames(r_cm) <- gene_id_to_names[rownames(r_cm)]
+
+pgd <- GetPagoda(r_cm, n.cores=30)
+# clusters <- pgd$clusters$PCA$infomap
+# write.csv(clusters, paste0(kAnnotationData, 'pbmc8k_clusters.csv'))
+
+# Pagoda uses stochastic clustering algorithm, so we saved clusters from one run
+clusters <- read.csv(paste0(kAnnotationData, 'pbmc8k_clusters.csv'), row.names=1)
+clusters <- setNames(clusters$x, rownames(clusters))
+log_mtx <- log10(1e-3 + as.matrix(pgd$counts[names(clusters), ]))
+```
+
+Initial clustering:  
+```{r}
+PlotPagodaEmbeding(pgd, clusters=clusters, show.ticks=F)
+```
+
+## Initial labeling
+```{r}
+de_genes <- pgd$getDifferentialGenes(type='PCA', groups=clusters,
+                                     upregulated.only=T) %>% lapply(rownames)
+
+major_cell_types <- lst(
+  `T cells` = sapply(de_genes, function(genes) 'CD3D' %in% genes) %>% 
+    which() %>% names() %>% as.integer(),
+  `B cells` = sapply(de_genes, function(genes) 'MS4A1' %in% genes) %>% 
+    which() %>% names() %>% as.integer()
+)
+
+major_type_clusts <- major_cell_types %>% unlist()
+if (length(major_type_clusts) != length(unique(major_type_clusts))) 
+  stop("Something goes wrong")
+```
+
+
+```{r}
+heatmap_genes <- c(
+  'MS4A1',
+  'CD3D', 'CD3E',
+  'LYZ', 'CD14',
+  'GNLY', 'NKG7',
+  "GZMA", "GZMB", "GZMH", "GZMK",
+  'FCGR3A', 'MS4A7',
+  'FCER1A', 'CST3',
+  'PPBP')
+
+heatmap_clusters <- clusters[!(clusters %in% unlist(major_cell_types))]
+# heatmap_clusters <- heatmap_clusters[heatmap_clusters > 20]
+PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)
+```
+
+```{r}
+type_ids <- c(major_cell_types, lst(
+  `CD14+ Monocytes` = c(1, 12, 13, 34),
+  `NK cells 1` = c(9, 29, 30),
+  `NK cells 2` = 26,
+  `FCGR3A+ Monocytes` = 15,
+  `Dendritic cells` = c(18, 24),
+  `Megakaryocytes` = 31
+  ))
+
+type_ids$`T cells` <- c(type_ids$`T cells`, 35)
+
+markers_df <- data.frame(
+  Type = c(
+    "B cells", "T cells", "CD14+ Monocytes", "NK cells 1", "NK cells 2", 
+    "FCGR3A+ Monocytes", "Dendritic cells", "Megakaryocytes"),
+  Markers = c(
+    "MS4A1", "CD3D, CD3E", "LYZ, CD14", "GNLY, NKG7", "GZMB, NKG7",
+    "FCGR3A, MS4A7", "FCER1A, CST3", "PPBP")
+)
+
+markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(markers_df$Type)]
+markers_df
+```
+
+```{r}
+clusters_annotated <- AnnotateClusters(clusters, type_ids)
+PlotClustering(pgd, clusters_annotated)
+```
+
+## T Cells
+```{r}
+heatmap_genes <- c(
+  "CD3D", "CD3E", "CCR7",
+  "CD8A", "CD8B",
+  "IL7R", "CD4",
+  "NKG7", "GZMA", "GZMH", "GZMK"
+)
+
+heatmap_clusters <- clusters[clusters %in% type_ids$`T cells`]
+# heatmap_clusters <- heatmap_clusters[heatmap_clusters > 3]
+PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)
+```
+
+```{r}
+t_markers_df <- data.frame(
+  Type = c("Naive T cells", "CD8 T cells", "CD4+ T cells", "Cytotoxic T cells"),
+  Markers = c("CCR7", "CD8A, CD8B", "IL7R, CD4", "NKG7, GZMA, GZMH, GZMK")
+)
+
+type_ids <- c(type_ids, lst(
+  `Naive T cells` = c(2, 7, 21),
+  `CD8 T cells` = c(3),
+  `CD4+ T cells` = c(5, 10, 14, 35),
+  `Cytotoxic T cells` = c(6, 11, 16, 17, 20, 25, 27, 32)
+  ))
+
+type_ids$`T cells` <- NULL
+
+t_markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(t_markers_df$Type)]
+t_markers_df
+```
+
+```{r}
+clusters_annotated <- AnnotateClusters(clusters, type_ids)
+PlotClustering(pgd, clusters_annotated)
+```
+
+```{r, echo=FALSE}
+# # Web app
+# go_env <- p2.generate.human.go(pgd)
+# pgd$testPathwayOverdispersion(setenv = go_env, verbose = T, correlation.distance.threshold = 0.9, 
+#                               recalculate.pca = F, min.pathway.size = 100, max.pathway.size = 1000)
+# 
+# go_sets <- p2.generate.human.go.web(colnames(pgd$counts))
+# de_sets <- get.de.geneset(pgd, groups = pgd$clusters$PCA$infomap, prefix = 'de_')
+# go_sets <- c(go_sets, de_sets)
+# 
+# additional_metadata <- list()
+# additional_metadata$altCluster <- p2.metadata.from.factor(as.factor(clusters_annotated), displayname = 'Annotated', s = 0.7, v = 0.8, start = 0, end = 0.5)
+# 
+# pgd_web_object <- make.p2.app(pgd, dendrogramCellGroups = pgd$clusters$PCA$infomap,
+#                               additionalMetadata = additional_metadata, geneSets = go_sets,
+#                               show.clusters = T)
+# 
+# pgd_web_object$serializeToStaticFast(binary.filename = paste0(kEstFolder, 'pbmc8k_pagoda.bin'))
+# # saveRDS(pgd_web_object, paste0(kEstFolder, 'pagoda_annotation_web.rds'))
+```
+
+```{r}
+write.csv(data.frame(Barcode=names(clusters_annotated), 
+                     Type=as.vector(clusters_annotated)), 
+          paste0(kAnnotationData, 'pbmc8k_clusters_annotated.csv'))
+```
+
+## Session information
+```{r session-info}
+```

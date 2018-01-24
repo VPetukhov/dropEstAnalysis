@@ -1,12 +1,12 @@
 ---
-title: "Annotation of Frozen BMMCs (Healthy Control 1) 10x dataset"
+title: "Annotation of 10x Frozen BMMCs (Healthy Control 1) dataset"
 author: "Viktor Petukhov"
 date: 2018-01-23
 output: html_document
 ---
 
 ```{r read-chunk, include=FALSE, cache=FALSE}
-knitr::read_chunk("./chunks.R")
+knitr::read_chunk("../../analysis/chunks.R")
 ```
 
 <!-- Update knitr chunk options -->
@@ -31,33 +31,15 @@ library(Matrix)
 theme_set(theme_base)
 
 set.seed(42)
-kDropEstData <- '../data/dropest/10x/frozen_bmmc_healthy_donor1/'
+kDropEstData <- '../../data/dropest/10x/frozen_bmmc_healthy_donor1/'
 kEstFolder <- paste0(kDropEstData, 'est_11_10_umi_quality/')
 k10xFolder <- paste0(kDropEstData, 'filtered_matrices_mex/hg19/')
-kAnnotationData <- '../data/annotation/'
-
-PlotClustering <- function(pgd, clusters) {
-  PlotPagodaEmbeding(pgd, clusters, show.ticks=F, size=1, alpha=0.5, nudge_x=1, nudge_y=1, font.size=NULL) +
-    ggplot2::scale_size_continuous(range=c(3, 6))
-}
-
-AnnotateClusters <- function(clusters, type.clusters) {
-  clusters.annotated <- as.integer(clusters) %>% setNames(names(clusters))
-  for (n in names(type.clusters)) {
-    clusters.annotated[clusters.annotated %in% type.clusters[[n]]] <- n
-  }
-  
-  return(clusters.annotated)
-}
-
-PlotExpressionHeatmap <- function(matrix, clusters, genes) {
-  clusters <- data.frame(Cluster=as.factor(sort(clusters)))
-  pheatmap::pheatmap(t(matrix[rownames(clusters), genes]), annotation_col=clusters, 
-                     cluster_rows=F, cluster_cols=F, show_colnames=F)
-}
+kAnnotationData <- '../../data/annotation/'
 ```
 
 ## Read data
+[Link to original dataset](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/frozen_bmmc_healthy_donor1).
+
 ```{r}
 holder <- readRDS(paste0(kEstFolder, 'bmmc_no_umi.rds'))
 genes <- read.table(paste0(k10xFolder, 'genes.tsv')) %>% 
@@ -75,7 +57,7 @@ est_cell_num <- EstimateCellsNumber(umis_per_cell)
 Quality scores:  
 ```{r, message=FALSE}
 scores <- ScorePipelineCells(holder, mit.chromosome.name='MT', 
-                             predict.all=T, verbose=T)[names(umis_per_cell)]
+                             predict.all=T)[names(umis_per_cell)]
 PlotCellScores(scores, cells.number=est_cell_num)
 ```
 
@@ -101,7 +83,7 @@ log_mtx <- log10(1e-3 + as.matrix(pgd$counts[names(clusters), ]))
 
 Initial clustering:  
 ```{r}
-PlotPagodaEmbeding(pgd, clusters=clusters)
+PlotPagodaEmbeding(pgd, clusters=clusters, show.ticks=F)
 ```
 
 ## Initial labeling
@@ -111,9 +93,8 @@ Description:
 * https://www.bdbiosciences.com/documents/cd_marker_handbook.pdf - CD Markers
 
 ```{r}
-de_genes <- pgd$getDifferentialGenes(type='PCA', clusterType='infomap', 
-                                     upregulated.only=T) %>%
-  lapply(rownames)
+de_genes <- pgd$getDifferentialGenes(type='PCA', groups=clusters, 
+                                     upregulated.only=T) %>% lapply(rownames)
 
 major_cell_types <- lst(
   `T cells` = sapply(de_genes, function(genes) 'CD3D' %in% genes) %>% 
@@ -123,7 +104,8 @@ major_cell_types <- lst(
 )
 
 major_type_clusts <- major_cell_types %>% unlist()
-if (length(major_type_clusts) != length(unique(major_type_clusts))) stop("Something goes wrong")
+if (length(major_type_clusts) != length(unique(major_type_clusts))) 
+  stop("Something goes wrong")
 ```
 
 ```{r}
@@ -224,15 +206,18 @@ t_markers_df <- data.frame(
   Type = c("Cytotoxic T cells", "T cells"),
   Markers = c("NKG7, GZMA, GZMH, GZMK", "CD3E, CD8B, IL7R")
 )
-```
 
-```{r}
 type_ids <- c(type_ids, lst(
   `Cytotoxic T cells` = c(7, 16, 17)
 ))
 
 type_ids$`T cells` <- 1
 
+t_markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(t_markers_df$Type)]
+t_markers_df
+```
+
+```{r}
 clusters_annotated <- AnnotateClusters(clusters, type_ids)
 PlotClustering(pgd, clusters_annotated)
 ```
