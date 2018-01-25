@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Precise Merge Validation</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cerulean.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">dropEstAnalysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/jdblischak/workflowr">
+    <span class="fa fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Precise Merge Validation</h1>
+
+</div>
+
+
+<p><strong>Source file:</strong> notebooks/human_mouse/hm_drop_seq.Rmd</p>
+<!-- ## Validation of merge procedure -->
+<!-- ```{r} -->
+<!-- kDatasetName <- 'thousand' -->
+<!-- kDataPath <- paste0('/d0-mendel/home/viktor_petukhov/Data/dropseq/thousand/') -->
+<!-- kDataFolders <- c(poisson='est_01_16_precise/', unmerged='est_01_16_unmerged/', merge_all='est_01_16_merge_all/', simple='est_01_16_simple/') -->
+<!-- # holders <- mclapply(kDataFolders, function(folder) readRDS(paste0(kDataPath, folder, kDatasetName, '.rds')), mc.cores=length(kDataFolders)) -->
+<!-- # length(holders) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- # validation_data <- list( -->
+<!-- #   merge_targets = lapply(holders, function(holder) unlist(holder$merge_targets)), -->
+<!-- #   cms_raw = lapply(holders, `[[`, 'cm_raw'), -->
+<!-- #   cms = lapply(holders, `[[`, 'cm') -->
+<!-- # ) -->
+<!-- #  -->
+<!-- # saveRDS(validation_data, paste0(kDataPath, 'est_01_16_validation_data.rds')) -->
+<!-- validation_data <- readRDS(paste0(kDataPath, 'est_01_16_validation_data.rds')) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- umis_per_cb <- Matrix::colSums(validation_data$cms$unmerged) %>% sort(decreasing=T) -->
+<!-- real_cbs <- names(umis_per_cb)[1:1000] -->
+<!-- PlotCellsNumberLine(umis_per_cb[1:5000]) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- gene_species <- ifelse(substr(rownames(validation_data$cms_raw$unmerged), 1, 5) == "HUMAN", 'Human', 'Mouse') %>% as.factor() -->
+<!-- cell_species <- lapply(levels(gene_species), function(l) validation_data$cms_raw$unmerged[gene_species == l,] %>% Matrix::colSums()) %>%  -->
+<!--   (function(x) levels(gene_species)[as.integer(x[[1]] < x[[2]]) + 1]) %>% setNames(colnames(validation_data$cms_raw$unmerged)) %>% as.factor() -->
+<!-- table(cell_species[real_cbs]) -->
+<!-- table(cell_species) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- qplot(Matrix::colSums(validation_data$cms_raw$unmerged[gene_species == 'Mouse',]) / Matrix::colSums(validation_data$cms_raw$unmerged)) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- merge_targets <- lapply(validation_data$merge_targets, function(mt) mt[mt %in% real_cbs]) -->
+<!-- (comparison <- MergeComparisonSummary(merge_targets, cell_species, dataset='Drop-seq thousand')) -->
+<!-- write.csv(comparison, paste0(kDataPath, 'merge_comparison.csv')) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- umis_per_cb <- lapply(validation_data$cms_raw, function(cm) sort(Matrix::colSums(cm), decreasing=T)) -->
+<!-- ``` -->
+<!-- ```{r, fig.width=6, fig.height=4, warning=FALSE, message=FALSE} -->
+<!-- linewidth <- 1 -->
+<!-- alpha <- 0.7 -->
+<!-- gg1 <- PlotCellsNumberLogLog(umis_per_cb$poisson, plot.label='Poisson, no barcodes', plot.border=F, linewidth=linewidth, alpha=alpha) -->
+<!-- gg2 <- PlotCellsNumberLogLog(umis_per_cb$unmerged, gg.base=gg1, plot.label='No merge', plot.border=F, linewidth=linewidth, alpha=alpha) -->
+<!-- gg3 <- PlotCellsNumberLogLog(umis_per_cb$merge_all, gg.base=gg2, plot.label='Simple, no barcodes', plot.border=F, linewidth=linewidth, alpha=alpha) -->
+<!-- gg_merge_sizes <- gg3 +  -->
+<!--   guides(color=guide_legend(title='Merge type')) + -->
+<!--   scale_color_hue(l=55) + -->
+<!--   scale_x_continuous(limits=c(1, 5000), trans='log10') + -->
+<!--   scale_y_continuous(limits=c(1e3, 3e5), trans='log10') + -->
+<!--   theme_pdf(legend.pos=c(1, 1)) -->
+<!-- gg_merge_sizes -->
+<!-- # ggsave(filename=paste0(kPlotsFolder, 'merge_sizes.pdf'), plot=gg_merge_sizes, width=6, height=4) -->
+<!-- ``` -->
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- gg1 <- PlotCellsNumberLine(umis_per_cb$poisson, plot.label='No barcodes merge', breaks=50) -->
+<!-- gg2 <- PlotCellsNumberLine(umis_per_cb$unmerged, gg.base=gg1, plot.label='No merge', breaks=50) -->
+<!-- gg3 <- PlotCellsNumberLine(umis_per_cb$merge_all, gg.base=gg2, plot.label='Merge all', breaks=50) -->
+<!-- gl <- guide_legend(title='Merge type') -->
+<!-- gg3 + -->
+<!--   scale_x_continuous(limits=c(0, 10000), expand=c(0.01, 0.01)) + -->
+<!--   # scale_y_continuous(limits=c(0, 4.5e7), expand=c(0.01, 0.01)) + -->
+<!--   # scale_fill_npg(alpha=0.6) + -->
+<!--   guides(fill=gl, linetype=gl) + theme_pdf(legend.pos=c(1, 1)) -->
+<!-- # ggsave(paste0(kPlotsFolder, 'cell_number_ridges.', kDatasetName, '.pdf'), width=4, height=4) -->
+<!-- ``` -->
+<div id="origin-of-mixed-reads" class="section level2">
+<h2><span class="header-section-number">0.1</span> Origin of mixed reads</h2>
+<pre class="r"><code>holder &lt;- readRDS(&#39;../../data/dropest/dropseq/thousand/est_2018_01_25_filtered/thousand.rds&#39;)
+bc_data &lt;- PrepareLqCellsDataPipeline(holder, scale=FALSE) %&gt;% 
+  tibble::rownames_to_column(&quot;CB&quot;)</code></pre>
+<pre><code>## Loading required package: Matrix</code></pre>
+<pre class="r"><code>cm_real &lt;- holder$cm_raw
+cell_number &lt;- 1000
+
+gene_species &lt;- ifelse(substr(rownames(cm_real), 1, 2) == &quot;HU&quot;, &#39;Human&#39;, &#39;Mouse&#39;) %&gt;% 
+  as.factor()
+umi_by_species &lt;- lapply(levels(gene_species), function(l) cm_real[gene_species == l,] %&gt;% 
+                           Matrix::colSums()) %&gt;% as.data.frame() %&gt;% 
+  `colnames&lt;-`(levels(gene_species)) %&gt;% tibble::rownames_to_column(&#39;CB&#39;) %&gt;% 
+  as_tibble() %&gt;% 
+  mutate(Total = Human + Mouse, Organism=ifelse(Human &gt; Mouse, &quot;Human&quot;, &quot;Mouse&quot;), 
+         # IsReal=order(Total, decreasing=T) &lt;= cell_number) %&gt;%
+         IsReal=Total &gt; 1e3) %&gt;%
+  filter(Total &gt; 20)
+
+mit_genes &lt;- rownames(holder$cm_raw)[grep(&quot;_MT:.+&quot;, rownames(holder$cm_raw))]
+umi_by_species &lt;- umi_by_species %&gt;% mutate(
+    MitochondrionFraction = GetGenesetFraction(holder$cm_raw, mit_genes)[CB]
+  )</code></pre>
+<pre class="r"><code>gg &lt;- ggplot(umi_by_species, aes(y=..density.., fill=IsReal)) + 
+  theme_pdf(legend.pos=c(1, 1))
+
+gg + geom_histogram(aes(x=pmin(Human, Mouse) / Total), binwidth=0.005, alpha=0.7)</code></pre>
+<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>gg + geom_histogram(aes(x=pmin(Human, Mouse)), binwidth=2, alpha=0.7) + 
+  xlim(0, 200) + xlab(&#39;#Mixed UMIs&#39;)</code></pre>
+<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
+<pre class="r"><code>gg + 
+  geom_histogram(aes(x=pmin(Human, Mouse)), bins=100, alpha=0.7) +
+  scale_x_log10(name=&#39;#Mixed UMIs&#39;) + 
+  theme_pdf(legend.pos=c(1, 1))</code></pre>
+<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-4-3.png" width="672" /></p>
+<pre class="r"><code>ggplot(umi_by_species) + 
+  geom_point(aes(x=Total, y=pmin(Human, Mouse) / Total, color=Organism), size=0.1, alpha=0.1) +
+  scale_x_log10(name=&#39;#Real UMIs&#39;, limits=c(10, 2e5)) + annotation_logticks() + ylab(&#39;Fraction of mixed UMIs&#39;) +
+  theme_pdf(legend.pos=c(1, 1))</code></pre>
+<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Consistence with common distribution</p>
+<pre class="r"><code>mouse_frac &lt;- umi_by_species %&gt;% filter(IsReal) %&gt;% 
+  summarise(Mouse=sum(Mouse[Organism == &#39;Mouse&#39;]), Human=sum(Human[Organism == &#39;Human&#39;]), MF=Mouse / (Mouse + Human)) %&gt;% .$MF
+ggplot(umi_by_species) + 
+  geom_histogram(aes(x=Mouse / Total, y=..density..), binwidth=0.005) + 
+  geom_vline(xintercept=mouse_frac) +
+  theme_pdf()</code></pre>
+<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>gg &lt;- ggplot(umi_by_species) + 
+  geom_abline(aes(slope=1, intercept=0), linetype=&#39;dashed&#39;, alpha=0.5) +
+  scale_x_log10(limits=c(10, 2e5)) + scale_y_log10() + annotation_logticks() +
+  theme_pdf(legend.pos=c(0.97, 0.05)) + theme(legend.margin=margin(l=3, r=3, unit=&quot;pt&quot;))
+
+gg + geom_point(aes(x=Mouse, y=Human, color=IsReal), size=0.1, alpha=0.15)</code></pre>
+<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-7-1.png" width="384" /></p>
+<pre class="r"><code>gg + 
+  geom_point(aes(x=Mouse, y=Human, color=MitochondrionFraction), size=0.1, alpha=0.15) +
+  scale_color_gradientn(colours=c(&quot;#1200ba&quot;, &quot;#347fff&quot;, &quot;#cc4000&quot;, &quot;#ff3333&quot;), values=scales::rescale(c(0, 0.1, 0.3, 0.8))) +
+  guides(color=guide_colorbar(direction=&quot;horizontal&quot;, title.position=&quot;top&quot;, title=&quot;Mitochondrial\nfraction&quot;, barwidth=unit(1.0, units=&quot;in&quot;))) +
+  theme_pdf(legend.pos=c(0.97, 0.05)) + theme(legend.margin=margin(l=3, r=3, unit=&quot;pt&quot;))</code></pre>
+<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-8-1.png" width="384" /></p>
+</div>
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+<hr>
+<p>
+    This <a href="http://rmarkdown.rstudio.com">R Markdown</a> site was created with <a href="https://github.com/jdblischak/workflowr">workflowr</a>
+</p>
+<hr>
+
+<!-- To enable disqus, uncomment the section below and provide your disqus_shortname -->
+
+<!-- disqus
+  <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'rmarkdown'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+-->
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
