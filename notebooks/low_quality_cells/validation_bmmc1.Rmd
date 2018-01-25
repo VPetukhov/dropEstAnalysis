@@ -75,14 +75,17 @@ rescued_cbs <- names(unknown_cell_scores)[unknown_cell_scores > 0.5]
 unknown_cell_scores <- scores[colnames(cm_10x)]
 filtered_cbs <- names(unknown_cell_scores)[unknown_cell_scores < 0.1]
 
-c(Unchanged=length(intersect_cbs), Rescued=length(rescued_cbs), Filtered=length(filtered_cbs))
+c(Unchanged=length(intersect_cbs), Rescued=length(rescued_cbs), 
+  Filtered=length(filtered_cbs))
 ```
 
 ```{r}
-r_cm_rescued <- holder$cm_raw[, c(names(umis_per_cell)[1:est_cell_num$expected], rescued_cbs, colnames(cm_10x)) %>% unique()]
+r_cm_rescued <- holder$cm_raw[, c(names(umis_per_cell)[1:est_cell_num$expected], 
+                                  rescued_cbs, colnames(cm_10x)) %>% unique()]
 r_cm_rescued <- r_cm_rescued[grep("^[^;]+$", rownames(r_cm_rescued)),]
 
-if (!all(colnames(cm_10x) %in% colnames(r_cm_rescued))) stop("All 10x cells must be presented")
+if (!all(colnames(cm_10x) %in% colnames(r_cm_rescued))) 
+  stop("All 10x cells must be presented")
 ```
 
 ## Rescued cells
@@ -160,7 +163,8 @@ abline(v=est_cell_num$expected, col='#0a6607', lty=2, lw=2.5)
 shape::Arrows(x0=c(1000, 4000), y0=c(0.6, 0.7), 
               x1=c(ncol(cm_10x) - 100, est_cell_num$expected + 100), y1=c(0.42, 0.52), 
               lw=2, arr.length=0.35)
-text(x=c(900, 4100), y=c(0.67, 0.75), labels=c("10x threshold", "Optimal threshold"), cex=1.3)
+text(x=c(900, 4100), y=c(0.67, 0.75), 
+     labels=c("10x threshold", "Optimal threshold"), cex=1.3)
 ```
 
 ```{r}
@@ -184,9 +188,10 @@ plot_dfs <- split(plot_df, plot_df$FiltrationType)
 ggs <- lapply(plot_dfs, HeatmapAnnotGG, umi.per.cell.limits=range(plot_df$UmisPerCb), 
               raster.width=3, raster.height=3, raster.dpi=100)
 
-gg_legends <- mapply(`+`, ggs$real, list(HeatmapLegendGuide('Expression'), 
-                                    HeatmapLegendGuide('Cell type', guide=guide_legend, ncol=3), 
-                                    HeatmapLegendGuide('log10(#molecules)')), SIMPLIFY=F) %>%
+legend_guides <- list(HeatmapLegendGuide('Expression'), 
+                      HeatmapLegendGuide('Cell type', guide=guide_legend, ncol=3), 
+                      HeatmapLegendGuide('log10(#molecules)'))
+gg_legends <- mapply(`+`, ggs$real, legend_guides, SIMPLIFY=F) %>%
   lapply(`+`, theme(legend.margin=margin(l=4, r=4, unit='pt'))) %>% lapply(get_legend)
 
 ggs$real$heatmap <- ggs$real$heatmap + rremove('xlab') + ylab('Cells')
@@ -229,19 +234,23 @@ gg_repel <- function(coords, label) {
 }
 
 gg_cell_number <- PlotCellsNumberLine(Matrix::colSums(holder$cm_raw)) + 
-  geom_vline(aes(xintercept=coords$`10x`$x_l), linetype='dashed', color='#bc2727', size=1) +
-  geom_vline(aes(xintercept=coords$optimal$x_l), linetype='dashed', color='#0a6607', size=1) +
+  geom_vline(aes(xintercept=coords$`10x`$x_l), linetype='dashed', 
+             color='#bc2727', size=1) +
+  geom_vline(aes(xintercept=coords$optimal$x_l), linetype='dashed', 
+             color='#0a6607', size=1) +
   gg_repel(coords$`10x`, label="10x threshold") +
   gg_repel(coords$optimal, label="Optimal threshold") +
   scale_x_continuous(limits=c(0, 5750), expand=c(0, 0)) + 
-  theme_pdf() + theme(axis.ticks=element_blank(), axis.text.y=element_blank(),
-                      panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+  theme_pdf() + 
+  theme(axis.ticks=element_blank(), axis.text.y=element_blank(),
+        panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
 ```
 
 ### Final figure
 ```{r, fig.width=7.5, fig.height=7, warning=FALSE}
-gg_fig <- cowplot::plot_grid(gg_cell_number + theme(plot.margin=margin(b=0.1, unit="in")), gg_filtration, 
-                   nrow=2, rel_heights=c(1.2, 3), labels=c('A', ''))
+gg_fig <- cowplot::plot_grid(gg_cell_number + theme(plot.margin=margin(b=0.1, unit="in")), 
+                             gg_filtration, nrow=2, rel_heights=c(1.2, 3), 
+                             labels=c('A', ''))
 
 ggsave(paste0(kPlotsFolder, 'bmmc_filtration.pdf'), gg_fig, width=7.5, height=7)
 

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Viktor Petukhov" />
+
+<meta name="date" content="2018-01-24" />
+
+<title>Annotation of 10x 8k PBMCs from a Healthy Donor dataset</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">dropEstAnalysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/jdblischak/workflowr">
+    <span class="fa fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Annotation of 10x 8k PBMCs from a Healthy Donor dataset</h1>
+<h4 class="author"><em>Viktor Petukhov</em></h4>
+<h4 class="date"><em>2018-01-24</em></h4>
+
+</div>
+
+
+<p><strong>Source file:</strong> notebooks/annotation/annotation_pbmc8k.Rmd</p>
+<!-- Update knitr chunk options -->
+<!-- Insert the date the file was last updated -->
+<p><strong>Last updated:</strong> 2018-01-24</p>
+<!-- Insert the code version (Git commit SHA1) if Git repository exists and R package git2r is installed -->
+<p><strong>Code version:</strong> 0f07cfa</p>
+<div id="read-data" class="section level2">
+<h2>Read data</h2>
+<p><a href="https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/pbmc8k">Link to original dataset</a>.</p>
+<pre class="r"><code>holder &lt;- readRDS(paste0(kEstFolder, &#39;pbmc8k_no_umi.rds&#39;))
+genes &lt;- read.table(paste0(k10xFolder, &#39;genes.tsv&#39;)) %&gt;% 
+  filter(V2 %in% names(which(table(V2) == 1)))
+gene_id_to_names &lt;- setNames(genes$V2, genes$V1)
+holder$cm_raw &lt;- holder$cm_raw[grep(&quot;^[^;]+$&quot;, rownames(holder$cm_raw)),]</code></pre>
+<pre class="r"><code>umis_per_cell &lt;- sort(Matrix::colSums(holder$cm_raw), decreasing=T)
+est_cell_num &lt;- EstimateCellsNumber(umis_per_cell)</code></pre>
+<pre class="r"><code>scores &lt;- ScorePipelineCells(holder, mit.chromosome.name=&#39;MT&#39;, 
+                             predict.all=T)[names(umis_per_cell)]
+PlotCellScores(scores, cells.number=est_cell_num)</code></pre>
+<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-4-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p>Pagoda run:</p>
+<pre class="r"><code>real_cbs &lt;- names(scores)[1:est_cell_num$expected]
+real_cbs &lt;- real_cbs[scores[real_cbs] &gt; 0.9]
+
+r_cm &lt;- holder$cm_raw[, real_cbs]
+r_cm &lt;- r_cm[intersect(rownames(r_cm), names(gene_id_to_names)), ]
+rownames(r_cm) &lt;- gene_id_to_names[rownames(r_cm)]
+
+pgd &lt;- GetPagoda(r_cm, n.cores=30)</code></pre>
+<pre><code>8451 cells, 12931 genes; normalizing ... using plain model winsorizing ... done.
+calculating variance fit ... using gam 594 overdispersed genes ... 594 persisting ... done.
+calculating distance ... pearson ... done
+running tSNE using 30 cores:</code></pre>
+<pre class="r"><code># clusters &lt;- pgd$clusters$PCA$infomap
+# write.csv(clusters, paste0(kAnnotationData, &#39;pbmc8k_clusters.csv&#39;))
+
+# Pagoda uses stochastic clustering algorithm, so we saved clusters from one run
+clusters &lt;- read.csv(paste0(kAnnotationData, &#39;pbmc8k_clusters.csv&#39;), row.names=1)
+clusters &lt;- setNames(clusters$x, rownames(clusters))
+log_mtx &lt;- log10(1e-3 + as.matrix(pgd$counts[names(clusters), ]))</code></pre>
+<p>Initial clustering:</p>
+<pre class="r"><code>PlotPagodaEmbeding(pgd, clusters=clusters, show.ticks=F)</code></pre>
+<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-6-1.png" width="576" style="display: block; margin: auto;" /></p>
+</div>
+<div id="initial-labeling" class="section level2">
+<h2>Initial labeling</h2>
+<pre class="r"><code>de_genes &lt;- pgd$getDifferentialGenes(type=&#39;PCA&#39;, groups=clusters,
+                                     upregulated.only=T) %&gt;% lapply(rownames)
+
+major_cell_types &lt;- lst(
+  `T cells` = sapply(de_genes, function(genes) &#39;CD3D&#39; %in% genes) %&gt;% 
+    which() %&gt;% names() %&gt;% as.integer(),
+  `B cells` = sapply(de_genes, function(genes) &#39;MS4A1&#39; %in% genes) %&gt;% 
+    which() %&gt;% names() %&gt;% as.integer()
+)
+
+major_type_clusts &lt;- major_cell_types %&gt;% unlist()
+if (length(major_type_clusts) != length(unique(major_type_clusts))) 
+  stop(&quot;Something goes wrong&quot;)</code></pre>
+<pre class="r"><code>heatmap_genes &lt;- c(
+  &#39;MS4A1&#39;,
+  &#39;CD3D&#39;, &#39;CD3E&#39;,
+  &#39;LYZ&#39;, &#39;CD14&#39;,
+  &#39;GNLY&#39;, &#39;NKG7&#39;,
+  &quot;GZMA&quot;, &quot;GZMB&quot;, &quot;GZMH&quot;, &quot;GZMK&quot;,
+  &#39;FCGR3A&#39;, &#39;MS4A7&#39;,
+  &#39;FCER1A&#39;, &#39;CST3&#39;,
+  &#39;PPBP&#39;)
+
+heatmap_clusters &lt;- clusters[!(clusters %in% unlist(major_cell_types))]
+# heatmap_clusters &lt;- heatmap_clusters[heatmap_clusters &gt; 20]
+PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)</code></pre>
+<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-8-1.png" width="576" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>type_ids &lt;- c(major_cell_types, lst(
+  `CD14+ Monocytes` = c(1, 12, 13, 34),
+  `NK cells 1` = c(9, 29, 30),
+  `NK cells 2` = 26,
+  `FCGR3A+ Monocytes` = 15,
+  `Dendritic cells` = c(18, 24),
+  `Megakaryocytes` = 31
+  ))
+
+type_ids$`T cells` &lt;- c(type_ids$`T cells`, 35)
+
+markers_df &lt;- data.frame(
+  Type = c(
+    &quot;B cells&quot;, &quot;T cells&quot;, &quot;CD14+ Monocytes&quot;, &quot;NK cells 1&quot;, &quot;NK cells 2&quot;, 
+    &quot;FCGR3A+ Monocytes&quot;, &quot;Dendritic cells&quot;, &quot;Megakaryocytes&quot;),
+  Markers = c(
+    &quot;MS4A1&quot;, &quot;CD3D, CD3E&quot;, &quot;LYZ, CD14&quot;, &quot;GNLY, NKG7&quot;, &quot;GZMB, NKG7&quot;,
+    &quot;FCGR3A, MS4A7&quot;, &quot;FCER1A, CST3&quot;, &quot;PPBP&quot;)
+)
+
+markers_df$Clusters &lt;- sapply(type_ids, paste, collapse=&quot;, &quot;)[as.character(markers_df$Type)]
+markers_df</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">Type</th>
+<th align="left">Markers</th>
+<th align="left">Clusters</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">B cells</td>
+<td align="left">MS4A1</td>
+<td align="left">4, 8, 19, 22, 23, 28, 29, 33</td>
+</tr>
+<tr class="even">
+<td align="left">T cells</td>
+<td align="left">CD3D, CD3E</td>
+<td align="left">2, 3, 5, 6, 7, 10, 11, 14, 16, 17, 20, 21, 25, 27, 32, 35</td>
+</tr>
+<tr class="odd">
+<td align="left">CD14+ Monocytes</td>
+<td align="left">LYZ, CD14</td>
+<td align="left">1, 12, 13, 34</td>
+</tr>
+<tr class="even">
+<td align="left">NK cells 1</td>
+<td align="left">GNLY, NKG7</td>
+<td align="left">9, 29, 30</td>
+</tr>
+<tr class="odd">
+<td align="left">NK cells 2</td>
+<td align="left">GZMB, NKG7</td>
+<td align="left">26</td>
+</tr>
+<tr class="even">
+<td align="left">FCGR3A+ Monocytes</td>
+<td align="left">FCGR3A, MS4A7</td>
+<td align="left">15</td>
+</tr>
+<tr class="odd">
+<td align="left">Dendritic cells</td>
+<td align="left">FCER1A, CST3</td>
+<td align="left">18, 24</td>
+</tr>
+<tr class="even">
+<td align="left">Megakaryocytes</td>
+<td align="left">PPBP</td>
+<td align="left">31</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>clusters_annotated &lt;- AnnotateClusters(clusters, type_ids)
+PlotClustering(pgd, clusters_annotated)</code></pre>
+<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-10-1.png" width="576" style="display: block; margin: auto;" /></p>
+</div>
+<div id="t-cells" class="section level2">
+<h2>T Cells</h2>
+<pre class="r"><code>heatmap_genes &lt;- c(
+  &quot;CD3D&quot;, &quot;CD3E&quot;, &quot;CCR7&quot;,
+  &quot;CD8A&quot;, &quot;CD8B&quot;,
+  &quot;IL7R&quot;, &quot;CD4&quot;,
+  &quot;NKG7&quot;, &quot;GZMA&quot;, &quot;GZMH&quot;, &quot;GZMK&quot;
+)
+
+heatmap_clusters &lt;- clusters[clusters %in% type_ids$`T cells`]
+# heatmap_clusters &lt;- heatmap_clusters[heatmap_clusters &gt; 3]
+PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)</code></pre>
+<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-11-1.png" width="576" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>t_markers_df &lt;- data.frame(
+  Type = c(&quot;Naive T cells&quot;, &quot;CD8 T cells&quot;, &quot;CD4+ T cells&quot;, &quot;Cytotoxic T cells&quot;),
+  Markers = c(&quot;CCR7&quot;, &quot;CD8A, CD8B&quot;, &quot;IL7R, CD4&quot;, &quot;NKG7, GZMA, GZMH, GZMK&quot;)
+)
+
+type_ids &lt;- c(type_ids, lst(
+  `Naive T cells` = c(2, 7, 21),
+  `CD8 T cells` = c(3),
+  `CD4+ T cells` = c(5, 10, 14, 35),
+  `Cytotoxic T cells` = c(6, 11, 16, 17, 20, 25, 27, 32)
+  ))
+
+type_ids$`T cells` &lt;- NULL
+
+t_markers_df$Clusters &lt;- sapply(type_ids, paste, collapse=&quot;, &quot;)[as.character(t_markers_df$Type)]
+t_markers_df</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">Type</th>
+<th align="left">Markers</th>
+<th align="left">Clusters</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Naive T cells</td>
+<td align="left">CCR7</td>
+<td align="left">2, 7, 21</td>
+</tr>
+<tr class="even">
+<td align="left">CD8 T cells</td>
+<td align="left">CD8A, CD8B</td>
+<td align="left">3</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4+ T cells</td>
+<td align="left">IL7R, CD4</td>
+<td align="left">5, 10, 14, 35</td>
+</tr>
+<tr class="even">
+<td align="left">Cytotoxic T cells</td>
+<td align="left">NKG7, GZMA, GZMH, GZMK</td>
+<td align="left">6, 11, 16, 17, 20, 25, 27, 32</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>clusters_annotated &lt;- AnnotateClusters(clusters, type_ids)
+PlotClustering(pgd, clusters_annotated)</code></pre>
+<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-13-1.png" width="576" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>write.csv(data.frame(Barcode=names(clusters_annotated), 
+                     Type=as.vector(clusters_annotated)), 
+          paste0(kAnnotationData, &#39;pbmc8k_clusters_annotated.csv&#39;))</code></pre>
+</div>
+<div id="session-information" class="section level2">
+<h2>Session information</h2>
+<pre class="r"><code>sessioninfo::session_info()</code></pre>
+<pre><code>─ Session info ──────────────────────────────────────────────────────────
+ setting  value                       
+ version  R version 3.4.1 (2017-06-30)
+ os       Ubuntu 14.04.5 LTS          
+ system   x86_64, linux-gnu           
+ ui       X11                         
+ language (EN)                        
+ collate  en_US.UTF-8                 
+ tz       America/New_York            
+ date     2018-01-24                  
+
+─ Packages ──────────────────────────────────────────────────────────────
+ package         * version    date      
+ AnnotationDbi     1.32.3     2016-01-28
+ assertthat        0.2.0      2017-04-11
+ backports         1.1.2      2017-12-13
+ base64enc         0.1-3      2015-07-28
+ bindr             0.1        2016-11-13
+ bindrcpp        * 0.2        2017-06-17
+ Biobase           2.30.0     2016-01-28
+ BiocGenerics      0.16.1     2016-01-28
+ bit               1.1-12     2014-04-09
+ bit64             0.9-7      2017-05-08
+ blob              1.1.0      2017-06-17
+ brew              1.0-6      2011-04-13
+ clisymbols        1.2.0      2017-05-21
+ colorspace        1.3-2      2016-12-14
+ DBI               0.7        2017-06-18
+ dendsort          0.3.3      2015-12-14
+ digest            0.6.14     2018-01-14
+ dplyr           * 0.7.4      2017-09-28
+ dropEstAnalysis * 0.6.0      2018-01-24
+ dropestr        * 0.6.0      2018-01-23
+ evaluate          0.10.1     2017-06-24
+ ggplot2         * 2.2.1      2016-12-30
+ ggrepel           0.7.0      2017-09-29
+ git2r             0.21.0     2018-01-04
+ glue              1.2.0      2017-10-29
+ GO.db             3.2.2      2017-11-12
+ gtable            0.2.0      2016-02-26
+ highr             0.6        2016-05-09
+ htmltools         0.3.6      2017-04-28
+ igraph          * 1.1.2      2017-07-21
+ IRanges           2.4.8      2016-09-15
+ irlba           * 2.3.1      2017-10-18
+ KernSmooth        2.23-15    2015-06-29
+ knitr             1.18       2017-12-27
+ ks                1.11.0     2018-01-16
+ labeling          0.3        2014-08-23
+ lattice           0.20-35    2017-03-25
+ lazyeval          0.2.1      2017-10-29
+ magrittr          1.5        2014-11-22
+ MASS              7.3-47     2017-04-21
+ Matrix          * 1.2-12     2017-11-16
+ mclust            5.4        2017-11-22
+ memoise           1.1.0      2017-04-21
+ mgcv            * 1.8-22     2017-09-19
+ munsell           0.4.3      2016-02-13
+ mvtnorm           1.0-6      2017-03-02
+ nlme            * 3.1-131    2017-02-06
+ org.Hs.eg.db      3.2.3      2017-11-12
+ org.Mm.eg.db      3.2.3      2016-01-28
+ pagoda2           0.0.0.9002 2017-11-12
+ pcaMethods        1.60.0     2017-11-12
+ pcaPP             1.9-73     2018-01-14
+ pheatmap          1.0.8      2015-12-11
+ pkgconfig         2.0.1      2017-03-21
+ plyr              1.8.4      2016-06-08
+ R6                2.2.2      2017-06-17
+ RColorBrewer      1.1-2      2014-12-07
+ Rcpp              0.12.15    2018-01-20
+ rjson             0.2.15     2014-11-03
+ rlang             0.1.4      2017-11-05
+ rmarkdown         1.8        2017-11-17
+ RMTstat           0.3        2014-11-01
+ Rook              1.1-1      2014-10-20
+ rprojroot         1.3-2      2018-01-03
+ RSQLite         * 2.0        2017-06-19
+ Rtsne           * 0.14       2017-11-12
+ S4Vectors         0.8.11     2016-01-30
+ scales            0.5.0      2017-08-24
+ sessioninfo       1.0.0      2017-06-21
+ stringi           1.1.6      2017-11-17
+ stringr           1.2.0      2017-02-18
+ tibble            1.3.4      2017-08-22
+ triebeard         0.3.0      2016-08-04
+ urltools          1.6.0      2016-10-17
+ withr             2.1.1      2017-12-19
+ yaml              2.1.16     2017-12-12
+ source                              
+ Bioconductor                        
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ cran (@0.1-3)                       
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ Bioconductor                        
+ Bioconductor                        
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ cran (@0.3.3)                       
+ cran (@0.6.14)                      
+ CRAN (R 3.4.1)                      
+ local (VPetukhov/dropEstAnalysis@NA)
+ Github (hms-dbmi/dropEst@0813284)   
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ cran (@0.21.0)                      
+ CRAN (R 3.4.1)                      
+ Bioconductor                        
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ Bioconductor                        
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.0)                      
+ cran (@1.18)                        
+ cran (@1.11.0)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.0)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.0)                      
+ Bioconductor                        
+ Bioconductor                        
+ Github (hms-dbmi/pagoda2@a2d7523)   
+ Bioconductor                        
+ cran (@1.9-73)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ cran (@0.12.15)                     
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ cran (@1.3-2)                       
+ CRAN (R 3.4.1)                      
+ Github (jkrijthe/Rtsne@1d0f926)     
+ Bioconductor                        
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ CRAN (R 3.4.1)                      
+ cran (@0.3.0)                       
+ cran (@1.6.0)                       
+ cran (@2.1.1)                       
+ CRAN (R 3.4.1)                      </code></pre>
+</div>
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+<hr>
+<p>
+    This <a href="http://rmarkdown.rstudio.com">R Markdown</a> site was created with <a href="https://github.com/jdblischak/workflowr">workflowr</a>
+</p>
+<hr>
+
+<!-- To enable disqus, uncomment the section below and provide your disqus_shortname -->
+
+<!-- disqus
+  <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'rmarkdown'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+-->
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
