@@ -110,3 +110,9 @@ MergeComparisonSummary <- function(merge.targets, cell.species, dataset,
 FilterNUmis <- function(reads.per.umi) {
   return(lapply(reads.per.umi, function(rpus) rpus[grep("^[^N]+$", names(rpus))]))
 }
+
+#' @export
+FillNa <- function(data, value=0) {
+  data[is.na(data)] <- value
+  return(data)
+}

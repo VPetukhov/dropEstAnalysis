@@ -1,16 +1,24 @@
 ---
-title: "Precise Merge Validation"
-output:
-  html_document:
-    df_print: kable
-    number_sections: yes
-    theme: cerulean
-    toc: yes
-  html_notebook: default
+title: "InDrop human/mouse mixture analysis"
+author: "Viktor Petukhov"
+date: 2018-01-23
+output: html_document
 ---
 
-# Initialization
-```{r global_options, include=FALSE}
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options}
 library(ggplot2)
 library(ggrastr)
 library(dplyr)
@@ -24,13 +32,9 @@ kDataFolder <- '../../data/dropest/'
 kEstFolder <- paste0(kDataFolder, 'SCG29/')
 kSubfolders <- c(human='est_2018_01_24_human/cell.counts.rds', 
                  mouse='est_2018_01_24_mouse/cell.counts.rds')
-
-FillNa <- function(data, value=0) {
-  data[is.na(data)] <- value
-  return(data)
-}
 ```
 
+## Load data
 ```{r}
 holders <- mclapply(paste0(kEstFolder, kSubfolders), readRDS, mc.cores=2) %>% 
   setNames(names(kSubfolders))
@@ -44,33 +48,91 @@ umis_per_cb <- dplyr::full_join(umis_per_cb$human, umis_per_cb$mouse, "Barcode")
 reads_per_chr <- lapply(holders, function(h) 
   FillNa(h$reads_per_chr_per_cells$Exon[umis_per_cb$Barcode,]))
 
-mixture_df <- umis_per_cb %>%
+umi_by_species <- umis_per_cb %>%
   mutate(MitReads = reads_per_chr$human$chrM + reads_per_chr$mouse$chrM,
          TotalReads = rowSums(reads_per_chr$human) + rowSums(reads_per_chr$mouse),
          MitochondrionFraction = MitReads / TotalReads,
-         Total = Human + Mouse, Organism=ifelse(Human > Mouse, "Human", "Mouse"),
-         IsReal = order(Total, decreasing=T) <= 1000)
+         Total = Human + Mouse, Organism=ifelse(Human > Mouse, "Human", "Mouse"))
 ```
 
-# Origin of mixed reads
+Number of real cells:
+```{r, message=FALSE, warning=FALSE}
+PlotCellsNumberLine(umi_by_species$Total) + xlim(0, 4550)
+```
+
 ```{r}
-ggplot(mixture_df) + 
-  geom_point(aes(x=Total, y=pmin(Human, Mouse) / Total, color=Organism), size=0.3, alpha=0.2) +
-  scale_x_log10(name='Real UMIs', limits=c(10, 2e5)) + annotation_logticks() + ylab('Fraction of mixed UMIs') +
+cell_number <- 1500
+
+umi_by_species <- umi_by_species %>%
+  mutate(IsReal=rank(Total) >= length(Total) - cell_number)
+```
+
+
+## Common view
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(umi_by_species) + 
+  geom_point(aes(x=Total, y=pmin(Human, Mouse) / Total, color=Organism), size=0.3, 
+             alpha=0.3) +
+  scale_x_log10(name='#Real UMIs', limits=c(10, 1e4)) + annotation_logticks() + 
+  ylab('Fraction of mixed UMIs') +
+  guides(color=guide_legend(override.aes=list(alpha=1, size=2))) +
   theme_pdf(legend.pos=c(1, 1))
 ```
 
-```{r, fig.width=4, fig.height=4}
-plot_frac <- mixture_df$MitochondrionFraction %>% setNames(mixture_df$Barcode)
-smoothScatter(plot_frac[mixture_df$Barcode[order(mixture_df$Total, decreasing=T)]][1:10000])
-
-# plot_frac[plot_frac > 0.2] <- 0.2
-ggplot(mixture_df) + 
-  geom_point(aes(x=Mouse, y=Human, color=plot_frac[Barcode]), size=0.2, alpha=0.3) +
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4}
+gg <- ggplot(umi_by_species, aes(x=Mouse, y=Human)) + 
   geom_abline(aes(slope=1, intercept=0), linetype='dashed', alpha=0.5) +
-  scale_x_log10() + scale_y_log10() + annotation_logticks() +
-  scale_color_gradientn(colours=c("#1200ba", "#347fff", "#cc4000", "#ff3333"), values=scales::rescale(c(0, 0.1, 0.3, 0.8))) +
-  guides(color=guide_colorbar(direction="horizontal", title="Mitochondrial\nfraction", barwidth=unit(1.3, units="in"))) +
-  theme_pdf() + theme(legend.margin=margin(l=3, r=3, unit="pt"), legend.position="bottom")
+  scale_x_log10(name='#Mouse UMIs') + 
+  scale_y_log10(name='#Human UMIs') + annotation_logticks()
+
+gg_left <- gg + geom_point(aes(color=IsReal), size=0.2, alpha=0.2) +
+  guides(color=guide_legend(override.aes=list(size=1.5, alpha=1))) +
+  theme_pdf(legend.pos=c(1, 0))
+
+gg_right <- gg + 
+  geom_point(aes(color=MitochondrionFraction), size=0.2, alpha=0.3) +
+  guides(color=guide_colorbar(title="Mit.\nfraction", barheight=unit(1.3, units="in"))) +
+  scale_color_gradientn(colours=c("#1200ba", "#347fff", "#fc9528", "#fc4e28", "#ff3333"), 
+                        values=scales::rescale(c(0, 0.1, 0.3, 0.5, 0.8))) +
+  theme_pdf() + theme(legend.margin=margin(l=3, r=3, unit="pt"))
+
+cowplot::plot_grid(gg_left, gg_right + 
+                     theme(axis.title.y=element_blank(), axis.text.y=element_blank()))
 ```
 
+Fraction of mitochondrial reads:  
+```{r, fig.width=6}
+plot_frac <- umi_by_species %>% arrange(-Total) %>% .$MitochondrionFraction
+smoothScatter(plot_frac[1:10000], ylab="Mitochondrial fraction", xlab='Cell Rank')
+```
+
+## Check for constant background
+
+Background cells have constant fraction of mouse and human reads (cells with < 20 UMIs were filtered):  
+```{r}
+mouse_frac <- umi_by_species %>% filter(IsReal) %>%
+  summarise(Mouse=sum(Mouse[Organism == 'Mouse']), Human=sum(Human[Organism == 'Human']), 
+            MF=Mouse / (Mouse + Human)) %>% .$MF
+
+ggplot(umi_by_species %>% filter(Total > 20)) + 
+  geom_histogram(aes(x=Mouse / Total, y=..density.., fill=IsReal), bins=70, position="identity") + 
+  geom_vline(xintercept=mouse_frac) +
+  xlab("Fraction of mouse reads") +
+  theme_pdf(legend.pos=c(1, 1))
+```
+
+Distribution of total number of molecules by background cells:  
+```{r, message=FALSE, warning=FALSE}
+gg <- ggplot(umi_by_species %>% filter(!IsReal)) +
+  geom_histogram(aes(x=Total), bins=80) +
+  scale_x_continuous(limits=c(0, 250), expand=c(0, 0), name="Total #UMIs") +
+  scale_y_continuous(limits=c(0, 7500), expand=c(0, 0), name="#Cells") +
+  theme_pdf()
+
+gg
+```
+
+## Session information
+```{r session-info}
+```

@@ -1,0 +1,392 @@
+---
+title: "Precise Merge Validation"
+output:
+  html_document:
+    df_print: kable
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+  html_notebook: default
+---
+
+# Initialization
+```{r global_options, include=FALSE}
+library(ggplot2)
+library(ggsci)
+library(ggpubr)
+library(dplyr)
+library(parallel)
+library(dropestr)
+library(reshape2)
+library(Matrix)
+
+source("./Functions/PlotFuncs.R")
+source("./Functions/Functions.R")
+
+knitr::opts_chunk$set(fig.width=5, fig.height=3, echo=FALSE, warning=FALSE, message=FALSE)
+theme_set(theme_base)
+
+kPlotsFolder <- '~/Data/Plots/PaperReview/CBMerge/'
+```
+
+```{r}
+# kCellNum <- 34000
+# kDatasetName <- 'pbmc33k'
+# kDataPath <- paste0('/d0-mendel/home/viktor_petukhov/Data/10x/', kDatasetName, '/')
+# holders <- list()
+# holders$poisson <- readRDS(paste0(kDataPath, 'est_11_17_poisson/', kDatasetName, '.rds'))
+# holders$real_poisson <- readRDS(paste0(kDataPath, 'est_11_17_real/', kDatasetName, '.rds'))
+# holders$unmerged <- readRDS(paste0(kDataPath, 'est_11_17_unmerged/', kDatasetName, '.rds'))
+# holders$simple <- readRDS(paste0(kDataPath, 'est_11_17_simple/', kDatasetName, '.rds'))
+# holders$merge_all <- readRDS(paste0(kDataPath, 'est_11_17_all/', kDatasetName, '.rds'))
+```
+
+```{r}
+# kCellNum <- 5600
+# kDatasetName <- 'SCG71'
+# kDataPath <- paste0('/d0-mendel/home/viktor_petukhov/Data/', kDatasetName, '/')
+# kDataFolders <- c(poisson='est_11_16_poisson_simple/', real='est_11_14_poisson_real/', unmerged='est_11_16_unmerged/', 
+#                   merge_all='est_11_16_merge_all/') # simple='est_11_17_simple/', 
+# holders <- mclapply(kDataFolders, function(folder) readRDS(paste0(kDataPath, folder, kDatasetName, '.rds')), mc.cores=length(kDataFolders))
+```
+
+```{r}
+kDatasetName <- 'SRR1784310'
+kDataPath <- paste0('/d0-mendel/home/viktor_petukhov/Data/', kDatasetName, '/')
+holders <- list()
+holders$poisson <- readRDS(paste0(kDataPath, 'est_11_06_analytical_poisson/', kDatasetName, '.rds'))
+holders$real_poisson <- readRDS(paste0(kDataPath, 'est_11_06_analytical_poisson_real/', kDatasetName, '.rds'))
+holders$unmerged <- readRDS(paste0(kDataPath, 'est_11_06_unmerged/', kDatasetName, '.rds'))
+holders$merge_all <- readRDS(paste0(kDataPath, 'est_11_16_merge_all/', kDatasetName, '.rds'))
+# holders$poisson_ed3 <- readRDS(paste0(kDataPath, 'est_11_11_poisson_simple_ed3/', kDatasetName, '.rds'))
+```
+
+```{r}
+merge_targets <- lapply(holders, function(holder) unlist(holder$merge_targets))
+umis_per_cb <- lapply(holders, function(holder) sort(Matrix::colSums(holder$cm_raw), decreasing=T))
+```
+
+```{r}
+umis_per_cb_df <- as.data.frame(lapply(umis_per_cb, `[`, 1:min(sapply(umis_per_cb, length))))
+umis_per_cb_df$CellRank <- 1:nrow(umis_per_cb_df)
+#'#UMIs after merge\nwithout real CBs list'
+gp_lines <- ggplot(melt(umis_per_cb_df, id.vars='CellRank'), aes(x=CellRank, y=value, color=variable)) + 
+  geom_line(size=1) +
+  theme_pdf(legend.pos=c(1, 1)) + theme(legend.key.size=unit(1.5, 'lines')) +
+  labs(x='Cell rank', y='#UMIs per cell') +
+  guides(colour=guide_legend(title=NULL))
+  
+  
+
+gp_lines +
+  scale_x_continuous(expand=c(0.01, 0.01), limits=c(0, 3000)) +
+  scale_y_continuous(expand=c(0.01, 0.01))
+
+# ggsave(paste0(kPlotsFolder, 'cell_number.', kDatasetName, '.pdf'), width=4, height=4)
+
+gp_lines + scale_y_log10(expand=c(0.01, 0.01)) + scale_x_log10(expand=c(0.01, 0.01)) + annotation_logticks()
+#ggsave(paste0(kPlotsFolder, 'cell_number_log.', kDatasetName, '.pdf'), width=4, height=4)
+```
+
+```{r}
+gg1 <- PlotCellsNumberLine(umis_per_cb$real, plot.label='Real barodes merge', breaks=50)
+gg2 <- PlotCellsNumberLine(umis_per_cb$poisson, gg.base=gg1, plot.label='No barcodes merge', breaks=50)
+gg3 <- PlotCellsNumberLine(umis_per_cb$unmerged, gg.base=gg2, plot.label='No merge', breaks=50)
+# gg4 <- PlotCellsNumberLine(umis_per_cb$simple, gg.base=gg3, plot.label='Merge all', breaks=50)
+
+gl <- guide_legend(title='Merge type')
+gg3 + theme_pdf(legend.pos=c(1, 1)) +
+  scale_x_continuous(limits=c(0, 10000), expand=c(0.01, 0.01)) +
+  # scale_y_continuous(limits=c(0, 2.35e6), expand=c(0.01, 0.01)) +
+  scale_fill_npg(alpha=0.6) +
+  guides(fill=gl, linetype=gl)
+
+# ggsave(paste0(kPlotsFolder, 'cell_number_ridges.', kDatasetName, '.pdf'), width=4, height=4)
+```
+
+# Merged cells quality
+```{r}
+lq_cell_data <- dropestr::PrepareLqCellsDataPipeline(holders$unmerged, mit.chromosome.name='chrM')
+for (n in setdiff(names(merge_targets), 'unmerged')) {
+  print(ggplot() + 
+      geom_histogram(aes(x=lq_cell_data[names(merge_targets[[n]]), ]$IntergenicFrac, color='Merged'), bins=50) +
+      geom_histogram(aes(x=lq_cell_data[colnames(holders[[n]]$cm), ]$IntergenicFrac, color='Good'), bins=50) +
+        xlim(0, 1) +
+      ggtitle(paste0(n, ': intergenic')) +
+      theme_pdf(legend.pos=c(1, 1)))
+
+  print(ggplot() + 
+      geom_histogram(aes(x=lq_cell_data[names(merge_targets[[n]]), ]$MitochondrionFraction, color='Merged'), bins=50) +
+      geom_histogram(aes(x=lq_cell_data[colnames(holders[[n]]$cm), ]$MitochondrionFraction, color='Good'), bins=50) +
+        xlim(0, 1) +
+      ggtitle(paste0(n, ': mitochondrial')) +
+      theme_pdf(legend.pos=c(1, 1)))
+}
+```
+
+
+# Merge probs
+```{r}
+common_bases <- intersect(names(merge_targets$real_poisson), names(merge_targets$poisson))
+cat("Common bases with real: ", 100 * length(common_bases) / length(merge_targets$real_poisson), "%\n", sep='')
+cat("Common bases with simple: ", 100 * length(common_bases) / length(merge_targets$poisson), "%\n", sep='')
+cat("Common targets: ", 100 * mean(merge_targets$real_poisson[common_bases] == merge_targets$poisson[common_bases]), "%\n", sep='')
+
+real_mask <- merge_targets$poisson[common_bases] %in% colnames(holders$real_poisson$cm_raw)
+cat("Fraction of real targets: ", 100 * mean(real_mask), "%\n", sep='')
+cat("Common real targets: ", 100 * mean(merge_targets$real_poisson[common_bases[real_mask]] == merge_targets$poisson[common_bases[real_mask]]), "%\n", sep='')
+```
+
+```{r}
+common_bases <- intersect(names(merge_targets$real_poisson), names(merge_targets$merge_all))
+cat("Common bases with real: ", 100 * length(common_bases) / length(merge_targets$real_poisson), "%\n", sep='')
+cat("Common bases with simple: ", 100 * length(common_bases) / length(merge_targets$merge_all), "%\n", sep='')
+cat("Common targets: ", 100 * mean(merge_targets$real_poisson[common_bases] == merge_targets$merge_all[common_bases]), "%\n", sep='')
+
+real_mask <- merge_targets$merge_all[common_bases] %in% colnames(holders$real_poisson$cm_raw)
+cat("Fraction of real targets: ", 100 * mean(real_mask), "%\n", sep='')
+cat("Common real targets: ", 100 * mean(merge_targets$real_poisson[common_bases[real_mask]] == merge_targets$merge_all[common_bases[real_mask]]), "%\n", sep='')
+```
+
+# Differences analysis
+```{r}
+cbs <- lapply(umis_per_cb, function(umis) names(umis))
+length(intersect(names(sort(umis_per_cb$poisson, decreasing=T)[1:(kCellNum + 200)]), names(sort(umis_per_cb$real_poisson, decreasing=T)[1:kCellNum])))
+c(length(intersect(cbs$poisson[1:kCellNum], cbs$real[1:kCellNum])), 
+  length(intersect(cbs$poisson[1:kCellNum], cbs$real_poisson[1:kCellNum])), 
+  length(intersect(cbs$real_poisson[1:kCellNum], cbs$real[1:kCellNum])))
+```
+
+```{r}
+false_positive_cbs <- setdiff(cbs$real_poisson[1:kCellNum], cbs$poisson)
+length(false_positive_cbs)
+false_positive_targets <- as.vector(unlist(holders$poisson$merge_targets[false_positive_cbs]))
+
+qplot((umis_per_cb$unmerged[false_positive_targets] - umis_per_cb$unmerged[false_positive_cbs]) / umis_per_cb$unmerged[false_positive_targets]) + 
+  labs(x='Difference fraction', y='Count')
+
+qplot(umis_per_cb$unmerged[false_positive_targets]) + 
+  labs(x='#UMIs per cb', y='Count')
+```
+
+```{r}
+false_negative_cbs <- setdiff(cbs$poisson[1:kCellNum], cbs$real_poisson[1:kCellNum])
+length(false_negative_cbs)
+false_negative_targets <- as.vector(unlist(holders$poisson$merge_targets[false_negative_cbs]))
+
+qplot((umis_per_cb$unmerged[false_negative_targets] - umis_per_cb$unmerged[false_negative_cbs]) / umis_per_cb$unmerged[false_negative_targets]) + 
+  labs(x='Difference fraction', y='Count')
+
+qplot(umis_per_cb$unmerged[false_negative_targets]) + 
+  labs(x='#UMIs per cb', y='Count')
+```
+
+```{r}
+length(intersect(false_positive_targets, cbs$real_poisson))
+length(false_negative_targets)
+length(false_negative_cbs)
+```
+
+```{r}
+library(pagoda2)
+```
+
+```{r}
+# common_genes <- intersect(rownames(holders$real_poisson$cm), rownames(holders$poisson$cm))
+# # dim(holders$real_poisson$cm[common_genes, cbs$real_poisson[1:kCellNum]])
+# # dim(holders$poisson$cm[common_genes, false_positive_targets])
+# false_negative_cm <- holders$poisson$cm[common_genes, unique(false_negative_cbs)]
+# merged_cm <- cbind(holders$real_poisson$cm[common_genes, cbs$real_poisson[1:kCellNum]], false_negative_cm)
+```
+
+```{r}
+r_real <- GetPagoda(holders$real_poisson$cm[,names(sort(Matrix::colSums(holders$real_poisson$cm))[1:kCellNum])])
+r_all <- GetPagoda(holders$merge_all$cm[,names(sort(Matrix::colSums(holders$merge_all$cm))[1:kCellNum])])
+
+r_unmerged <- Pagoda2$new(holders$unmerged$cm_raw, modelType='plain', trim=5, n.cores=10)
+r_unmerged$adjustVariance(plot=F, do.par=F, gam.k=10)
+```
+
+```{r}
+merge_info <- list(real=list(), all=list(), simple=list())
+
+merge_info$real$target_clusters <- r_real$clusters$PCA$infomap[r_real$clusters$PCA$infomap %in% 1:7]
+merge_info$real$merge_targets <- merge_targets$real_poisson[merge_targets$real_poisson %in% names(merge_info$real$target_clusters)]
+merge_info$real$base_clusters <- setNames(merge_info$real$target_clusters[merge_info$real$merge_targets], names(merge_info$real$merge_targets))
+merge_info$real$bases_cm <- r_unmerged$counts[intersect(rownames(r_unmerged$counts), names(merge_info$real$merge_targets)),]
+merge_info$real$targets_cm <- r_unmerged$counts[intersect(rownames(r_unmerged$counts), merge_info$real$merge_targets),]
+
+merge_info$all$merge_targets <- merge_targets$merge_all[merge_targets$merge_all %in% names(merge_info$real$target_clusters)]
+merge_info$all$base_clusters <- setNames(merge_info$real$target_clusters[merge_info$all$merge_targets], names(merge_info$all$merge_targets))
+merge_info$all$bases_cm <- r_unmerged$counts[intersect(rownames(r_unmerged$counts), names(merge_info$all$merge_targets)),]
+
+merge_info$simple$merge_targets <- merge_targets$poisson[merge_targets$poisson %in% names(merge_info$real$target_clusters)]
+merge_info$simple$base_clusters <- setNames(merge_info$real$target_clusters[merge_info$simple$merge_targets], names(merge_info$simple$merge_targets))
+merge_info$simple$bases_cm <- r_unmerged$counts[intersect(rownames(r_unmerged$counts), names(merge_info$simple$merge_targets)),]
+```
+
+```{r}
+sort(umis_per_cb$unmerged[names(merge_info$real$base_clusters)], decreasing=T)
+sort(umis_per_cb$unmerged[names(merge_info$all$base_clusters)], decreasing=T)
+sort(umis_per_cb$unmerged[names(merge_info$simple$base_clusters)], decreasing=T)
+```
+
+# Heatmaps
+```{r}
+library(ComplexHeatmap)
+library(circlize)
+library(RColorBrewer)
+
+r_real$getDifferentialGenes(type='PCA', clusterType = 'infomap')
+de_genes <- Reduce(union, lapply(r_real$diffgenes$PCA$infomap, function(x) rownames(x)[1:min(100, nrow(x))]))
+de_genes <- de_genes[!is.na(de_genes)]
+```
+
+```{r}
+PrepareBaseHeatmap <- function(mtx, annotation.df, h.clust.columns, show_heatmap_legend=T, row_title='', column_title='', column_dend=F) {
+  hm.base <- Heatmap(mtx[rownames(annotation.df),], 
+                   cluster_rows=F, cluster_columns=h.clust.columns, name = "log10(expression)", 
+                   show_heatmap_legend=show_heatmap_legend, show_row_names = F, show_column_names = F, show_column_dend=column_dend,
+                   column_dend_height=unit(0.3, 'in'),
+                   heatmap_legend_param=list(legend_direction = "horizontal", legend_width=unit(2, 'in')),
+                   col=colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(100),
+                   row_title=row_title, column_title=column_title, column_title_side='bottom')
+  return(hm.base)
+}
+
+PrepareHeatmapAnnotation <- function(annotation.df, colors, show_legend=F) {
+  annotation <- HeatmapAnnotation(df=annotation.df, which = "row", 
+                                 annotation_legend_param = list(
+                                   UmisPerCell = list(title = "log10(#molecules per cell)", legend_direction = "horizontal", 
+                                                      color_bar='continuous', legend_width=unit(2, 'in')), 
+                                   Cluster = list(title = "Cluster", legend_direction = "horizontal", nrow=1, legend_gap=unit(c(1, 1), 'in'))),
+                                 col=colors, show_legend=show_legend)
+  
+  return(annotation)
+}
+
+AnnotationDf <- function(clusters, umis_per_cb) {
+  return(data.frame(row.names=names(clusters), UmisPerCell=umis_per_cb[names(clusters)], Cluster=clusters))
+}
+```
+
+```{r}
+umi_threshold <- 100
+clusters_real <- merge_info$real$target_clusters[umis_per_cb$unmerged[names(merge_info$real$target_clusters)] > umi_threshold]
+clusters_real <- clusters_real[order(clusters_real, -umis_per_cb$unmerged[names(clusters_real)])]
+
+base_clusters <- lapply(merge_info, function(mi) mi$base_clusters[umis_per_cb$unmerged[names(mi$base_clusters)] > umi_threshold])
+base_clusters <- lapply(base_clusters, function(cl) cl[order(cl, -umis_per_cb$unmerged[names(cl)])])
+
+m_real <- log10(1e-6 + as.matrix(r_unmerged$counts[names(clusters_real), de_genes]))
+m_base <- lapply(base_clusters, function(cl) log10(1e-6 + as.matrix(r_unmerged$counts[names(cl), de_genes])))
+
+h_clust_col <- hclust(dist(t(m_real)))
+
+annotation_real <- AnnotationDf(clusters_real, umis_per_cb$unmerged)
+annotation_base <- lapply(base_clusters, AnnotationDf, umis_per_cb$unmerged)
+
+clusts <- unique(annotation_real$Cluster)
+colors_lst <- list(UmisPerCell=colorRamp2(breaks=seq(min(annotation_real$UmisPerCell), max((annotation_real$UmisPerCell)), length.out=100), 
+                                          colors=colorRampPalette(brewer.pal(n = 9, name = "OrRd"))(100)),
+                   Cluster=setNames(colorRampPalette(rev(brewer.pal(n = length(clusts), name = "Dark2")))(length(clusts)), clusts))
+```
+
+```{r}
+hm_real <- PrepareBaseHeatmap(m_real, annotation_real, h_clust_col, show_heatmap_legend=F, column_dend=T, row_title='', column_title='')
+ha_real <- PrepareHeatmapAnnotation(annotation_real, colors_lst, show_legend=F)
+
+show_legend <- setNames(c(F, T, F), names(annotation_base))
+show_annot_legend <- setNames(c(F, F, T), names(annotation_base))
+show_dend <- setNames(c(T, F, F), names(annotation_base))
+
+hm_base <- list()
+ha_base <- list()
+for (n in names(m_base)) {
+  hm_base[[n]] <- PrepareBaseHeatmap(m_base[[n]], annotation_base[[n]], h_clust_col, show_heatmap_legend=show_legend[[n]], column_dend=show_dend[[n]], row_title='', column_title='')
+  ha_base[[n]] <- PrepareHeatmapAnnotation(annotation_base[[n]], colors_lst, show_legend=show_annot_legend[[n]])
+}
+```
+
+```{r, fig.width=8, fig.height=9}
+draw(hm_real + ha_real, padding = unit(c(4.6, 0, 0, 3.95), "in"))
+draw(hm_base$real + ha_base$real, newpage=F, padding = unit(c(4.6, 4.1, 0, 0), "in"))
+draw(hm_base$all + ha_base$all, newpage=F, padding = unit(c(0, 0, 4.6, 3.95), "in"), heatmap_legend_side='bottom', annotation_legend_side='bottom')
+draw(hm_base$simple + ha_base$simple, newpage=F, padding = unit(c(0, 4.1, 4.6, 0), "in"), heatmap_legend_side='bottom', annotation_legend_side='bottom')
+```
+
+```{r, fig.width=8, fig.height=4}
+annotation_df_s <- split(annotation_df, annotation_df$CellType)
+
+annotation_df_cur <- annotation_df_s$Base %>% dplyr::select(-CellType)
+hm_base <- PrepareBaseHeatmap(m_subset, annotation_df_cur, h_clust_col, show_heatmap_legend=F, column_dend=T, row_title='Cells', column_title='')
+ha_base <- PrepareHeatmapAnnotation(annotation_df_cur, colors_lst, show_legend=F)
+
+annotation_df_cur <- annotation_df_s$Filtered %>% dplyr::select(-CellType)
+hm_filt <- PrepareBaseHeatmap(m_subset, annotation_df_cur, h_clust_col, show_heatmap_legend=T, column_dend=F, row_title='Cells', column_title='Genes')
+ha_filt <- PrepareHeatmapAnnotation(annotation_df_cur, colors_lst, show_legend=T)
+
+annotation_df_cur <- annotation_df_s$Rescued %>% dplyr::select(-CellType)
+hm_rescued <- PrepareBaseHeatmap(m_subset, annotation_df_cur, h_clust_col, show_heatmap_legend=F, column_dend=T, row_title='', column_title='Genes')
+ha_rescued <- PrepareHeatmapAnnotation(annotation_df_cur, colors_lst, show_legend=F)
+```
+
+```{r, fig.width=8, fig.height=8}
+# pdf(paste0(kPlotsFolder, 'filtered_genes_heatmap.pdf'), width=8, height=8, paper='special')
+# png(paste0(kPlotsFolder, 'filtered_genes_heatmap.png'), width=8, height=8, units='in', res=300)
+draw(hm_base + ha_base, padding = unit(c(4.02, 0, 0, 3.9), "in"))
+draw(hm_rescued + ha_rescued, newpage=F, padding = unit(c(3.66, 4.2, 0, 0), "in"))
+draw(hm_filt + ha_filt, newpage=F, padding = unit(c(0, 0, 4.02, 1.83), "in"), heatmap_legend_side='right', annotation_legend_side='right')
+# dev.off()
+```
+
+
+
+
+
+
+# Other
+```{r}
+PlotPagodaEmbeding(r_real, clustering.type='infomap', show.legend=F, min.cluster.size=70, mark.clusters=T, alpha=0.5, size=0.5, font.size=4.5) + 
+  theme_pdf(F)
+```
+
+```{r}
+PlotPagodaEmbeding(r_all, clustering.type='infomap', show.legend=F, min.cluster.size=70, mark.clusters=T, alpha=0.5, size=0.5, font.size=4.5) + 
+  theme_pdf(F)
+```
+
+```{r}
+length(as.factor(c(rep(0, kCellNum), rep(1, ncol(false_negative_cm)))))
+dim(r$counts)
+```
+
+```{r}
+class_labels <- c(setNames(rep(0, kCellNum), cbs$real_poisson[1:kCellNum]), setNames(rep(1, ncol(false_negative_cm)), colnames(false_negative_cm)))
+class_labels <- as.factor(class_labels)
+
+r$plotEmbedding(type='PCA', embeddingType = 'tSNE', groups=class_labels, show.legend=T, mark.clusters=F, 
+                min.group.size=50, shuffle.colors=F, mark.cluster.cex=1, alpha=0.5, quiet=T)
+```
+
+
+# False positive rate
+```{r}
+holder <- readRDS('/d0-mendel/home/viktor_petukhov/Data/SRR1784310/est_11_07_unmerged/SRR1784310.rds')
+# holder <- readRDS('/d0-mendel/home/viktor_petukhov/Data/SCG71/est_11_08_unmerged/SCG71.rds')
+validation_info  <- holder$merge_validation_info
+```
+
+```{r}
+fracs <- c(10^seq(-12, 0, 0.1), 1)
+observed_fracs <- unlist(mclapply(fracs, function(frac) mean(validation_info$distant$Probability <= frac), mc.cores=20))
+
+observed_fracs_adj <- unlist(mclapply(fracs, function(frac) mean(validation_info$adjacent$Probability <= frac), mc.cores=20))
+
+qplot(fracs, observed_fracs, color='Edit distance > 5') + geom_line(size=1) + 
+  geom_line(aes(x=fracs, y=observed_fracs_adj, color='Edit distance == 1'), size=1) +
+  geom_line(aes(fracs, fracs, colour='y=x'), size=1, alpha=0.8) + 
+  scale_color_manual(name=NULL, values=c("#2D802D", "#35419C", 'black')) +
+  scale_x_log10(limits=c(3e-8, 1)) + scale_y_log10(limits=c(1e-5, 1.1)) + 
+  legend_pos(5e-3, 1)
+```

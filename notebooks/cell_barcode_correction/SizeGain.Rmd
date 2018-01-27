@@ -1,0 +1,92 @@
+---
+title: "Precise Merge Validation"
+output:
+  html_document:
+    df_print: kable
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+  html_notebook: default
+---
+
+# Initialization
+```{r global_options, include=FALSE}
+library(ggplot2)
+library(ggsci)
+library(ggpubr)
+library(dplyr)
+library(parallel)
+library(dropestr)
+library(reshape2)
+library(Matrix)
+
+theme_set(theme_base)
+
+kPlotsFolder <- '~/Data/Plots/PaperReview/CBMerge/'
+```
+
+```{r}
+dataset_names <- c('precise', 'unmerged')
+kDataPath <- '/d0-mendel/home/viktor_petukhov/Data/'
+kDropSeqPath <- paste0('dropseq/thousand/', c('est_01_16_precise/', 'est_01_16_unmerged/'), 'thousand.rds')
+kInDropPath <- paste0('SCG71/', c('est_11_16_poisson_simple/', 'est_11_16_unmerged/'), 'SCG71.rds')
+k10xPath <- paste0('10x/pbmc33k/', c('est_11_17_poisson/', 'est_11_17_unmerged/'), 'pbmc33k_no_umis.rds')
+
+kDataPaths <- list(dropseq=kDropSeqPath, indrop=kInDropPath, `10x`=k10xPath) %>% 
+  lapply(function(l) paste0(kDataPath, l) %>% setNames(dataset_names))
+unlist(kDataPaths) %>% sapply(file.exists)
+
+holders <- mclapply(kDataPaths, function(x) mclapply(x, readRDS, mc.cores=length(x)), 
+                    mc.cores=length(kDataPaths))
+```
+
+```{r}
+validation_data <- list()
+for (n in names(holders)) {
+  validation_data[[n]] <- list(
+    merge_targets = lapply(holders[[n]], function(holder) unlist(holder$merge_targets)),
+    cms_raw = lapply(holders[[n]], `[[`, 'cm_raw'),
+    cms = lapply(holders[[n]], `[[`, 'cm')
+  )
+}
+
+# validation_data_10x <- readRDS('/d0-mendel/home/viktor_petukhov/Data/10x/hgmm_6k/est_01_14_validation_data.rds')
+# 
+# validation_data$`10x` <- lapply(validation_data_10x, function(d) d[c('poisson', 'unmerged')] %>% setNames(dataset_names))
+
+validation_data$dropseq$cell_number <- 1000
+validation_data$indrop$cell_number <- 5200
+# validation_data$`10x`$cell_number <- 6000
+validation_data$`10x`$cell_number <- 30000
+
+for (n in names(validation_data)) {
+  validation_data[[n]]$umi_per_cb <- lapply(validation_data[[n]]$cms, function(cm) sort(Matrix::colSums(cm), decreasing=T))
+  validation_data[[n]]$real_cbs <- names(validation_data[[n]]$umi_per_cb$precise)[1:validation_data[[n]]$cell_number]
+}
+
+saveRDS(validation_data, '~/tmp_exchange/merge_size_change_validation_data.rds')
+# rm(validation_data_10x)
+
+validation_data <- readRDS('~/tmp_exchange/merge_size_change_validation_data.rds')
+```
+
+```{r}
+size_increase <- lapply(validation_data, function(d) (d$umi_per_cb$precise[d$real_cbs] - d$umi_per_cb$unmerged[d$real_cbs]) / d$umi_per_cb$unmerged[d$real_cbs])
+lapply(size_increase, is.na) %>% sapply(sum)
+```
+
+```{r, fig.width=3.5, fig.height=2.9}
+names(size_increase) <- c('Drop-seq, mixture', 'inDrop, BMCs', '10x, 33k PBMCs')
+plot_df <- mapply(function(v, n) tibble(Increase=v, Dataset=n), size_increase, names(size_increase), SIMPLIFY=F) %>% bind_rows()
+
+gg_size <- ggplot(plot_df) + 
+  geom_histogram(aes(x=100 * Increase, fill=Dataset, y = 100 * 0.75 * ..density..), binwidth=0.75, color=alpha('black', 0.05), position='identity', alpha=0.5) + 
+  scale_x_continuous(expand=c(0, 0), limits=c(0.0, 20)) +
+  scale_y_continuous(expand=c(0, 0), limits=c(0, 35)) +
+  labs(x='Increase in #molecules per CB, %', y='Number of cells, %') +
+  theme_pdf(legend.pos=c(1, 1)) + theme(panel.grid.minor=element_blank())
+
+gg_size
+ggsave(paste0(kPlotsFolder, "size_increase.pdf"), gg_size, width=3.5, height=2.9)
+```
+

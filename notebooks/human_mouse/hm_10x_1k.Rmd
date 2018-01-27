@@ -1,5 +1,5 @@
 ---
-title: "Drop-seq human/mouse mixture analysis"
+title: "10x 1k human/mouse mixture analysis"
 author: "Viktor Petukhov"
 date: 2018-01-23
 output: html_document
@@ -18,12 +18,13 @@ knitr::read_chunk("../../analysis/chunks.R")
 ```{r code-version, echo=FALSE, results='asis'}
 ```
 
-```{r global_options}
+```{r global_options, message=FALSE}
 library(ggplot2)
 library(ggrastr)
-library(dplyr)
 library(dropestr)
 library(dropEstAnalysis)
+library(Matrix)
+library(dplyr)
 
 theme_set(theme_base)
 ```
@@ -31,16 +32,14 @@ theme_set(theme_base)
 ## Load data
 Here bam file was filtered by realigning it with `kallisto 0.43` separately on mouse and human genome. Only reads, which were aligned only on one of them were used in `dropEst`.
 ```{r}
-holder <- readRDS('../../data/dropest/dropseq/thousand/est_2018_01_26_tophat/thousand.rds')
-bc_data <- PrepareLqCellsDataPipeline(holder, scale=FALSE) %>% 
-  tibble::rownames_to_column("CB")
+holder <- readRDS('../../data/dropest/10x/hgmm_1k/est_2018_01_27_kallisto/hgmm_1k.rds')
 ```
 
 ```{r}
 cm_real <- holder$cm_raw
 cell_number <- 1100
 
-gene_species <- ifelse(substr(rownames(cm_real), 1, 2) == "HU", 'Human', 'Mouse') %>% 
+gene_species <- ifelse(substr(rownames(cm_real), 1, 2) == "hg", 'Human', 'Mouse') %>% 
   as.factor()
 umi_by_species <- lapply(levels(gene_species), function(l) cm_real[gene_species == l,] %>% 
                            Matrix::colSums()) %>% as.data.frame() %>% 
@@ -50,9 +49,13 @@ umi_by_species <- lapply(levels(gene_species), function(l) cm_real[gene_species 
          IsReal=rank(Total) >= length(Total) - cell_number) %>%
   filter(Total > 20)
 
-mit_genes <- rownames(holder$cm_raw)[grep("_MT:.+", rownames(holder$cm_raw))]
-umi_by_species <- umi_by_species %>% mutate(
-    MitochondrionFraction = GetGenesetFraction(holder$cm_raw, mit_genes)[CB]
+reads_per_chr <- FillNa(holder$reads_per_chr_per_cells$Exon[umi_by_species$CB,])
+
+umi_by_species <- umi_by_species %>% 
+  mutate(
+    MitReads = reads_per_chr$mm10_MT + reads_per_chr$hg19_MT,
+    TotalReads = rowSums(reads_per_chr),
+    MitochondrionFraction = MitReads / TotalReads
   )
 ```
 
@@ -69,10 +72,11 @@ gg_left <- gg + geom_point(aes(color=IsReal), size=0.1, alpha=0.15) +
 
 gg_right <- gg + geom_point(aes(color=MitochondrionFraction), size=0.1, alpha=0.15) +
   scale_color_gradientn(colours=c("#1200ba", "#347fff", "#cc4000", "#ff3333"), 
-                        values=scales::rescale(c(0, 0.1, 0.3, 0.8))) +
+                        values=scales::rescale(c(0, 0.1, 0.3, 0.8)), 
+                        breaks=seq(0, 1.0, 0.2)) +
   guides(color=guide_colorbar(direction="horizontal", title.position="top", 
                               title="Mitochondrial\nfraction", 
-                              barwidth=unit(1.0, units="in")))
+                              barwidth=unit(1.2, units="in")))
 
 cowplot::plot_grid(gg_left, gg_right)
 ```
@@ -89,8 +93,7 @@ ggplot(umi_by_species) +
 
 ## Check for constant background
 
-Background cells have constant fraction of mouse and human reads. Though this fraction is 
-not determined by the corresponding ratio in real cells:  
+Background cells have constant fraction of mouse and human reads:  
 ```{r}
 mouse_frac <- umi_by_species %>% filter(IsReal) %>% 
   summarise(Mouse=sum(Mouse[Organism == 'Mouse']), Human=sum(Human[Organism == 'Human']), 
@@ -107,18 +110,11 @@ Distribution of total number of molecules by background cells:
 ```{r, message=FALSE, warning=FALSE}
 gg <- ggplot(umi_by_species %>% filter(!IsReal)) +
   geom_histogram(aes(x=Total), bins=100) +
-  scale_x_continuous(limits=c(0, 1000), expand=c(0, 0), name="Total #UMIs") +
-  scale_y_continuous(limits=c(0,4500), expand=c(0, 0), name="#Cells") +
+  scale_x_continuous(limits=c(0, 250), expand=c(0, 0), name="Total #UMIs") +
+  scale_y_continuous(limits=c(0,9000), expand=c(0, 0), name="#Cells") +
   theme_pdf()
 
 gg
-```
-
-Though, it looks better on logscale:  
-```{r, message=FALSE, warning=FALSE}
-gg + 
-  scale_x_log10(limits=c(19, 3000), expand=c(0, 0), name="Total #UMIs") +
-  annotation_logticks(sides="b")
 ```
 
 ## Session information

@@ -1,0 +1,229 @@
+---
+title: "Precise Merge Validation"
+output:
+  html_document:
+    df_print: kable
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+  html_notebook: default
+---
+
+# Initialization
+```{r global_options, include=FALSE}
+library(ggplot2)
+library(ggrastr)
+library(dplyr)
+library(dropestr)
+
+theme_set(theme_base)
+
+FillNa <- function(data, value=0) {
+  data[is.na(data)] <- value
+  return(data)
+}
+# kPlotsFolder <- '~/Data/Plots/PaperReview/CBMerge/'
+```
+
+```{r}
+kDataPath <- '../../data/dropest/10x/hgmm_6k/'
+kDataFolders <- c(poisson='est_01_14_precise/', real='est_01_14_barcodes/', unmerged='est_01_14_unmerged/', merge_all='est_01_16_merge_all/', simple='est_01_14_simple/')
+# holders <- mclapply(kDataFolders, function(folder) readRDS(paste0(kDataPath, folder, kDatasetName, '.rds')), mc.cores=length(kDataFolders))
+# length(holders)
+```
+
+```{r}
+# holder <- readRDS(paste0(kDataPath, kDataFolders['merge_all'], kDatasetName, '.rds'))
+# validation_data$merge_targets$merge_all <- unlist(holder$merge_targets)
+# validation_data$cms_raw$merge_all <- holder$cm_raw
+# validation_data$cms$merge_all <- holder$cm
+```
+
+```{r}
+# validation_data <- list(
+#   merge_targets = lapply(holders, function(holder) unlist(holder$merge_targets)),
+#   cms_raw = lapply(holders, `[[`, 'cm_raw'),
+#   cms = lapply(holders, `[[`, 'cm')
+# )
+# 
+# saveRDS(validation_data, paste0(kDataPath, 'est_01_14_validation_data.rds'))
+validation_data <- readRDS(paste0(kDataPath, 'est_01_14_validation_data.rds'))
+```
+
+```{r}
+validation_data$cms_raw <- lapply(validation_data$cms_raw, function(cm) cm[grep("^[^;]+$", rownames(cm)),])
+validation_data$cms <- lapply(validation_data$cms, function(cm) cm[grep("^[^;]+$", rownames(cm)),])
+```
+
+```{r}
+umis_per_cb <- Matrix::colSums(validation_data$cms$real) %>% sort(decreasing=T)
+real_cbs <- names(umis_per_cb)[1:6000]
+PlotCellsNumberLine(umis_per_cb[1:10000])
+```
+
+```{r}
+gene_species <- ifelse(substr(rownames(validation_data$cms_raw$unmerged), 1, 2) == "hg", 'Human', 'Mouse') %>% as.factor()
+cell_species <- lapply(levels(gene_species), function(l) validation_data$cms_raw$unmerged[gene_species == l,] %>% Matrix::colSums()) %>% 
+  (function(x) levels(gene_species)[as.integer(x[[1]] < x[[2]]) + 1]) %>% setNames(colnames(validation_data$cms_raw$unmerged)) %>% as.factor()
+
+table(cell_species[real_cbs])
+table(cell_species) / sum(table(cell_species))
+```
+
+```{r}
+qplot(Matrix::colSums(validation_data$cms_raw$unmerged[gene_species == 'Mouse',]) / Matrix::colSums(validation_data$cms_raw$unmerged))
+```
+
+```{r}
+merge_targets <- lapply(validation_data$merge_targets, function(mt) mt[mt %in% real_cbs])
+(comparison <- MergeComparisonSummary(merge_targets, cell_species, dataset="10x hgmm6k"))
+write.csv(comparison, paste0(kDataPath, 'merge_comparison.csv'))
+```
+
+
+```{r}
+umis_per_cb <- lapply(validation_data$cms_raw, function(cm) sort(Matrix::colSums(cm), decreasing=T))
+
+# for (n in names(umis_per_cb)) {
+#   names(umis_per_cb[[n]]) <- substr(names(umis_per_cb[[n]]), 1, 14)
+#   filt_cbs <- substr(names(umis_per_cb[[n]]), 1, 14) %>% table() %>% (function(x) names(x)[x == 1])
+#   umis_per_cb[[n]] <- umis_per_cb[[n]][filt_cbs]
+# }
+```
+
+```{r, fig.width=6, fig.height=4, warning=FALSE, message=FALSE}
+linewidth <- 1
+alpha <- 0.7
+gg1 <- PlotCellsNumberLogLog(umis_per_cb$real, plot.label='Poisson, real barcodes', plot.border=F, linewidth=linewidth, alpha=alpha)
+gg2 <- PlotCellsNumberLogLog(umis_per_cb$poisson, gg.base=gg1, plot.label='Poisson, no barcodes', plot.border=F, linewidth=linewidth, alpha=alpha)
+gg3 <- PlotCellsNumberLogLog(umis_per_cb$unmerged, gg.base=gg2, plot.label='No merge', plot.border=F, linewidth=linewidth, alpha=alpha)
+gg4 <- PlotCellsNumberLogLog(umis_per_cb$merge_all, gg.base=gg3, plot.label='Simple, no barcodes', plot.border=F, linewidth=linewidth, alpha=alpha)
+
+gg_merge_sizes <- gg4 + 
+  guides(color=guide_legend(title='Merge type')) +
+  scale_color_hue(l=55) +
+  # scale_x_continuous(limits=c(0, 10000)) +
+  theme_pdf(legend.pos=c(1, 1))
+
+gg_merge_sizes
+# ggsave(filename=paste0(kPlotsFolder, 'merge_sizes.pdf'), plot=gg_merge_sizes, width=6, height=4)
+```
+
+```{r, message=FALSE, warning=FALSE}
+gg1 <- PlotCellsNumberLine(umis_per_cb$real, plot.label='Real barodes merge', breaks=50)
+gg2 <- PlotCellsNumberLine(umis_per_cb$poisson, gg.base=gg1, plot.label='No barcodes merge', breaks=50)
+gg3 <- PlotCellsNumberLine(umis_per_cb$unmerged, gg.base=gg2, plot.label='No merge', breaks=50)
+gg4 <- PlotCellsNumberLine(umis_per_cb$merge_all, gg.base=gg3, plot.label='Merge all', breaks=50)
+
+gl <- guide_legend(title='Merge type')
+gg4 +
+  scale_x_continuous(limits=c(0, 15000), expand=c(0.01, 0.01)) +
+  scale_y_continuous(limits=c(0, 4.5e7), expand=c(0.01, 0.01)) +
+  # scale_fill_npg(alpha=0.6) +
+  guides(fill=gl, linetype=gl) + theme_pdf(legend.pos=c(1, 1))
+
+# ggsave(paste0(kPlotsFolder, 'cell_number_ridges.', kDatasetName, '.pdf'), width=4, height=4)
+```
+
+# Origin of mixed reads
+```{r}
+# holder <- readRDS(paste0(kDataPath, kDataFolders['unmerged'], kDatasetName, '.rds'))
+# holder$reads_per_umi_per_cell <- NULL
+# saveRDS(holder, paste0(kDataPath, kDataFolders['unmerged'], kDatasetName, '_no_umis.rds'))
+
+holder <- readRDS('../../data/dropest/10x/hgmm_1k/est_2018_01_25_filtered/hgmm_1k.rds')
+# holder <- readRDS('../../data/dropest/10x/hgmm_1k/est_2018_01_25_not_filtered/hgmm_1k.rds')
+bc_data <- PrepareLqCellsDataPipeline(holder, mit.chromosome.name='hg19_MT', scale=FALSE)
+bc_data <- bc_data %>% tibble::rownames_to_column("CB") %>% 
+  rename(MitochondrionFractionHuman=MitochondrionFraction) %>% 
+  mutate(MitochondrionFractionMouse=GetChromosomeFraction(holder$reads_per_chr_per_cells$Exon, 'mm10_MT')[CB],
+         MitochondrionFraction = (MitochondrionFractionMouse * Mouse + MitochondrionFractionHuman * Human) / Total)
+
+cell_number <- 1000
+```
+
+```{r}
+cm_real <- holder$cm_raw
+
+gene_species <- ifelse(substr(rownames(cm_real), 1, 2) == "hg", 'Human', 'Mouse') %>% as.factor()
+umi_by_species <- lapply(levels(gene_species), function(l) cm_real[gene_species == l,] %>% Matrix::colSums()) %>% 
+  as.data.frame() %>% `colnames<-`(levels(gene_species)) %>% tibble::rownames_to_column('CB') %>% as_tibble() %>%
+  mutate(Total = Human + Mouse, Organism=ifelse(Human > Mouse, "Human", "Mouse"), 
+         IsReal=order(Total, decreasing=T) <= cell_number)
+
+reads_per_chr <- FillNa(holder$reads_per_chr_per_cells$Exon[umi_by_species$CB,])
+
+umi_by_species <- umi_by_species %>% 
+  mutate(
+    MitReads = reads_per_chr$mm10_MT + reads_per_chr$hg19_MT,
+    TotalReads = rowSums(reads_per_chr),
+    MitochondrionFraction = MitReads / TotalReads
+  )
+```
+
+```{r}
+# smoothScatter(log10(umi_by_species$Human), log10(umi_by_species$Mouse))
+ggplot(umi_by_species %>% filter(!IsReal)) + 
+  geom_histogram(aes(x=pmin(Human, Mouse) / Total, y=..density..), binwidth=0.005) + 
+  theme_pdf()
+
+ggplot(umi_by_species) + 
+  geom_histogram(aes(x=pmin(Human, Mouse), y=..density..), binwidth=2) + 
+  xlim(0, 200) + theme_pdf()
+
+ggplot(umi_by_species) + 
+  geom_histogram(aes(x=pmin(Human, Mouse) %>% log10(), y=..density..), bins=100)
+```
+
+```{r}
+plot_frac <- bc_data$MitochondrionFraction %>% setNames(bc_data$CB)
+# plot_frac <- bc_data$LowExpressedGenesFrac %>% setNames(bc_data$CB)
+# plot_frac[plot_frac > 0.2] <- 0.2
+ggplot(umi_by_species) + 
+  geom_point(aes(x=Total, y=pmin(Human, Mouse), color=plot_frac[CB]), size=0.1, alpha=0.1) +
+  scale_x_log10(name='Real UMIs', limits=c(10, 2e5)) + scale_y_log10(name='Wrong UMIs') + annotation_logticks() +
+  theme_pdf(legend.pos=c(0, 1))
+```
+
+```{r}
+ggplot(umi_by_species) + 
+  geom_point(aes(x=Total, y=pmin(Human, Mouse) / Total, color=Organism), size=0.1, alpha=0.1) +
+  scale_x_log10(name='Real UMIs', limits=c(10, 2e5)) + annotation_logticks() + ylab('Fraction of mixed UMIs') +
+  theme_pdf(legend.pos=c(1, 1))
+```
+
+Consistence with common distribution
+```{r}
+mouse_frac <- umi_by_species %>% filter(IsReal) %>% 
+  summarise(Mouse=sum(Mouse[Organism == 'Mouse']), Human=sum(Human[Organism == 'Human']), MF=Mouse / (Mouse + Human)) %>% .$MF
+ggplot(umi_by_species) + 
+  geom_histogram(aes(x=Mouse / Total, y=..density..), binwidth=0.005) + 
+  geom_vline(xintercept=mouse_frac) +
+  theme_pdf()
+```
+
+```{r}
+ggplot(umi_by_species) + 
+  geom_point(aes(x=Mouse, y=Human, color=MitochondrionFraction), size=0.1, alpha=0.1) +
+  geom_abline(aes(slope=1, intercept=0), linetype='dashed', alpha=0.5) +
+  scale_x_log10(limits=c(10, 2e5)) + scale_y_log10() + annotation_logticks() +
+  guides(color=guide_colorbar(title='Mitochondrial\nfraction')) +
+  theme_pdf(legend.pos=c(0, 1))
+```
+
+```{r}
+ggplot(umi_by_species) + 
+  geom_point(aes(x=Mouse, y=Human, color=plot_frac[CB]), size=0.1, alpha=0.1) +
+  geom_abline(aes(slope=1, intercept=0), linetype='dashed', alpha=0.5) +
+  scale_x_log10(limits=c(10, 2e5)) + scale_y_log10() + annotation_logticks() +
+  theme_pdf(legend.pos=c(0, 1))
+```
+
+```{r}
+plot_df <- umi_by_species %>% filter(IsReal, Organism == 'Human', Mouse < 900)
+ggplot(plot_df, aes(x=Mouse, y=Human)) + 
+  geom_point(size=0.1, alpha=0.1) +
+  scale_x_log10(limits=c(10, 2e5)) + scale_y_log10() + annotation_logticks() +
+  theme_pdf(legend.pos=c(0, 1))
+```
+

@@ -1,0 +1,128 @@
+---
+title: "Precise Merge Validation"
+output:
+  html_document:
+    df_print: kable
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+  html_notebook: default
+---
+
+# Initialization
+```{r global_options, include=FALSE}
+library(ggplot2)
+library(ggsci)
+library(ggpubr)
+library(dplyr)
+library(parallel)
+library(dropestr)
+library(reshape2)
+library(Matrix)
+
+source("../Functions/PlotFuncs.R")
+source("../Functions/Functions.R")
+
+knitr::opts_chunk$set(fig.width=5, fig.height=3, echo=FALSE, warning=FALSE, message=FALSE)
+theme_set(theme_base)
+
+options(mc.cores=10)
+kPlotsFolder <- '~/Data/Plots/PaperReview/CBMerge/'
+```
+
+```{r}
+# kDatasetName <- 'hgmm6k'
+kDataPath <- '/d0-mendel/home/viktor_petukhov/Data/10x/hgmm_12k/'
+kSubFolders <- list(raw='raw_gene_bc_matrices/', filtered='filtered_gene_bc_matrices/')
+organisms <- c('hg19', 'mm10')
+
+cms <- mclapply(kSubFolders, function(folder) mclapply(organisms, function(org) Seurat::Read10X(paste0(kDataPath, folder, org, '/'))) %>% setNames(organisms))
+umis_per_cb <- mclapply(cms, mclapply, Matrix::colSums)
+
+umis_per_cb$filtered %>% lapply(length) %>% unlist() %>% sum()
+
+lapply(umis_per_cb$raw, names) %>% (function(x) all(x[[1]] == x[[2]]))
+
+raw_data <- umis_per_cb$raw %>% setNames(c('Human', 'Mouse')) %>% as.data.frame() %>% 
+  tibble::rownames_to_column("CB") %>% as_tibble() %>%
+  mutate(Total = Human + Mouse, Organism=ifelse(Human > Mouse, "Human", "Mouse")) %>% 
+  filter(Total > 10)
+
+raw_data$MitUMIs <- mapply(function(n, cm) cm[grep(paste0(n, "_MT-.+"), rownames(cm)), raw_data$CB] %>% Matrix::colSums(), 
+       names(cms$raw), cms$raw) %>% rowSums()
+```
+
+```{r}
+umis_per_cb_sub <- sort(raw_data$Total, decreasing=T)[1:30000]
+cell_num <- EstimateCellsNumber(umis_per_cb_sub)$expected
+PlotCellsNumberLine(umis_per_cb_sub, estimate.cells.number=T)
+```
+
+```{r}
+raw_data <- raw_data %>% mutate(Rank=length(Total) - rank(Total) + 1, IsReal=Rank <= cell_num)
+```
+
+# Origin of mixed reads
+```{r}
+raw_data <- raw_data %>% mutate(IsDoublet = (Mouse > 1e3) & (Human  > 1e3), Type = ifelse(IsDoublet, "Doublet", ifelse(IsReal, Organism, "Background")))
+```
+
+```{r, fig.width=4, fig.height=4}
+colors <- c(Background = "#636363", Mouse = "#3960cc", Human = "#3ca320", Doublet = "#c61b26")
+ggplot(raw_data) + 
+  geom_point(aes(x=Human, y=Mouse, color=Type, alpha=Type), size=0.1) +
+  scale_x_log10(limits=c(1, 0.8e5)) + scale_y_log10(limits=c(1, 0.8e5)) + annotation_logticks() +
+  geom_abline(aes(slope=1, intercept=0), linetype='dashed') +
+  guides(color=guide_legend(override.aes=list(alpha=1, size=1)), alpha="none") +
+  scale_color_manual(values=colors) + 
+  scale_alpha_manual(values=c(Background=0.05, Mouse=0.1, Human=0.1, Doublet=0.1)) +
+  theme_pdf(legend.pos=c(0.05, 1))
+```
+
+## Additional plots
+```{r}
+coords <- list(xmin=c(0.7, 5e3, 1e5), ymin=c(0.7, 2e3, 1e5))
+
+plot_separation <- list(
+  tibble(coords$xmin[1], coords$xmin[2], coords$ymin[1], coords$ymin[2], "Background"),
+  tibble(coords$xmin[1], coords$xmin[2], coords$ymin[2], coords$ymin[3], "Mouse"),
+  tibble(coords$xmin[2], coords$xmin[3], coords$ymin[1], coords$ymin[2], "Human"),
+  tibble(coords$xmin[2], coords$xmin[3], coords$ymin[2], coords$ymin[3], "Doublet")) %>%
+  lapply(`colnames<-`, c("xmin", "xmax", "ymin", "ymax", "Type")) %>% bind_rows()
+
+ggplot(raw_data) + 
+  geom_rect(data=plot_separation, mapping=aes(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax, fill=Type), alpha=0.1) +
+  geom_point(aes(x=Human, y=Mouse, color= pmin(Human, Mouse) / Total), size=0.1, alpha=0.1) + # , color= MitUMIs / Total
+  scale_x_log10(expand=c(0, 0)) + scale_y_log10(expand=c(0, 0)) + annotation_logticks() +
+  geom_abline(aes(slope=1, intercept=0), linetype='dashed') +
+  scale_color_gradientn(colours=c("#1200ba", "#347fff", "#ff3333"), values=scales::rescale(c(0, 0.1, 0.8))) +
+  scale_fill_manual(values=c("gray", scales::hue_pal()(4)[2:4])) +
+  guides(fill=guide_legend(override.aes=list(alpha=1)), 
+         color=guide_colorbar(direction="horizontal", title.position="top", title="Mitochondrial\nfraction", barwidth=unit(1.3, units="in"))) +
+  theme_pdf(legend.pos=c(0, 1))
+```
+
+```{r}
+ggplot(raw_data) + 
+  geom_point(aes(x=pmax(Human, Mouse), y=pmin(Human, Mouse) / Total, color=Type), size=0.1, alpha=0.1) +
+  scale_x_log10(name='Real UMIs') + annotation_logticks() + ylab('Fraction of mixed UMIs') +
+  theme_pdf(legend.pos=c(1, 1))
+```
+
+```{r}
+ggplot(raw_data %>% filter(Type == "Background")) + 
+  geom_histogram(aes(x=pmin(Human, Mouse)), bins=50) + 
+  xlim(0, 150)
+
+mean_fraction <- raw_data %>% filter(Type == "Human" | Type == "Mouse") %>% 
+  summarise(Mouse = sum(Mouse), Human = sum(Human)) %>%
+  mutate(x = Mouse / (Mouse + Human)) %>% .$x
+
+ggplot(raw_data %>% filter(Type == "Background")) + 
+  geom_histogram(aes(x=pmin(Human, Mouse) / Total), bins=50) +
+  geom_vline(aes(xintercept=mean_fraction))
+
+ggplot(raw_data %>% filter(Type == "Doublet")) + 
+  geom_histogram(aes(x=pmin(Human, Mouse) / Total), bins=20)
+```
+

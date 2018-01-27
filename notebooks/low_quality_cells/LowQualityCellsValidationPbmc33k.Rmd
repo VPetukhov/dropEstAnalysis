@@ -1,0 +1,209 @@
+---
+title: "Low-quality Cells Validation"
+output: html_document
+---
+
+```{r global_options, include=FALSE}
+library(ggplot2)
+library(ggsci)
+library(ggpubr)
+library(ggrastr)
+library(dplyr)
+library(parallel)
+library(reshape2)
+library(RColorBrewer)
+
+source("./Functions/PlotFuncs.R")
+source("./Functions/Functions.R")
+source("./Functions/PagodaWrappers.R")
+
+knitr::opts_chunk$set(fig.width=5, fig.height=3, echo=FALSE, warning=FALSE, message=FALSE)
+
+theme_set(theme_base)
+
+set.seed(42)
+kDatasetName <- 'pbmc33k'
+kPlotsFolder <- paste0('/d0-mendel/home/viktor_petukhov/Data/Plots/PaperReview/LowQualityCells/', kDatasetName, '/')
+kDataPath <- '/d0-mendel/home/viktor_petukhov/Data/10x/pbmc33k/est_11_14/'
+```
+
+```{r}
+holder <- readRDS(paste0(kDataPath, 'pbmc33k.rds'))
+holder$reads_per_umi_per_cell <- NULL
+saveRDS(holder, paste0(kDataPath, 'pbmc33k_no_umi.rds'))
+
+holder <- readRDS(paste0(kDataPath, 'pbmc33k_no_umi.rds'))
+# holder$cm <- holder$cm[grep("^[^;]+$", rownames(holder$cm)),]
+# holder$cm_raw <- holder$cm_raw[grep("^[^;]+$", rownames(holder$cm_raw)),]
+```
+
+```{r}
+est_cell_num <- EstimateCellsNumber(holder$aligned_umis_per_cell)
+umis_per_cell <- sort(holder$aligned_umis_per_cell, decreasing=T)
+```
+
+TODO: increase bandwidth, add bandwidth.mult parameter tp ScorePipelineCells. Remove bad genes prior to analysis.
+
+```{r, message=FALSE}
+scores <- ScorePipelineCells(holder, mit.chromosome.name='MT', predict.all=T, verbose=T)[names(umis_per_cell)]
+# scores2 <- ScorePipelineCells(holder, mit.chromosome.name='MT', predict.all=T, verbose=T, kde.bandwidth.mult=5)[names(umis_per_cell)]
+PlotCellScores(scores, cells.number=est_cell_num)
+```
+
+```{r}
+intersect_cbs <- names(scores[1:est_cell_num$expected])
+intersect_cbs <- intersect_cbs[scores[intersect_cbs] > 0.4]
+
+unknown_cell_scores <- scores[(est_cell_num$expected + 1):length(scores)]
+rescued_cbs <- names(unknown_cell_scores)[unknown_cell_scores > 0.5]
+
+unknown_cell_scores <- scores[1:est_cell_num$expected]
+filtered_cbs <- names(unknown_cell_scores)[unknown_cell_scores < 0.1]
+
+c(length(intersect_cbs), length(rescued_cbs), length(filtered_cbs))
+```
+
+```{r}
+r_cm_rescued <- holder$cm_raw[, c(names(umis_per_cell)[1:est_cell_num$expected], rescued_cbs)]
+r_cm_rescued <- r_cm_rescued[grep("^[^;]+$", rownames(r_cm_rescued)),]
+```
+
+## Rescued cells
+```{r, message=FALSE}
+r_rescued <- GetPagoda(r_cm_rescued, n.cores=30)
+saveRDS(r_rescued, paste0(kDataPath, 'pagoda.rds'))
+```
+
+```{r}
+clusters <- r_rescued$clusters$PCA$infomap
+intersect_clusters <- clusters[intersect(names(clusters), intersect_cbs)]
+
+cluster_centers <- split(names(intersect_clusters), intersect_clusters) %>% 
+  lapply(function(cbs) r_rescued$reductions$PCA[cbs, , drop=F] %>% Matrix::colMeans())
+
+# rescued_clusters <- apply(r_rescued$reductions$PCA[rescued_cbs, , drop=F], 1, function(cell)
+#   sapply(cluster_centers, cor, cell) %>% which.max() %>% names())
+
+filtered_clusters <- apply(r_rescued$reductions$PCA[filtered_cbs, , drop=F], 1, function(cell)
+  sapply(cluster_centers, cor, cell) %>% which.max() %>% names())
+
+# updated_clusters <- apply(r_rescued$reductions$PCA[names(clusters), ], 1, function(cell)
+#   sapply(cluster_centers, cor, cell) %>% which.max() %>% names())
+# 
+# mean(clusters != updated_clusters)
+
+# clusters <- updated_clusters
+intersect_clusters <- clusters[intersect_cbs]
+```
+
+```{r}
+filt_df <- PlotPagodaEmbeding(r_rescued, clusters=filtered_clusters, return.df=T)
+# rescued_df <- PlotPagodaEmbeding(r_rescued, clusters=rescued_clusters, return.df=T)
+
+PlotPagodaEmbeding(r_rescued, clusters=clusters[names(clusters) %>% setdiff(filtered_cbs)], show.legend=F,
+                         mark.clusters=T, alpha=0.5, size=1, plot.na=F, min.cluster.size=50)
+
+PlotPagodaEmbeding(r_rescued, clusters=clusters[names(clusters) %>% setdiff(filtered_cbs)], show.legend=F,
+                         mark.clusters=T, alpha=0.5, size=1, min.cluster.size=50)
+
+gg <- PlotPagodaEmbeding(r_rescued, clusters=clusters[names(clusters) %>% setdiff(rescued_cbs) %>% setdiff(filtered_cbs)], show.legend=F,
+                         mark.clusters=T, alpha=0.5, size=1, font.size=NULL, plot.na=F, min.cluster.size=50, nudge_x=-1, nudge_y=1)
+
+gg$layers <- c(geom_point(data=filt_df, mapping=aes(x=V1, y=V2, shape='filtered'), size=1), 
+               geom_point(data=rescued_df, mapping=aes(x=V1, y=V2, shape='rescued', color=Cluster), size=1.5, alpha=0.9, stroke=0.7), 
+               gg$layers)
+
+gg$layers[[3]]$mapping$shape <- 'unchanged'
+
+gg_tsne <- gg + scale_color_discrete(guide="none") + 
+  scale_shape_manual(values=c(4, 24, 19), name='Cells filtration') + 
+  theme_pdf(legend.pos=c(1, 1)) +
+  scale_size_continuous(range=c(3, 7), trans='identity', guide='none')
+
+gg_tsne
+```
+
+```{r}
+bc_data <- PrepareLqCellsDataPipeline(holder, mit.chromosome.name='MT', scale=F)
+PlotPagodaEmbeding(r_rescued, colors=bc_data$IntergenicFrac %>% setNames(rownames(bc_data)), show.legend=T,
+                   alpha=0.5, size=0.5) + theme_pdf(legend.pos=c(1, 1))
+
+PlotPagodaEmbeding(r_rescued, colors=bc_data$MitochondrionFraction %>% setNames(rownames(bc_data)), show.legend=T,
+                   alpha=0.5, size=0.5) + theme_pdf(legend.pos=c(1, 1))
+
+PlotPagodaEmbeding(r_rescued, colors=bc_data$LowExpressedGenesFrac %>% setNames(rownames(bc_data)), show.legend=T,
+                   alpha=0.5, size=0.5) + theme_pdf(legend.pos=c(1, 1))
+
+PlotPagodaEmbeding(r_rescued, colors=bc_data$ReadsPerUmi %>% setNames(rownames(bc_data)), show.legend=T,
+                   alpha=0.5, size=0.5) + theme_pdf(legend.pos=c(1, 1))
+
+qplot(bc_data[names(scores)[scores < 0.1], ]$ReadsPerUmi)
+qplot(bc_data[names(scores)[scores > 0.9], ]$ReadsPerUmi)
+```
+
+## Heatmaps
+```{r}
+de_gene_dfs <- r_rescued$getDifferentialGenes(type='PCA', clusterType='infomap', upregulated.only=T, verbose=T)
+```
+
+```{r}
+real_clusters <- c(3:7, 16)
+de_genes <- lapply(de_gene_dfs[real_clusters], function(df) rownames(df)[df$highest]) %>% unlist() %>% unique()
+length(de_genes)
+```
+
+```{r}
+tested_clusts <- sort(c(intersect_clusters, filtered_clusters))
+tested_clusts <- tested_clusts[tested_clusts %in% real_clusters]
+separation <- c(setNames(rep('filtered', length(filtered_cbs)), filtered_cbs), 
+                setNames(rep('real', length(intersect_clusters)), names(intersect_clusters)))
+
+umis_per_cb_subset <- log10(Matrix::colSums(r_cm_rescued[, names(tested_clusts)]))
+tested_clusts <- tested_clusts[order(tested_clusts, -umis_per_cb_subset)]
+
+# de_genes <- intersect(colnames(r_rescued$counts), clusters_info$overexpressed_genes)
+
+m_subset <- log10(1e-6 + as.matrix(r_rescued$counts[names(tested_clusts), de_genes]))
+dim(m_subset)
+```
+
+```{r, fig.width=6, fig.height=7}
+legendGuide <- function(title, guide=ggplot2::guide_colorbar, ...) {
+  guides(fill = guide(title.position='top', direction='horizontal', title=title, barwidth=unit(1.5, 'in'), ...))
+}
+
+plot_df <- ExpressionMatrixToDataFrame(m_subset, umis_per_cb_subset, as.factor(tested_clusts), filtration.type=separation)
+# plot_df <- plot_df %>% filter(UmisPerCb < 3.2) #%>% filter(Cluster %in% Reduce(intersect, split(plot_df$Cluster, plot_df$FiltrationType)))
+plot_dfs <- split(plot_df, plot_df$FiltrationType)
+
+
+ggs <- lapply(plot_dfs, HeatmapAnnotGG, umi.per.cell.limits=range(plot_df$UmisPerCb))
+
+gg_legends <- mapply(`+`, ggs$real, list(legendGuide('log10(expression)'), 
+                                    legendGuide('Cell type', guide=guide_legend, ncol=3), 
+                                    legendGuide('log10(#molecules)')), SIMPLIFY=F) %>%
+  lapply(`+`, theme(legend.margin=margin(l=4, r=4, unit='pt'))) %>% lapply(get_legend)
+
+ggs$real$heatmap <- ggs$real$heatmap + rremove('xlab') + ylab('Cells')
+ggs$filtered$heatmap <- ggs$filtered$heatmap + labs(x = 'Genes', y = 'Cells')
+ggs_annot <- lapply(ggs, function(gg) cowplot::plot_grid(plotlist=lapply(gg, `+`, theme(legend.position="none", plot.margin=margin(unit='in'))), nrow=1, rel_widths=c(1.5, 0.1, 0.1), align='h'))
+
+gg_legends_plot <- cowplot::plot_grid(plotlist=gg_legends, nrow=3, align='v')
+```
+
+```{r}
+cowplot::plot_grid(ggs_annot$real, ggs_annot$filtered, nrow=2, labels=c('A', 'B'))
+```
+
+## Aggregated tSNE plot
+```{r, fig.width=8, fig.height=6}
+gg_left <- cowplot::plot_grid(ggs_annot$real, ggs_annot$filtered, nrow=2, labels=c('A', 'B'))
+gg_right <- gg_tsne + theme(plot.margin=margin(l=0.1, unit='in'), axis.text=element_blank(), axis.ticks=element_blank())
+gg_bottom <- cowplot::plot_grid(plotlist=gg_legends[c(1, 3, 2)], ncol=3, rel_widths=c(1, 1, 2.2))
+
+cowplot::plot_grid(gg_left, gg_right, labels=c('', 'C'), ncol=2) %>% 
+  cowplot::plot_grid(gg_bottom, nrow=2, rel_heights=c(1, 0.25), align='v')
+
+ggsave(paste0(kPlotsFolder, 'SCG71_figure.pdf'))
+```
+

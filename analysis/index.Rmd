@@ -10,11 +10,16 @@ output:
 1. Dataset annotations:
     1. [10x Frozen BMMCs (Healthy Control 1)](annotation__annotation_bmmc1.html).
     2. [10x 8k PBMCs from a Healthy Donor](annotation__annotation_pbmc8k.html).
-    3. [inDrop Mouse Bone Marrow cells]().
-2. Filtration of low-quality cells
-3. UMI corrections
-4. Cell barcode merge validation
+    <!-- 3. [inDrop Mouse Bone Marrow cells](). -->
+2. Origin of mixed reads in Human/mouse datasets:
+    1. [InDrop SCG29](human_mouse__hm_SCG29.html)
+    2. [Drop-seq thousand](human_mouse__hm_drop_seq.html)
+    3. [10x 1k 1:1 Mixture](human_mouse__hm_10x_1k.html)
+    3. [10x 6k 1:1 Mixture](human_mouse__hm_10x_6k.html)
+3. Filtration of low-quality cells
+4. UMI corrections
+5. Cell barcode merge validation
 
 ## Content by figures
-1. ---
-2. [Supp. Fig. Frozen BMMCs filtration](low_quality_cells__validation_bmmc1.Rmd#final_figure)
+1. -
+2. [Supp. Fig. Frozen BMMCs filtration](low_quality_cells__validation_bmmc1.html#final_figure)
