@@ -9,13 +9,15 @@
 <meta name="generator" content="pandoc" />
 
 
+<meta name="author" content="Viktor Petukhov" />
 
+<meta name="date" content="2018-01-23" />
 
-<title>Precise Merge Validation</title>
+<title>Drop-seq human/mouse mixture analysis</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="site_libs/bootstrap-3.3.5/css/cerulean.min.css" rel="stylesheet" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
@@ -308,88 +310,31 @@ div.section {
 
 
 
-<h1 class="title toc-ignore">Precise Merge Validation</h1>
+<h1 class="title toc-ignore">Drop-seq human/mouse mixture analysis</h1>
+<h4 class="author"><em>Viktor Petukhov</em></h4>
+<h4 class="date"><em>2018-01-23</em></h4>
 
 </div>
 
 
 <p><strong>Source file:</strong> notebooks/human_mouse/hm_drop_seq.Rmd</p>
-<!-- ## Validation of merge procedure -->
-<!-- ```{r} -->
-<!-- kDatasetName <- 'thousand' -->
-<!-- kDataPath <- paste0('/d0-mendel/home/viktor_petukhov/Data/dropseq/thousand/') -->
-<!-- kDataFolders <- c(poisson='est_01_16_precise/', unmerged='est_01_16_unmerged/', merge_all='est_01_16_merge_all/', simple='est_01_16_simple/') -->
-<!-- # holders <- mclapply(kDataFolders, function(folder) readRDS(paste0(kDataPath, folder, kDatasetName, '.rds')), mc.cores=length(kDataFolders)) -->
-<!-- # length(holders) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- # validation_data <- list( -->
-<!-- #   merge_targets = lapply(holders, function(holder) unlist(holder$merge_targets)), -->
-<!-- #   cms_raw = lapply(holders, `[[`, 'cm_raw'), -->
-<!-- #   cms = lapply(holders, `[[`, 'cm') -->
-<!-- # ) -->
-<!-- #  -->
-<!-- # saveRDS(validation_data, paste0(kDataPath, 'est_01_16_validation_data.rds')) -->
-<!-- validation_data <- readRDS(paste0(kDataPath, 'est_01_16_validation_data.rds')) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- umis_per_cb <- Matrix::colSums(validation_data$cms$unmerged) %>% sort(decreasing=T) -->
-<!-- real_cbs <- names(umis_per_cb)[1:1000] -->
-<!-- PlotCellsNumberLine(umis_per_cb[1:5000]) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- gene_species <- ifelse(substr(rownames(validation_data$cms_raw$unmerged), 1, 5) == "HUMAN", 'Human', 'Mouse') %>% as.factor() -->
-<!-- cell_species <- lapply(levels(gene_species), function(l) validation_data$cms_raw$unmerged[gene_species == l,] %>% Matrix::colSums()) %>%  -->
-<!--   (function(x) levels(gene_species)[as.integer(x[[1]] < x[[2]]) + 1]) %>% setNames(colnames(validation_data$cms_raw$unmerged)) %>% as.factor() -->
-<!-- table(cell_species[real_cbs]) -->
-<!-- table(cell_species) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- qplot(Matrix::colSums(validation_data$cms_raw$unmerged[gene_species == 'Mouse',]) / Matrix::colSums(validation_data$cms_raw$unmerged)) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- merge_targets <- lapply(validation_data$merge_targets, function(mt) mt[mt %in% real_cbs]) -->
-<!-- (comparison <- MergeComparisonSummary(merge_targets, cell_species, dataset='Drop-seq thousand')) -->
-<!-- write.csv(comparison, paste0(kDataPath, 'merge_comparison.csv')) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- umis_per_cb <- lapply(validation_data$cms_raw, function(cm) sort(Matrix::colSums(cm), decreasing=T)) -->
-<!-- ``` -->
-<!-- ```{r, fig.width=6, fig.height=4, warning=FALSE, message=FALSE} -->
-<!-- linewidth <- 1 -->
-<!-- alpha <- 0.7 -->
-<!-- gg1 <- PlotCellsNumberLogLog(umis_per_cb$poisson, plot.label='Poisson, no barcodes', plot.border=F, linewidth=linewidth, alpha=alpha) -->
-<!-- gg2 <- PlotCellsNumberLogLog(umis_per_cb$unmerged, gg.base=gg1, plot.label='No merge', plot.border=F, linewidth=linewidth, alpha=alpha) -->
-<!-- gg3 <- PlotCellsNumberLogLog(umis_per_cb$merge_all, gg.base=gg2, plot.label='Simple, no barcodes', plot.border=F, linewidth=linewidth, alpha=alpha) -->
-<!-- gg_merge_sizes <- gg3 +  -->
-<!--   guides(color=guide_legend(title='Merge type')) + -->
-<!--   scale_color_hue(l=55) + -->
-<!--   scale_x_continuous(limits=c(1, 5000), trans='log10') + -->
-<!--   scale_y_continuous(limits=c(1e3, 3e5), trans='log10') + -->
-<!--   theme_pdf(legend.pos=c(1, 1)) -->
-<!-- gg_merge_sizes -->
-<!-- # ggsave(filename=paste0(kPlotsFolder, 'merge_sizes.pdf'), plot=gg_merge_sizes, width=6, height=4) -->
-<!-- ``` -->
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- gg1 <- PlotCellsNumberLine(umis_per_cb$poisson, plot.label='No barcodes merge', breaks=50) -->
-<!-- gg2 <- PlotCellsNumberLine(umis_per_cb$unmerged, gg.base=gg1, plot.label='No merge', breaks=50) -->
-<!-- gg3 <- PlotCellsNumberLine(umis_per_cb$merge_all, gg.base=gg2, plot.label='Merge all', breaks=50) -->
-<!-- gl <- guide_legend(title='Merge type') -->
-<!-- gg3 + -->
-<!--   scale_x_continuous(limits=c(0, 10000), expand=c(0.01, 0.01)) + -->
-<!--   # scale_y_continuous(limits=c(0, 4.5e7), expand=c(0.01, 0.01)) + -->
-<!--   # scale_fill_npg(alpha=0.6) + -->
-<!--   guides(fill=gl, linetype=gl) + theme_pdf(legend.pos=c(1, 1)) -->
-<!-- # ggsave(paste0(kPlotsFolder, 'cell_number_ridges.', kDatasetName, '.pdf'), width=4, height=4) -->
-<!-- ``` -->
-<div id="origin-of-mixed-reads" class="section level2">
-<h2><span class="header-section-number">0.1</span> Origin of mixed reads</h2>
-<pre class="r"><code>holder &lt;- readRDS(&#39;../../data/dropest/dropseq/thousand/est_2018_01_25_filtered/thousand.rds&#39;)
+<p><strong>Last updated:</strong> 2018-01-27</p>
+<p><strong>Code version:</strong> 1485196</p>
+<pre class="r"><code>library(ggplot2)
+library(ggrastr)
+library(dplyr)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)</code></pre>
+<div id="load-data" class="section level2">
+<h2>Load data</h2>
+<p>Here bam file was filtered by realigning it with <code>kallisto 0.43</code> separately on mouse and human genome. Only reads, which were aligned only on one of them were used in <code>dropEst</code>.</p>
+<pre class="r"><code>holder &lt;- readRDS(&#39;../../data/dropest/dropseq/thousand/est_2018_01_26_tophat/thousand.rds&#39;)
 bc_data &lt;- PrepareLqCellsDataPipeline(holder, scale=FALSE) %&gt;% 
   tibble::rownames_to_column(&quot;CB&quot;)</code></pre>
-<pre><code>## Loading required package: Matrix</code></pre>
 <pre class="r"><code>cm_real &lt;- holder$cm_raw
-cell_number &lt;- 1000
+cell_number &lt;- 1100
 
 gene_species &lt;- ifelse(substr(rownames(cm_real), 1, 2) == &quot;HU&quot;, &#39;Human&#39;, &#39;Mouse&#39;) %&gt;% 
   as.factor()
@@ -398,53 +343,414 @@ umi_by_species &lt;- lapply(levels(gene_species), function(l) cm_real[gene_speci
   `colnames&lt;-`(levels(gene_species)) %&gt;% tibble::rownames_to_column(&#39;CB&#39;) %&gt;% 
   as_tibble() %&gt;% 
   mutate(Total = Human + Mouse, Organism=ifelse(Human &gt; Mouse, &quot;Human&quot;, &quot;Mouse&quot;), 
-         # IsReal=order(Total, decreasing=T) &lt;= cell_number) %&gt;%
-         IsReal=Total &gt; 1e3) %&gt;%
+         IsReal=rank(Total) &gt;= length(Total) - cell_number) %&gt;%
   filter(Total &gt; 20)
 
 mit_genes &lt;- rownames(holder$cm_raw)[grep(&quot;_MT:.+&quot;, rownames(holder$cm_raw))]
 umi_by_species &lt;- umi_by_species %&gt;% mutate(
     MitochondrionFraction = GetGenesetFraction(holder$cm_raw, mit_genes)[CB]
   )</code></pre>
-<pre class="r"><code>gg &lt;- ggplot(umi_by_species, aes(y=..density.., fill=IsReal)) + 
-  theme_pdf(legend.pos=c(1, 1))
-
-gg + geom_histogram(aes(x=pmin(Human, Mouse) / Total), binwidth=0.005, alpha=0.7)</code></pre>
-<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
-<pre class="r"><code>gg + geom_histogram(aes(x=pmin(Human, Mouse)), binwidth=2, alpha=0.7) + 
-  xlim(0, 200) + xlab(&#39;#Mixed UMIs&#39;)</code></pre>
-<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
-<pre class="r"><code>gg + 
-  geom_histogram(aes(x=pmin(Human, Mouse)), bins=100, alpha=0.7) +
-  scale_x_log10(name=&#39;#Mixed UMIs&#39;) + 
-  theme_pdf(legend.pos=c(1, 1))</code></pre>
-<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-4-3.png" width="672" /></p>
-<pre class="r"><code>ggplot(umi_by_species) + 
-  geom_point(aes(x=Total, y=pmin(Human, Mouse) / Total, color=Organism), size=0.1, alpha=0.1) +
-  scale_x_log10(name=&#39;#Real UMIs&#39;, limits=c(10, 2e5)) + annotation_logticks() + ylab(&#39;Fraction of mixed UMIs&#39;) +
-  theme_pdf(legend.pos=c(1, 1))</code></pre>
-<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
-<p>Consistence with common distribution</p>
-<pre class="r"><code>mouse_frac &lt;- umi_by_species %&gt;% filter(IsReal) %&gt;% 
-  summarise(Mouse=sum(Mouse[Organism == &#39;Mouse&#39;]), Human=sum(Human[Organism == &#39;Human&#39;]), MF=Mouse / (Mouse + Human)) %&gt;% .$MF
-ggplot(umi_by_species) + 
-  geom_histogram(aes(x=Mouse / Total, y=..density..), binwidth=0.005) + 
-  geom_vline(xintercept=mouse_frac) +
-  theme_pdf()</code></pre>
-<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
-<pre class="r"><code>gg &lt;- ggplot(umi_by_species) + 
+</div>
+<div id="common-view" class="section level2">
+<h2>Common view</h2>
+<pre class="r"><code>gg &lt;- ggplot(umi_by_species, aes(x=Mouse, y=Human)) + 
   geom_abline(aes(slope=1, intercept=0), linetype=&#39;dashed&#39;, alpha=0.5) +
-  scale_x_log10(limits=c(10, 2e5)) + scale_y_log10() + annotation_logticks() +
+  scale_x_log10(limits=c(1, 2e5), name=&quot;#Mouse molecules&quot;) + 
+  scale_y_log10(name=&quot;#Human molecules&quot;) + annotation_logticks() +
   theme_pdf(legend.pos=c(0.97, 0.05)) + theme(legend.margin=margin(l=3, r=3, unit=&quot;pt&quot;))
 
-gg + geom_point(aes(x=Mouse, y=Human, color=IsReal), size=0.1, alpha=0.15)</code></pre>
-<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-7-1.png" width="384" /></p>
+gg_left &lt;- gg + geom_point(aes(color=IsReal), size=0.1, alpha=0.15) +
+  guides(color=guide_legend(override.aes=list(size=1.5, alpha=1)))
+
+gg_right &lt;- gg + geom_point(aes(color=MitochondrionFraction), size=0.1, alpha=0.15) +
+  scale_color_gradientn(colours=c(&quot;#1200ba&quot;, &quot;#347fff&quot;, &quot;#cc4000&quot;, &quot;#ff3333&quot;), 
+                        values=scales::rescale(c(0, 0.1, 0.3, 0.8))) +
+  guides(color=guide_colorbar(direction=&quot;horizontal&quot;, title.position=&quot;top&quot;, 
+                              title=&quot;Mitochondrial\nfraction&quot;, 
+                              barwidth=unit(1.0, units=&quot;in&quot;)))
+
+cowplot::plot_grid(gg_left, gg_right)</code></pre>
+<p><img src="figure/hm_drop_seq.Rmd/unnamed-chunk-4-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(umi_by_species) + 
+  geom_point(aes(x=Total, y=pmin(Human, Mouse) / Total, color=Organism), size=0.1, 
+             alpha=0.1) +
+  scale_x_log10(name=&#39;#Real UMIs&#39;, limits=c(10, 2e5)) + annotation_logticks() + 
+  ylab(&#39;Fraction of mixed UMIs&#39;) +
+  guides(color=guide_legend(override.aes=list(size=1.5, alpha=1))) +
+  theme_pdf(legend.pos=c(1, 1))</code></pre>
+<p><img src="figure/hm_drop_seq.Rmd/unnamed-chunk-5-1.png" width="384" style="display: block; margin: auto;" /></p>
+</div>
+<div id="check-for-constant-background" class="section level2">
+<h2>Check for constant background</h2>
+<p>Background cells have constant fraction of mouse and human reads. Though this fraction is not determined by the corresponding ratio in real cells:</p>
+<pre class="r"><code>mouse_frac &lt;- umi_by_species %&gt;% filter(IsReal) %&gt;% 
+  summarise(Mouse=sum(Mouse[Organism == &#39;Mouse&#39;]), Human=sum(Human[Organism == &#39;Human&#39;]), 
+            MF=Mouse / (Mouse + Human)) %&gt;% .$MF
+
+ggplot(umi_by_species) + 
+  geom_histogram(aes(x=Mouse / Total, y=..density.., fill=IsReal), binwidth=0.005, position=&quot;identity&quot;) + 
+  geom_vline(xintercept=mouse_frac) +
+  xlab(&quot;Fraction of mouse reads&quot;) +
+  theme_pdf(legend.pos=c(1, 1))</code></pre>
+<p><img src="figure/hm_drop_seq.Rmd/unnamed-chunk-6-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p>Distribution of total number of molecules by background cells:</p>
+<pre class="r"><code>gg &lt;- ggplot(umi_by_species %&gt;% filter(!IsReal)) +
+  geom_histogram(aes(x=Total), bins=100) +
+  scale_x_continuous(limits=c(0, 1000), expand=c(0, 0), name=&quot;Total #UMIs&quot;) +
+  scale_y_continuous(limits=c(0,4500), expand=c(0, 0), name=&quot;#Cells&quot;) +
+  theme_pdf()
+
+gg</code></pre>
+<p><img src="figure/hm_drop_seq.Rmd/unnamed-chunk-7-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p>Though, it looks better on logscale:</p>
 <pre class="r"><code>gg + 
-  geom_point(aes(x=Mouse, y=Human, color=MitochondrionFraction), size=0.1, alpha=0.15) +
-  scale_color_gradientn(colours=c(&quot;#1200ba&quot;, &quot;#347fff&quot;, &quot;#cc4000&quot;, &quot;#ff3333&quot;), values=scales::rescale(c(0, 0.1, 0.3, 0.8))) +
-  guides(color=guide_colorbar(direction=&quot;horizontal&quot;, title.position=&quot;top&quot;, title=&quot;Mitochondrial\nfraction&quot;, barwidth=unit(1.0, units=&quot;in&quot;))) +
-  theme_pdf(legend.pos=c(0.97, 0.05)) + theme(legend.margin=margin(l=3, r=3, unit=&quot;pt&quot;))</code></pre>
-<p><img src="human_mouse__hm_drop_seq_files/figure-html/unnamed-chunk-8-1.png" width="384" /></p>
+  scale_x_log10(limits=c(19, 3000), expand=c(0, 0), name=&quot;Total #UMIs&quot;) +
+  annotation_logticks(sides=&quot;b&quot;)</code></pre>
+<p><img src="figure/hm_drop_seq.Rmd/unnamed-chunk-8-1.png" width="576" style="display: block; margin: auto;" /></p>
+</div>
+<div id="session-information" class="section level2">
+<h2>Session information</h2>
+<pre class="r"><code>data.frame(value=unlist(sessioninfo::platform_info()))</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>version</td>
+<td align="left">R version 3.4.1 (2017-06-30)</td>
+</tr>
+<tr class="even">
+<td>os</td>
+<td align="left">Ubuntu 14.04.5 LTS</td>
+</tr>
+<tr class="odd">
+<td>system</td>
+<td align="left">x86_64, linux-gnu</td>
+</tr>
+<tr class="even">
+<td>ui</td>
+<td align="left">X11</td>
+</tr>
+<tr class="odd">
+<td>language</td>
+<td align="left">(EN)</td>
+</tr>
+<tr class="even">
+<td>collate</td>
+<td align="left">en_US.UTF-8</td>
+</tr>
+<tr class="odd">
+<td>tz</td>
+<td align="left">America/New_York</td>
+</tr>
+<tr class="even">
+<td>date</td>
+<td align="left">2018-01-27</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>as.data.frame(sessioninfo::package_info())[c(&#39;package&#39;, &#39;loadedversion&#39;, &#39;date&#39;, &#39;source&#39;)]</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">package</th>
+<th align="left">loadedversion</th>
+<th align="left">date</th>
+<th align="left">source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td align="left">assertthat</td>
+<td align="left">0.2.0</td>
+<td align="left">2017-04-11</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td align="left">backports</td>
+<td align="left">1.1.2</td>
+<td align="left">2017-12-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td align="left">bindr</td>
+<td align="left">0.1</td>
+<td align="left">2016-11-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td align="left">bindrcpp</td>
+<td align="left">0.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td align="left">clisymbols</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-05-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td align="left">colorspace</td>
+<td align="left">1.3-2</td>
+<td align="left">2016-12-14</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td align="left">cowplot</td>
+<td align="left">0.9.2</td>
+<td align="left">2017-12-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td align="left">digest</td>
+<td align="left">0.6.14</td>
+<td align="left">2018-01-14</td>
+<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td align="left">dplyr</td>
+<td align="left">0.7.4</td>
+<td align="left">2017-09-28</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td align="left">dropEstAnalysis</td>
+<td align="left">0.6.0</td>
+<td align="left">2018-01-27</td>
+<td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td align="left">dropestr</td>
+<td align="left">0.6.0</td>
+<td align="left">2018-01-24</td>
+<td align="left">local (<span class="citation">@0.6.0</span>)</td>
+</tr>
+<tr class="even">
+<td>15</td>
+<td align="left">evaluate</td>
+<td align="left">0.10.1</td>
+<td align="left">2017-06-24</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td align="left">ggplot2</td>
+<td align="left">2.2.1</td>
+<td align="left">2016-12-30</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>17</td>
+<td align="left">ggrastr</td>
+<td align="left">0.1.5</td>
+<td align="left">2017-12-28</td>
+<td align="left">Github (<a href="mailto:VPetukhov/ggrastr@cc56b45">VPetukhov/ggrastr@cc56b45</a>)</td>
+</tr>
+<tr class="odd">
+<td>18</td>
+<td align="left">git2r</td>
+<td align="left">0.21.0</td>
+<td align="left">2018-01-04</td>
+<td align="left">cran (<span class="citation">@0.21.0</span>)</td>
+</tr>
+<tr class="even">
+<td>19</td>
+<td align="left">glue</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-10-29</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>23</td>
+<td align="left">gtable</td>
+<td align="left">0.2.0</td>
+<td align="left">2016-02-26</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td align="left">highr</td>
+<td align="left">0.6</td>
+<td align="left">2016-05-09</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>25</td>
+<td align="left">htmltools</td>
+<td align="left">0.3.6</td>
+<td align="left">2017-04-28</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>26</td>
+<td align="left">knitr</td>
+<td align="left">1.18</td>
+<td align="left">2017-12-27</td>
+<td align="left">cran (<span class="citation">@1.18</span>)</td>
+</tr>
+<tr class="odd">
+<td>27</td>
+<td align="left">labeling</td>
+<td align="left">0.3</td>
+<td align="left">2014-08-23</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>28</td>
+<td align="left">lattice</td>
+<td align="left">0.20-35</td>
+<td align="left">2017-03-25</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>29</td>
+<td align="left">lazyeval</td>
+<td align="left">0.2.1</td>
+<td align="left">2017-10-29</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>30</td>
+<td align="left">magrittr</td>
+<td align="left">1.5</td>
+<td align="left">2014-11-22</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>31</td>
+<td align="left">Matrix</td>
+<td align="left">1.2-12</td>
+<td align="left">2017-11-16</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>33</td>
+<td align="left">munsell</td>
+<td align="left">0.4.3</td>
+<td align="left">2016-02-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>34</td>
+<td align="left">pkgconfig</td>
+<td align="left">2.0.1</td>
+<td align="left">2017-03-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>35</td>
+<td align="left">plyr</td>
+<td align="left">1.8.4</td>
+<td align="left">2016-06-08</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>36</td>
+<td align="left">R6</td>
+<td align="left">2.2.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>37</td>
+<td align="left">Rcpp</td>
+<td align="left">0.12.15</td>
+<td align="left">2018-01-20</td>
+<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+</tr>
+<tr class="odd">
+<td>38</td>
+<td align="left">rlang</td>
+<td align="left">0.1.4</td>
+<td align="left">2017-11-05</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>39</td>
+<td align="left">rmarkdown</td>
+<td align="left">1.8</td>
+<td align="left">2017-11-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>40</td>
+<td align="left">rprojroot</td>
+<td align="left">1.3-2</td>
+<td align="left">2018-01-03</td>
+<td align="left">cran (<span class="citation">@1.3-2</span>)</td>
+</tr>
+<tr class="even">
+<td>41</td>
+<td align="left">scales</td>
+<td align="left">0.5.0</td>
+<td align="left">2017-08-24</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>42</td>
+<td align="left">sessioninfo</td>
+<td align="left">1.0.0</td>
+<td align="left">2017-06-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>44</td>
+<td align="left">stringi</td>
+<td align="left">1.1.6</td>
+<td align="left">2017-11-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>45</td>
+<td align="left">stringr</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-02-18</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>46</td>
+<td align="left">tibble</td>
+<td align="left">1.3.4</td>
+<td align="left">2017-08-22</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>49</td>
+<td align="left">withr</td>
+<td align="left">2.1.1</td>
+<td align="left">2017-12-19</td>
+<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+</tr>
+<tr class="even">
+<td>50</td>
+<td align="left">yaml</td>
+<td align="left">2.1.16</td>
+<td align="left">2017-12-12</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 
 <!-- Adjust MathJax settings so that all math formulae are shown using
