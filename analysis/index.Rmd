@@ -23,3 +23,12 @@ output:
 ## Content by figures
 1. -
 2. [Supp. Fig. Frozen BMMCs filtration](low_quality_cells__validation_bmmc1.html#final_figure)
+
+## Used datasets
+* 10x
+    * BMMC1
+    * 8k PBMCs
+* InDrop
+    * SCG79
+* Drop-seq
+    * thousand

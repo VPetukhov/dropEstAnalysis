@@ -70,7 +70,8 @@ PlotPagodaEmbeding <- function(r, embeding.type='tSNE', clusters=NULL, clusterin
         gg_repel <- ggrepel::geom_label_repel(data=labels.data, ggplot2::aes(label=Cluster), color='black', size=font.size,
                                               fill=ggplot2::alpha('white', 0.7), label.size = NA, label.padding=0.05, ...)
       }
-      gg <- gg + gg_repel + ggplot2::scale_size_continuous(guide='none')
+      gg <- gg + gg_repel +
+        ggplot2::scale_size_continuous(range=c(3, 7), trans='identity', guide='none')
     }
   } else if (!is.null(colors)) {
     plot.df <- plot.df %>% dplyr::mutate(Color=colors[CellName])

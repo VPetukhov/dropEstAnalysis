@@ -1,3 +1,52 @@
+#' @export
+BuildCountMatrixFromReads <- function(filt.rpus, reads.per.umi.per.cb.info, collisions.info=NULL) {
+  filt.umis.per.gene <- sapply(filt.rpus, length)
+  if (!is.null(collisions.info)) {
+    filt.umis.per.gene <- collisions.info[filt.umis.per.gene]
+  }
+  reads.per.umi.per.cb.info$umis_per_gene <- filt.umis.per.gene
+  return(dropestr::BuildCountMatrix(reads.per.umi.per.cb.info))
+}
+
+#' @export
+PlotCorrectionSize <- function(cms, correction.colors, xlim=NULL, ylim=NULL, min.umi.per.gene=10,
+                               facet=T, mapping=NULL, ...) {
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes(x=`no correction`, y=`no correction`-value, color=Correction)
+  }
+  plot.df <- lapply(cms, function(cm) cm@x) %>% tibble::as_tibble() %>%
+    dplyr::filter(`no correction` > min.umi.per.gene) %>%
+    reshape2::melt(id.vars='no correction', variable.name='Correction')
+
+  gg <- ggplot2::ggplot(plot.df) +
+    ggrastr::geom_point_rast(mapping, size = 0.2, alpha=0.05, ...) +
+    ggplot2::geom_abline(aes(intercept=0, slope=1)) +
+    ggplot2::scale_x_log10(limits=xlim, expand=c(0, 0)) +
+    ggplot2::scale_y_log10(limits=ylim, expand=c(0, 0)) +
+    ggplot2::annotation_logticks(sides='b') +
+    ggplot2::scale_color_manual(values=correction.colors) +
+    ggrastr::theme_pdf(legend.pos = c(1, 0)) +
+    ggplot2::theme(strip.text.x=ggplot2::element_blank(), panel.spacing=ggplot2::unit(3, 'pt')) +
+    ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(alpha=1.0, size=1.5), title='Correction'))
+
+  if (facet) {
+    gg <- gg + ggplot2::facet_wrap(~Correction)
+  }
+
+  return(gg)
+}
+
+#' @export
+SampleNoReps <- function(size, ids, probs) {
+  umis <- unique(sample(ids, size=size, prob=probs, replace=T))
+  while (length(umis) < size) {
+    umis <- unique(c(umis, sample(ids, size=size, prob=probs, replace=T)))
+  }
+
+  return(umis[1:size])
+}
+
+# UMI trimming
 GetExprDf <- function(filt.umis.per.gene.vec, real.umis.per.gene.vec, raw.umis.per.gene.vec) {
   expressions <- as.data.frame(filt.umis.per.gene.vec)
   expressions$RealValue <- real.umis.per.gene.vec

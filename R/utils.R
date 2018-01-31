@@ -1,3 +1,10 @@
+#' @useDynLib dropEstAnalysis
+NULL
+
+.onUnload <- function (libpath) {
+  library.dynam.unload("dropEstAnalysis", libpath)
+}
+
 #' @export
 ExpressionMatrixToDataFrame <- function(matrix, umis.per.cb, clusters, rescued.cbs = NULL, filtration.type=NULL,
                                         normalize=TRUE) {
