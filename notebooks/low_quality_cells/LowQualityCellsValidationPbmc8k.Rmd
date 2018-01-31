@@ -3,7 +3,7 @@ title: "Low-quality Cells Validation"
 output: html_document
 ---
 
-```{r global_options, include=FALSE}
+```{r global_options, message=FALSE, warning=FALSE}
 library(ggplot2)
 library(ggsci)
 library(ggpubr)
@@ -12,19 +12,16 @@ library(dplyr)
 library(parallel)
 library(reshape2)
 library(RColorBrewer)
+library(dropestr)
+library(dropEstAnalysis)
 
-source("./Functions/PlotFuncs.R")
-source("./Functions/Functions.R")
-source("./Functions/PagodaWrappers.R")
-
-knitr::opts_chunk$set(fig.width=5, fig.height=3, echo=FALSE, warning=FALSE, message=FALSE)
 
 theme_set(theme_base)
 
 set.seed(42)
 kDatasetName <- 'pbmc8k'
-kPlotsFolder <- paste0('/d0-mendel/home/viktor_petukhov/Data/Plots/PaperReview/LowQualityCells/', kDatasetName, '/')
-kDataPath <- '/d0-mendel/home/viktor_petukhov/Data/10x/pbmc8k/'
+# kPlotsFolder <- paste0('/d0-mendel/home/viktor_petukhov/Data/Plots/PaperReview/LowQualityCells/', kDatasetName, '/')
+kDataPath <- '../../data/dropest/10x/pbmc8k/'
 kEstFolder <- paste0(kDataPath, 'est_11_11_umi_quality/')
 k10xFolder <- paste0(kDataPath, 'filtered_gene_bc_matrices/GRCh38/')
 ```
@@ -40,10 +37,7 @@ holder <- readRDS(paste0(kEstFolder, 'pbmc8k_no_umi.rds'))
 ```
 
 ```{r}
-cm_10x <- as(Matrix::readMM(paste0(k10xFolder, 'matrix.mtx')), 'dgCMatrix')
-rownames(cm_10x) <- read.table(paste0(k10xFolder, 'genes.tsv'))$V1
-colnames(cm_10x) <- read.table(paste0(k10xFolder, 'barcodes.tsv'))$V1
-
+cm_10x <- Read10xMatrix(k10xFolder, use.gene.names=T)
 cm_10x <- cm_10x[, order(Matrix::colSums(cm_10x), decreasing=F)]
 dim(cm_10x)
 ```
@@ -63,7 +57,7 @@ PlotCellScores(scores[1:20000], cells.number=est_cell_num)
 
 ```{r}
 intersect_cbs <- names(scores[1:est_cell_num$expected])
-intersect_cbs <- intersect_cbs[scores[intersect_cbs] > 0.4]
+intersect_cbs <- intersect_cbs[scores[intersect_cbs] > 0.9]
 
 unknown_cell_scores <- scores[(est_cell_num$expected + 1):length(scores)]
 rescued_cbs <- names(unknown_cell_scores)[unknown_cell_scores > 0.5]
@@ -97,7 +91,7 @@ notannotated_cells <- setdiff(names(clusters), names(clusters_annotated))
 ```
 
 ```{r}
-clusters_annotated_resc <- AnnotateClusters(r_rescued$graphs$PCA, clusters_annotated, notannotated_cells, mc.cores=10)
+clusters_annotated_resc <- AnnotateClustersByGraph(r_rescued$graphs$PCA, clusters_annotated, notannotated_cells, mc.cores=10)
 rescued_clusters <- clusters_annotated_resc[rescued_cbs]
 ```
 

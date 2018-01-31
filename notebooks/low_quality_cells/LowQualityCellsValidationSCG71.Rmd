@@ -5,30 +5,25 @@ output: html_document
 
 ```{r global_options, include=FALSE}
 library(ggplot2)
-library(ggsci)
 library(ggpubr)
 library(ggrastr)
 library(dplyr)
 library(parallel)
-library(reshape2)
-library(RColorBrewer)
+library(Seurat)
+library(dropestr)
+library(dropEstAnalysis)
 
-source("./Functions/PlotFuncs.R")
-source("./Functions/Functions.R")
-source("./Functions/PagodaWrappers.R")
-
-knitr::opts_chunk$set(fig.width=5, fig.height=3, echo=FALSE, warning=FALSE, message=FALSE)
 
 theme_set(theme_base)
 
 set.seed(42)
 kDatasetName <- 'SCG71'
 
-kPlotsFolder <- paste0('/d0-mendel/home/viktor_petukhov/Data/Plots/PaperReview/LowQualityCells/', kDatasetName, '/')
+# kPlotsFolder <- paste0('/d0-mendel/home/viktor_petukhov/Data/Plots/PaperReview/LowQualityCells/', kDatasetName, '/')
 ```
 
 ```{r}
-kDataPath <- '/d0-mendel/home/viktor_petukhov/Data/SCG71/est_11_14_poisson_real/'
+kDataPath <- '../../data/dropest/SCG71/est_11_14_poisson_real/'
 holder <- readRDS(paste0(kDataPath, 'SCG71.rds'))
 # genesets <- readRDS('/d0-mendel/home/viktor_petukhov/cp/data/genesets_mouse.rds')
 ```
@@ -45,7 +40,7 @@ PlotCellScores(scores)
 
 ```{r}
 intersect_cbs <- names(scores[1:est_cell_num$expected])
-intersect_cbs <- intersect_cbs[scores[intersect_cbs] > 0.5]
+intersect_cbs <- intersect_cbs[scores[intersect_cbs] > 0.9]
 
 unknown_cell_scores <- scores[(est_cell_num$expected+1):length(scores)]
 rescued_cbs <- names(unknown_cell_scores)[unknown_cell_scores > 0.9]
@@ -67,22 +62,24 @@ clusters[(clusters == 'pre-B cells 1') | (clusters == 'pre-B cells 2')] <- 'pre-
 
 ## Rescued cells
 ```{r, message=FALSE}
-r_rescued <- GetPagoda(r_cm_rescued, n.cores=30, tsne.iters.num=3000)
+r_rescued <- GetPagoda(r_cm_rescued, n.cores=30)
 ```
 
 ```{r}
 intersect_clusters <- clusters[intersect(names(clusters), intersect_cbs)]
 notannotated_cells <- setdiff(colnames(r_cm_rescued), names(clusters))
 
-clusters_annotated_resc <- AnnotateClusters(r_rescued$graphs$PCA, clusters, notannotated_cells,
-                                            max.iter=100, mc.cores=10)
+clusters_annotated_resc <- AnnotateClustersByGraph(r_rescued$graphs$PCA, clusters, 
+                                                   notannotated_cells, max.iter=100, 
+                                                   mc.cores=10)
 rescued_clusters <- clusters_annotated_resc[rescued_cbs]
 intersect_clusters <- clusters[intersect_cbs]
 ```
 
 ```{r, fig.width=4, fig.height=4.8}
-gg_tsne <- PlotFiltrationResults(r_rescued, clusters[names(clusters) %>% setdiff(rescued_cbs) %>% setdiff(filtered_cbs)],
-                                 filtered.cbs=filtered_cbs, rescued.clusters=rescued_clusters,
+plot_clusters <- clusters[names(clusters) %>% setdiff(rescued_cbs) %>% setdiff(filtered_cbs)]
+gg_tsne <- PlotFiltrationResults(r_rescued, plot_clusters, filtered.cbs=filtered_cbs, 
+                                 rescued.clusters=rescued_clusters, 
                                  raster.width=4, raster.height=4.8) +
   ylim(-35, 33) +
   theme_pdf(legend.pos=c(0, 1), show.ticks = F)
@@ -91,12 +88,11 @@ gg_tsne
 ```
 
 ### Seurat analysis
-```{r, message=FALSE}
-library(Seurat)
+```{r, message=FALSE, warning=FALSE}
 seurat_cm <- r_cm_rescued[Matrix::rowSums(r_cm_rescued) > 200, ]
-srt <- CreateSeuratObject(raw.data = r_cm_rescued, project = "SCG71")
-srt <- NormalizeData(object = srt, normalization.method = "LogNormalize", scale.factor = 10000)
-srt <- FindVariableGenes(object = srt, mean.function = ExpMean, dispersion.function = LogVMR,
+srt <- CreateSeuratObject(raw.data=r_cm_rescued, project="SCG71")
+srt <- NormalizeData(object=srt, normalization.method="LogNormalize", scale.factor=10000)
+srt <- FindVariableGenes(object=srt, mean.function=ExpMean, dispersion.function=LogVMR,
                          x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 1, do.plot=F)
 srt <- ScaleData(object = srt, vars.to.regress = "nUMI")
 

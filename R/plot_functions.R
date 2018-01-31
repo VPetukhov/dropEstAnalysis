@@ -1,5 +1,6 @@
 #' @export
-BuildPanel4 <- function(gg.plots, ylabel, xlabel, show.legend=F, return.raw=F, show.ticks=T, labels=c('A', 'B', 'C', 'D'), ...) {
+BuildPanel4 <- function(gg.plots, ylabel, xlabel, show.legend=F, return.raw=F, show.ticks=T,
+                        labels=c('A', 'B', 'C', 'D'), plot.theme=NULL, ...) {
   margin.theme <- ggplot2::theme(plot.margin=ggplot2::margin(l=0.03, r=0.03, b=0.03, t=0.06, "in"))
 
   gg.plots <- lapply(gg.plots, function(gg) gg + ggrastr::theme_pdf(show.ticks=show.ticks) +
@@ -11,6 +12,10 @@ BuildPanel4 <- function(gg.plots, ylabel, xlabel, show.legend=F, return.raw=F, s
     gg.plots[[3]] <- gg.plots[[3]] + ggplot2::theme(legend.position=c(0, 0), legend.justification=c(0, 0))
   }
   gg.plots[[4]] <- gg.plots[[4]] + ggpubr::rremove("y.ticks") + ggpubr::rremove("y.text")
+
+  if (!is.null(plot.theme)) {
+    gg.plots <- lapply(gg.plots, `+`, plot.theme)
+  }
 
   if (return.raw)
     return(gg.plots)

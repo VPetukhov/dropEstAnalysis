@@ -18,37 +18,56 @@ GetPlotExrDf <- function(trimmed.cur, raw, umi.length, return.all=FALSE, adjuste
 }
 
 #' @export
-PlotTrimmedCorrections <- function(trimmed.data, raw.data, trimed.length, log=T, adjusted.raw=FALSE) {
+PlotTrimmedCorrections <- function(trimmed.data, raw.data, trimed.length, log=T, adjusted.raw=FALSE, raster=T,
+                                   rast.width=NULL, rast.height=NULL, rast.dpi=300, heights.ratio=c(1, 1)) {
+  if (raster) {
+    geom_point_w <- function(...) ggrastr::geom_point_rast(..., width=rast.width, height=rast.height * heights.ratio[1], dpi=rast.dpi)
+  } else {
+    geom_point_w <- ggplot2::geom_point
+  }
+  heights.ratio <- heights.ratio / sum(heights.ratio)
+
   plot.df <- GetPlotExrDf(trimmed.data, raw.data, trimed.length, adjusted.raw=adjusted.raw)
   plot.df.all <- GetPlotExrDf(trimmed.data, raw.data, trimed.length, return.all=T, adjusted.raw=adjusted.raw)
 
   plot.labs <- ggplot2::labs(x='Corrected #UMIs without trimming', y='Error on trimmed data, %',
                              title=paste0('Length of trimmed UMI: ', trimed.length))
 
-  plot.df.subset <- plot.df.all %>% dplyr::filter(RealValue < 50)
-  gg.small <- ggplot2::ggplot(plot.df.subset,
-                              ggplot2::aes(x=as.factor(ceiling(RealValue / 5) * 5) ,
-                                           y=100 * (value - RealValue) / RealValue,
-                                           color=Correction)) +
-    ggrastr::geom_boxplot_jitter_outlier(outlier.jitter.width=NULL, outlier.jitter.height=1, outlier.size=0.3, outlier.alpha=0.7) +
-    ggplot2::scale_linetype_manual(values=c('dashed', 'solid')) + ggsci::scale_color_jco() +
-    ggplot2::ylim(-50, 50) +
-    ggplot2::theme(legend.position="none") +
-    plot.labs
+  plot.df.subset <- plot.df.all %>% dplyr::filter(RealValue < 50) %>%
+    dplyr::mutate(RealValueRound=ceiling(RealValue / 5) * 5)
+  title.theme <- ggplot2::theme(plot.title=ggplot2::element_text(margin=ggplot2::margin(0, 0, 0.03, 0, 'in')))
 
-  trans <- ifelse(log, 'log10', 'identity')
-  gg.large <- ggplot2::ggplot(plot.df, ggplot2::aes(x=RealValue, y=100 * (TMean - RealValue) / RealValue, color=Correction)) +
-    ggplot2::geom_point(size=0.3, alpha=0.3) +
+  labels <- c('Bayesian', 'cluster', 'cluster-neq', 'directional', 'no correction')
+  color.scale <- ggplot2::scale_color_manual(values=c("#017A5A", "#9B3BB8", "#E69F00", "#BD5500", '#757575'), labels=labels)
+  # plot.df.subset$RealValueRound[plot.df.subset$RealValue == 1] <- 1
+
+  trans <- if(log) 'log10' else 'identity'
+  gg.large <- ggplot2::ggplot(plot.df,
+                              ggplot2::aes(x=RealValue,
+                                           y=100 * (TMean - RealValue) / RealValue,
+                                           color=Correction, linetype=Correction)) +
+    geom_point_w(size=0.3, alpha=0.3) +
     ggplot2::geom_smooth(alpha=0.1) +
-    ggplot2::scale_linetype_manual(values=c('dashed', 'solid')) +
-    ggsci::scale_color_jco(labels=c('Bayesian', 'cluster', 'cluster,\nno equals', 'directional', 'no correction')) +
+    ggplot2::scale_linetype_manual(values=c(rep('solid', 4), 'dashed'), guide=F) +
+    color.scale +
     ggplot2::scale_x_continuous(expand=c(0, 0), limits=c(1, 7999), trans=trans) +
-    ggplot2::scale_y_continuous(expand=c(0, 0), limits=c(-101, 70)) +
-    ggplot2::theme(legend.position=c(0, 0), legend.justification=c(0, 0), strip.background=ggplot2::element_blank(),
+    ggplot2::scale_y_continuous(expand=c(0, 0), limits=c(-101, 50)) +
+    ggplot2::theme(legend.position=c(0, 0), legend.justification=c(0, 0),
+                   strip.background=ggplot2::element_blank(),
                    strip.text=ggplot2::element_text(size=14)) +
+    title.theme +
     ggplot2::guides(color=ggplot2::guide_legend(ncol=3)) +
     plot.labs
 
+  gg.small <- ggplot2::ggplot(plot.df.subset,
+                              ggplot2::aes(x=as.factor(RealValueRound), y=100 * (value - RealValue) / RealValue, color=Correction)) +
+    ggrastr::geom_boxplot_jitter(outlier.jitter.width=NULL, outlier.jitter.height=1, outlier.size=0.3,
+                                 outlier.alpha=0.7, raster=raster, raster.width=rast.width,
+                                 raster.height=rast.height * heights.ratio[2], raster.dpi=rast.dpi) +
+    color.scale +
+    ggplot2::ylim(-50, 50) +
+    ggplot2::theme(legend.position="none") + title.theme +
+    plot.labs
 
   return(list(small=gg.small, large=gg.large))
 }

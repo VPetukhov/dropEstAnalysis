@@ -249,5 +249,5 @@ write.csv(data.frame(Barcode=names(clusters_annotated),
 ```
 
 ## Session information
-```{r session-info}
+```{r session-info, echo=FALSE}
 ```

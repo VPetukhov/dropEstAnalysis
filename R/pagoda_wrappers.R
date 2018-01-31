@@ -1,22 +1,33 @@
-GetPagoda <- function(cm, n.cores=10, tsne.iters.num=1000) {
-  r <- pagoda2::Pagoda2$new(cm, modelType='plain', trim=5, n.cores=n.cores)
-  r$adjustVariance(plot=F, do.par=F, gam.k=10)
+#' @export
+GetPagoda <- function(cm, n.cores=10, clustering.type='infomap', embeding.type='tSNE', verbose=TRUE) {
+  r <- pagoda2::Pagoda2$new(cm, modelType='plain', trim=5, n.cores=n.cores, verbose=verbose)
+  r$adjustVariance(plot=F, do.par=F, gam.k=10, verbose=verbose)
 
   r$calculatePcaReduction(nPcs=100, n.odgenes=1000, maxit=1000)
-  r$makeKnnGraph(k=30, type='PCA', center=T, distance='cosine', weight.type='none');
-  r$getKnnClusters(method=igraph::infomap.community, type='PCA', name='infomap')
+  r$makeKnnGraph(k=30,type='PCA', center=T,distance='cosine',weight.type='none', verbose=verbose)
+  if (clustering.type == 'infomap') {
+    r$getKnnClusters(method=igraph::infomap.community,type='PCA',name='infomap')
+  } else if (clustering.type == 'multilevel') {
+    r$getKnnClusters(method=igraph::multilevel.community,type='PCA',name='multilevel')
+  } else stop("Unknown clustering  type")
 
-  r$getEmbedding(type='PCA', perplexity=30, embeddingType = 'tSNE', max_iter=tsne.iters.num)
+  if ('largeVis' %in% embeding.type) {
+    r$getEmbedding(type='PCA', embeddingType = 'largeVis')
+  }
+
+  if ('tSNE' %in% embeding.type) {
+    r$getEmbedding(type='PCA', perplexity=30, embeddingType = 'tSNE')
+  }
+
   return(r)
 }
 
-PlotPagodaEmbeding <- function(r, clusters=NULL, clustering.type=NULL, colors=NULL, min.cluster.size=0, mark.clusters=TRUE,
-                               show.legend=FALSE, alpha=0.4, size=0.8, title=NULL, font.size=5.5, show.ticks=T, raster=F,
-                               raster.width=NULL, raster.height=NULL, raster.dpi=300, plot.na=T, na.shape=4,
-                               na.color='black', return.df=F, embeding.type='tSNE', ...) {
-  if (is.null(clusters) && is.null(clustering.type) && is.null(colors))
-    stop("Either clusters, clustering.type or colors must be provided")
-
+#' @export
+PlotPagodaEmbeding <- function(r, embeding.type='tSNE', clusters=NULL, clustering.type=NULL, colors=NULL, plot.na=TRUE,
+                               min.cluster.size=0, mark.clusters=TRUE, show.legend=FALSE, alpha=0.4, size=0.8, title=NULL,
+                               font.size=5.5, show.ticks=TRUE, raster=FALSE, raster.width=NULL, raster.height=NULL, raster.dpi=300,
+                               return.df=FALSE, ...) {
+  labels <- ggplot2::labs(x='Component 1', y='Component 2')
   plot.df <- tibble::rownames_to_column(as.data.frame(r$embeddings$PCA[[embeding.type]]), var='CellName')
   if (raster) {
     geomp_point_w <- function(...) ggrastr::geom_point_rast(..., width=raster.width, height=raster.height, dpi=raster.dpi)
@@ -24,16 +35,17 @@ PlotPagodaEmbeding <- function(r, clusters=NULL, clustering.type=NULL, colors=NU
     geomp_point_w <- ggplot2::geom_point
   }
 
-  if (is.null(colors)) {
-    if (is.null(clusters)) {
-      clusters <- r$clusters$PCA[[clustering.type]]
-    }
+  if (is.null(clusters) & !is.null(clustering.type)) {
+    clusters <- r$clusters$PCA[[clustering.type]]
+  }
+
+  if (is.null(colors) & !is.null(clusters)) {
     plot.df <- plot.df %>% dplyr::mutate(Cluster=clusters[CellName])
 
     plot.df$Cluster <- as.character(plot.df$Cluster)
 
-    big.clusts <- plot.df %>% dplyr::group_by(Cluster) %>% dplyr::summarise(Size=n()) %>%
-      dplyr::filter(Size >= min.cluster.size) %>% .$Cluster
+    big.clusts <- (plot.df %>% dplyr::group_by(Cluster) %>% dplyr::summarise(Size=n()) %>%
+      dplyr::filter(Size >= min.cluster.size))$Cluster %>% as.vector()
 
     plot.df$Cluster[!(plot.df$Cluster %in% big.clusts)] <- NA
     na.plot.df <- plot.df %>% filter(is.na(Cluster))
@@ -41,10 +53,10 @@ PlotPagodaEmbeding <- function(r, clusters=NULL, clustering.type=NULL, colors=NU
 
     gg <- ggplot2::ggplot(plot.df, ggplot2::aes(x=V1, y=V2)) +
       geomp_point_w(ggplot2::aes(col=Cluster), alpha=alpha, size=size) +
-      ggplot2::labs(x='Component 1', y='Component 2')
+      labels
 
     if (plot.na) {
-      gg <- gg + geomp_point_w(data=na.plot.df, alpha=alpha, size=size, color=na.color, shape=na.shape)
+      gg <- gg + geomp_point_w(data=na.plot.df, alpha=alpha, size=size, color='black', shape=4)
     }
 
     if (mark.clusters) {
@@ -60,14 +72,15 @@ PlotPagodaEmbeding <- function(r, clusters=NULL, clustering.type=NULL, colors=NU
       }
       gg <- gg + gg_repel + ggplot2::scale_size_continuous(guide='none')
     }
-  } else {
+  } else if (!is.null(colors)) {
     plot.df <- plot.df %>% dplyr::mutate(Color=colors[CellName])
-    if (!plot.na) {
-      plot.df <- plot.df %>% dplyr::filter(!is.na(Color))
-    }
     gg <- ggplot2::ggplot(plot.df, ggplot2::aes(x=V1, y=V2)) +
       geomp_point_w(ggplot2::aes(col=Color), alpha=alpha, size=size) +
-      ggplot2::labs(x='Component 1', y='Component 2')
+      labels
+  } else {
+    gg <- ggplot2::ggplot(plot.df, ggplot2::aes(x=V1, y=V2)) +
+      geomp_point_w(alpha=alpha, size=size) +
+      labels
   }
 
   if (return.df)

@@ -116,3 +116,12 @@ FillNa <- function(data, value=0) {
   data[is.na(data)] <- value
   return(data)
 }
+
+#' @export
+Read10xMatrix <- function(path, use.gene.names=FALSE) {
+  gene.var <- if (use.gene.names) 'V2' else 'V1'
+  mtx <- as(Matrix::readMM(paste0(path, 'matrix.mtx')), 'dgCMatrix')
+  colnames(mtx) <- read.table(paste0(path, 'barcodes.tsv'), stringsAsFactors=F)$V1
+  rownames(mtx) <- read.table(paste0(path, 'genes.tsv'), stringsAsFactors=F)[[gene.var]]
+  return(mtx)
+}

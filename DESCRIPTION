@@ -14,9 +14,10 @@ Imports:
   ggplot2 (>= 2.2.1),
   ggrastr (>= 0.1.5),
   dplyr (>= 0.7.4),
-  dropestr (>= 0.6.0),
+  dropestr (>= 0.7.5),
   sessioninfo (>= 1.0.0),
-  Matrix (>= 1.2)
+  Matrix (>= 1.2),
+  Rcpp
 Remotes:
   hms-dbmi/dropEst,
   VPetukhov/ggrastr
@@ -28,3 +29,6 @@ Suggests:
   knitr,
   rmarkdown
 VignetteBuilder: knitr
+LinkingTo: 
+  Rcpp
+SystemRequirements: C++11
