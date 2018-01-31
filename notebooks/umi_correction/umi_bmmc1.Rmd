@@ -156,7 +156,7 @@ corrected_reads$CellRanger <- holder_10x$reads_per_umi_per_cell$reads_per_umi
 Comparison of edit distances with the expected distribution, similar to UMI Tools paper.
 ```{r}
 ed_probs <- sapply(1:500, function(i) SampleNoReps(1000, names(umi_probs), umi_probs) %>% 
-                     pairwise_hamming()) %>% ValueCounts(return_probs=T)
+                     PairwiseHamming()) %>% ValueCounts(return_probs=T)
 ed_probs <- ed_probs[paste(1:5)]
 ```
 
@@ -164,7 +164,7 @@ ed_probs <- ed_probs[paste(1:5)]
 umis_per_gene <- mclapply(corrected_reads, lapply, names, mc.cores=6)
 
 obs_eds <- mclapply(umis_per_gene, function(reads) 
-  mclapply(reads, pairwise_hamming, mc.cores=8) %>% unlist(), mc.cores=6)
+  mclapply(reads, PairwiseHamming, mc.cores=8) %>% unlist(), mc.cores=6)
 
 obs_ed_probs <- mclapply(obs_eds, dropestr::ValueCounts, return_probs=T, mc.cores=6) %>%
   lapply(`[`, paste0(1:5)) %>% lapply(function(x) {x[is.na(x)] <- 0; setNames(x, paste0(1:5))}) %>% 

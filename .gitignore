@@ -28,3 +28,8 @@ packrat/src/
 inst/doc
 
 *.nb.html
+
+# Rcpp
+src/*.o
+src/*.so
+src/*.dll

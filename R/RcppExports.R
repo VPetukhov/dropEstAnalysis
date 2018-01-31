@@ -2,7 +2,7 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @export
-pairwise_hamming <- function(strs) {
-    .Call('_dropEstAnalysis_pairwise_hamming', PACKAGE = 'dropEstAnalysis', strs)
+PairwiseHamming <- function(strs) {
+    .Call('_dropEstAnalysis_PairwiseHamming', PACKAGE = 'dropEstAnalysis', strs)
 }
 

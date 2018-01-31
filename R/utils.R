@@ -1,6 +1,9 @@
 #' @useDynLib dropEstAnalysis
 NULL
 
+#' @importFrom dplyr %>%
+NULL
+
 .onUnload <- function (libpath) {
   library.dynam.unload("dropEstAnalysis", libpath)
 }

@@ -4,7 +4,7 @@
 
 //' @export
 // [[Rcpp::export]]
-std::vector<int> pairwise_hamming(const std::vector<std::string> &strs) {
+std::vector<int> PairwiseHamming(const std::vector<std::string> &strs) {
   std::vector<int> distances;
   for (int i = 0; i < strs.size(); ++i) {
     for (int j = i + 1; j < strs.size(); ++j) {
