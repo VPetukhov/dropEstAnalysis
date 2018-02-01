@@ -96,36 +96,14 @@ correction_colors <- c(`CellRanger`="#3b5ddb", Bayesian="#017A5A", cluster="#9B3
                        `no correction`='#757575')
 ```
 
-## Plots
-Create pagoda object for raw data:
-```{r, message=FALSE, warning=FALSE}
-kClusteringType <- 'infomap'
-r <- GetPagoda(corrected_cms$`no correction`, n.cores=25, clustering.type=kClusteringType, 
-               embeding.type='tSNE', verbose=F)
-clusters <- r$clusters$PCA[[kClusteringType]]
-```
-
-```{r}
-clusters_annotated <- read.csv(paste0(kData10xPath, 'clusters_annotated.csv'), row.names=1)
-clusters_annotated <- clusters_annotated$Type %>% setNames(clusters_annotated$Barcode)
-
-stroma_mask <- levels(clusters_annotated) == 'Mesenchymal stroma cells'
-levels(clusters_annotated)[stroma_mask] <- 'Stroma cells'
-```
-
-```{r}
-PlotPagodaEmbeding(r, clusters=clusters_annotated, mark.clusters=T, show.legend=F, size=0.5, 
-                   alpha=0.5, show.ticks=F, plot.na=T, font.size=NULL)
-```
-
-### Magnitude of correction
-#### Raw expression
+## Magnitude of correction
+### Raw expression
 ```{r, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
 PlotCorrectionSize(corrected_cms, correction_colors) + 
   labs(x = 'Raw expression', y = 'Correction magnitude')
 ```
 
-#### Normalized expression
+### Normalized expression
 ```{r, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
 norm_cms <- lapply(corrected_cms, function(cm) 1000 * t(t(cm) / Matrix::colSums(cm)))
 size_supp_fig <- PlotCorrectionSize(norm_cms, correction_colors,
@@ -147,7 +125,7 @@ gg_correction_size <- norm_cms[c('Bayesian', 'cluster', 'no correction')] %>%
   scale_alpha_manual(values=c(Bayesian=0.05, cluster=0.02))
 ```
 
-### Edit distances
+## Edit distances
 ```{r}
 holder_10x <- readRDS(paste0(kData10xPath, 'bmmc.rds'))
 corrected_reads$CellRanger <- holder_10x$reads_per_umi_per_cell$reads_per_umi
@@ -167,14 +145,15 @@ obs_eds <- mclapply(umis_per_gene, function(reads)
   mclapply(reads, PairwiseHamming, mc.cores=8) %>% unlist(), mc.cores=6)
 
 obs_ed_probs <- mclapply(obs_eds, dropestr::ValueCounts, return_probs=T, mc.cores=6) %>%
-  lapply(`[`, paste0(1:5)) %>% lapply(function(x) {x[is.na(x)] <- 0; setNames(x, paste0(1:5))}) %>% 
+  lapply(`[`, paste0(1:5)) %>% 
+  lapply(function(x) {x[is.na(x)] <- 0; setNames(x, paste0(1:5))}) %>% 
   as_tibble()
 
 obs_ed_sds <- mclapply(obs_eds, function(x) sd(x) / (length(x) %>% sqrt()), mc.cores=6) %>% 
   unlist()
 ```
 
-#### Main figure right part
+## Main figure, right part
 ```{r, fig.width=4, fig.height=8, message=FALSE, warning=FALSE}
 levels_order <- c('Bayesian', 'CellRanger', 'cluster', 'cluster-neq', 'directional', 
                   'no correction')
@@ -184,7 +163,8 @@ plot_df <- (abs(obs_ed_probs - ed_probs) / ed_probs) %>% mutate(EditDistance=1:5
 plot_df$Correction <- factor(as.character(plot_df$Correction), levels=levels_order, ordered=T)
 
 text_df <- data.frame(Prob=ed_probs, EditDistance=1:5, x=1:5 - 0.03) %>%
-  mutate(y = plot_df %>% group_by(EditDistance) %>% summarise(Error=max(Error)) %>% .$Error * 100 + 3.5)
+  mutate(y = plot_df %>% group_by(EditDistance) %>% summarise(Error=max(Error)) %>% 
+           .$Error * 100 + 3.5)
 
 breaks <- seq(0, 100, by=25)
 gg_eds <- ggplot(plot_df) + 
@@ -199,7 +179,7 @@ gg_eds <- ggplot(plot_df) +
   theme_pdf(legend.pos=c(1, 1)) +
   theme(panel.grid.major=element_blank())
 
-gg_fig <- cowplot::plot_grid(gg_eds, gg_correction_size + rremove('legend'), nrow=2, 
+gg_fig <- cowplot::plot_grid(gg_eds, gg_correction_size, nrow=2, 
                              align='v', labels=c('D', 'E'))
 
 saveRDS(list(gg_fig=gg_fig, gg_eds=gg_eds, gg_correction_size=gg_correction_size,
