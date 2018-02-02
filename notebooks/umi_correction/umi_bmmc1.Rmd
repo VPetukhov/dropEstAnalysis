@@ -53,31 +53,31 @@ collisions_info <- FillCollisionsAdjustmentInfo(umi_probs, max(holder$cm))
 
 ## UMI correction
 ```{r}
-corrected_reads <- list()
-corrected_reads$Bayesian <- holder$reads_per_umi_per_cell %>%
-  CorrectUmiSequenceErrors(method='Bayesian', return='reads',
-                           collisions.info=collisions_info, umi.probabilities=umi_probs,
-                           verbosity.level=2, mc.cores=30)
-
-corrected_reads$cluster <- holder$reads_per_umi_per_cell %>%
-  CorrectUmiSequenceErrors(method='Classic', return='reads',
-                           collisions.info=collisions_info, umi.probabilities=umi_probs,
-                           verbosity.level=2, mc.cores=30)
-
-corrected_reads$`cluster-neq` <- holder$reads_per_umi_per_cell %>%
-  CorrectUmiSequenceErrors(method='Classic', return='reads', mult=1+1e-4,
-                           collisions.info=collisions_info, umi.probabilities=umi_probs,
-                           verbosity.level=2, mc.cores=30)
-
-corrected_reads$directional <- holder$reads_per_umi_per_cell %>%
-  CorrectUmiSequenceErrors(method='Classic', return='reads', mult=2,
-                           collisions.info=collisions_info, umi.probabilities=umi_probs,
-                           verbosity.level=2, mc.cores=30)
-
-corrected_reads$`no correction` <- holder$reads_per_umi_per_cell$reads_per_umi
+# corrected_reads <- list()
+# corrected_reads$Bayesian <- holder$reads_per_umi_per_cell %>%
+#   CorrectUmiSequenceErrors(method='Bayesian', return='reads',
+#                            collisions.info=collisions_info, umi.probabilities=umi_probs,
+#                            verbosity.level=2, mc.cores=30)
+# 
+# corrected_reads$cluster <- holder$reads_per_umi_per_cell %>%
+#   CorrectUmiSequenceErrors(method='Classic', return='reads',
+#                            collisions.info=collisions_info, umi.probabilities=umi_probs,
+#                            verbosity.level=2, mc.cores=30)
+# 
+# corrected_reads$`cluster-neq` <- holder$reads_per_umi_per_cell %>%
+#   CorrectUmiSequenceErrors(method='Classic', return='reads', mult=1+1e-4,
+#                            collisions.info=collisions_info, umi.probabilities=umi_probs,
+#                            verbosity.level=2, mc.cores=30)
+# 
+# corrected_reads$directional <- holder$reads_per_umi_per_cell %>%
+#   CorrectUmiSequenceErrors(method='Classic', return='reads', mult=2,
+#                            collisions.info=collisions_info, umi.probabilities=umi_probs,
+#                            verbosity.level=2, mc.cores=30)
+# 
+# corrected_reads$`no correction` <- holder$reads_per_umi_per_cell$reads_per_umi
 
 # saveRDS(corrected_reads, paste0(kDataPath, 'corrected_rpus.rds'))
-# corrected_reads <- readRDS(paste0(kDataPath, 'corrected_rpus.rds'))
+corrected_reads <- readRDS(paste0(kDataPath, 'corrected_rpus.rds'))
 ```
 
 ```{r}
@@ -104,18 +104,22 @@ PlotCorrectionSize(corrected_cms, correction_colors) +
 ```
 
 ### Normalized expression
-```{r, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE}
 norm_cms <- lapply(corrected_cms, function(cm) 1000 * t(t(cm) / Matrix::colSums(cm)))
 size_supp_fig <- PlotCorrectionSize(norm_cms, correction_colors,
                                     xlim=c(10, 1010), ylim=c(1e-2, 1000), 
                                     dpi=150, width=4, height=2.5) + 
   labs(x = 'Normalized expression', y = 'Correction magnitude')
 
-size_supp_fig
 ggsave(paste0(kPlotsDir, 'supp_bmmc_correction_size.pdf'), size_supp_fig, width=8, height=5)
 ```
 
-```{r, fig.width=4, fig.height=4, message=FALSE, warning=FALSE}
+```{r, fig.width=8, fig.height=5, message=FALSE, warning=FALSE}
+size_supp_fig
+```
+
+### Subset for main figure
+```{r, message=FALSE, warning=FALSE}
 gg_correction_size <- norm_cms[c('Bayesian', 'cluster', 'no correction')] %>%
   PlotCorrectionSize(correction_colors, xlim=c(10, 1010), ylim=c(1e-2, 1000), 
                      dpi=150, width=4, height=4, facet=F,
@@ -125,36 +129,39 @@ gg_correction_size <- norm_cms[c('Bayesian', 'cluster', 'no correction')] %>%
   scale_alpha_manual(values=c(Bayesian=0.05, cluster=0.02))
 ```
 
+```{r, fig.width=4, fig.height=4, message=FALSE, warning=FALSE}
+gg_correction_size
+```
+
 ## Edit distances
+Comparison of edit distances with the expected distribution, similar to UMI Tools paper.
 ```{r}
 holder_10x <- readRDS(paste0(kData10xPath, 'bmmc.rds'))
 corrected_reads$CellRanger <- holder_10x$reads_per_umi_per_cell$reads_per_umi
 ```
 
-Comparison of edit distances with the expected distribution, similar to UMI Tools paper.
+Theoretical distribution. Here we use distribution of raw data, but changing it to one of the corrected distributions doesn't affect the results:
 ```{r}
-ed_probs <- sapply(1:500, function(i) SampleNoReps(1000, names(umi_probs), umi_probs) %>% 
-                     PairwiseHamming()) %>% ValueCounts(return_probs=T)
-ed_probs <- ed_probs[paste(1:5)]
+# ed_probs <- sapply(1:500, function(i) SampleNoReps(1000, names(umi_probs), umi_probs) %>% 
+#                      PairwiseHamming()) %>% ValueCounts(return_probs=T)
+# ed_probs <- ed_probs[paste(1:5)]
+
+ed_probs <- corrected_reads$`no correction` %>% sapply(length) %>%
+  mclapply(SampleNoReps, names(umi_probs), umi_probs, mc.cores=20) %>% 
+  EditDistanceDistribution(mc.cores=20)
 ```
 
+Observed distribution:
 ```{r}
 umis_per_gene <- mclapply(corrected_reads, lapply, names, mc.cores=6)
 
-obs_eds <- mclapply(umis_per_gene, function(reads) 
-  mclapply(reads, PairwiseHamming, mc.cores=8) %>% unlist(), mc.cores=6)
-
-obs_ed_probs <- mclapply(obs_eds, dropestr::ValueCounts, return_probs=T, mc.cores=6) %>%
-  lapply(`[`, paste0(1:5)) %>% 
-  lapply(function(x) {x[is.na(x)] <- 0; setNames(x, paste0(1:5))}) %>% 
+obs_ed_probs <- mclapply(umis_per_gene, function(upg) 
+  EditDistanceDistribution(upg, mc.cores=8), mc.cores=6) %>% 
   as_tibble()
-
-obs_ed_sds <- mclapply(obs_eds, function(x) sd(x) / (length(x) %>% sqrt()), mc.cores=6) %>% 
-  unlist()
 ```
 
-## Main figure, right part
-```{r, fig.width=4, fig.height=8, message=FALSE, warning=FALSE}
+Figure build:
+```{r}
 levels_order <- c('Bayesian', 'CellRanger', 'cluster', 'cluster-neq', 'directional', 
                   'no correction')
 
@@ -178,7 +185,14 @@ gg_eds <- ggplot(plot_df) +
   scale_fill_manual(values=correction_colors) +
   theme_pdf(legend.pos=c(1, 1)) +
   theme(panel.grid.major=element_blank())
+```
 
+```{r, fig.width=4, fig.height=4, message=FALSE, warning=FALSE}
+gg_eds
+```
+
+## Main figure, right part
+```{r, fig.width=4, fig.height=8, message=FALSE, warning=FALSE}
 gg_fig <- cowplot::plot_grid(gg_eds, gg_correction_size, nrow=2, 
                              align='v', labels=c('D', 'E'))
 
@@ -187,7 +201,6 @@ saveRDS(list(gg_fig=gg_fig, gg_eds=gg_eds, gg_correction_size=gg_correction_size
         '../../data/plot_data/bmmc_umi_fig_part2.rds')
 ```
 
-Here, confidence intervals are negligible and not shown:
 ```{r, fig.width=4, fig.height=8, message=FALSE, warning=FALSE}
 gg_fig
 ```

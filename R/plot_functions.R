@@ -1,6 +1,7 @@
 #' @export
-BuildPanel4 <- function(gg.plots, ylabel, xlabel, show.legend=F, return.raw=F, show.ticks=T,
-                        labels=c('A', 'B', 'C', 'D'), plot.theme=NULL, ...) {
+BuildPanel4 <- function(gg.plots, ylabel, xlabel, return.raw=F, show.ticks=T,
+                        labels=c('A', 'B', 'C', 'D'), plot.theme=NULL, legend.plot.id=NULL,
+                        ...) {
   margin.theme <- ggplot2::theme(plot.margin=ggplot2::margin(l=0.03, r=0.03, b=0.03, t=0.06, "in"))
 
   gg.plots <- lapply(gg.plots, function(gg) gg + ggrastr::theme_pdf(show.ticks=show.ticks) +
@@ -8,10 +9,12 @@ BuildPanel4 <- function(gg.plots, ylabel, xlabel, show.legend=F, return.raw=F, s
 
   gg.plots[[1]] <- gg.plots[[1]] + ggpubr::rremove("x.ticks") + ggpubr::rremove("x.text")
   gg.plots[[2]] <- gg.plots[[2]] + ggpubr::rremove("ticks") + ggpubr::rremove("xy.text")
-  if (show.legend) {
-    gg.plots[[3]] <- gg.plots[[3]] + ggplot2::theme(legend.position=c(0, 0), legend.justification=c(0, 0))
-  }
   gg.plots[[4]] <- gg.plots[[4]] + ggpubr::rremove("y.ticks") + ggpubr::rremove("y.text")
+
+  if (!is.null(legend.plot.id)) {
+    gg.plots[[legend.plot.id]] <- gg.plots[[legend.plot.id]] +
+      ggplot2::theme(legend.position=c(0, 0), legend.justification=c(0, 0))
+  }
 
   if (!is.null(plot.theme)) {
     gg.plots <- lapply(gg.plots, `+`, plot.theme)

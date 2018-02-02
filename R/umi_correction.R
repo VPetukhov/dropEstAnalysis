@@ -46,6 +46,17 @@ SampleNoReps <- function(size, ids, probs) {
   return(umis[1:size])
 }
 
+#' @export
+EditDistanceDistribution <- function(umis.per.gene, mc.cores=1) {
+  umi.length <- nchar(umis.per.gene[[1]][1])
+  probs <- parallel::mclapply(umis.per.gene, PairwiseHamming, mc.cores=mc.cores) %>%
+    unlist() %>% dropestr::ValueCounts(return_probs=T)
+  probs <- probs[paste(1:umi.length)]
+  probs[is.na(probs)] <- 0
+  names(probs) <- paste(1:umi.length)
+  return(probs)
+}
+
 # UMI trimming
 GetExprDf <- function(filt.umis.per.gene.vec, real.umis.per.gene.vec, raw.umis.per.gene.vec) {
   expressions <- as.data.frame(filt.umis.per.gene.vec)
