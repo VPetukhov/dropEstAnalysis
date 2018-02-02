@@ -38,6 +38,7 @@ Here bam file was filtered by removing all reads, which were aligned on both mou
 # holder_filt$reads_per_chr_per_cells <- holder$reads_per_chr_per_cells$Exon
 # saveRDS(holder_filt, '../../data/dropest/10x/hgmm_6k/est_2018_01_25_filtered/hgmm_6k_filt.rds')
 holder <- readRDS('../../data/dropest/10x/hgmm_6k/est_2018_01_25_filtered/hgmm_6k_filt.rds')
+kPlotDir <- '../../output/figures/'
 ```
 
 ```{r}
@@ -62,20 +63,23 @@ umi_by_species <- umi_by_species %>%
     TotalReads = rowSums(reads_per_chr),
     MitochondrionFraction = MitReads / TotalReads
   )
+
+umi_by_species$Type <- ifelse(umi_by_species$IsReal, umi_by_species$Organism, "Background")
+umi_by_species$Type[umi_by_species$Mouse > 2e3 & umi_by_species$Human > 2e3] <- 'Dublets'
 ```
 
 ## Common view
 ```{r, fig.width=8, fig.height=4, message=FALSE, warning=FALSE}
-gg <- ggplot(umi_by_species, aes(x=Mouse, y=Human)) + 
+gg_template <- ggplot(umi_by_species, aes(x=Mouse, y=Human)) + 
   geom_abline(aes(slope=1, intercept=0), linetype='dashed', alpha=0.5) +
   scale_x_log10(limits=c(1, 2e5), name="#Mouse molecules") + 
   scale_y_log10(name="#Human molecules") + annotation_logticks() +
   theme_pdf(legend.pos=c(0.97, 0.05)) + theme(legend.margin=margin(l=3, r=3, unit="pt"))
 
-gg_left <- gg + geom_point(aes(color=IsReal), size=0.1, alpha=0.15) +
+gg_left <- gg_template + geom_point(aes(color=IsReal), size=0.1, alpha=0.15) +
   guides(color=guide_legend(override.aes=list(size=1.5, alpha=1)))
 
-gg_right <- gg + geom_point(aes(color=MitochondrionFraction), size=0.1, alpha=0.15) +
+gg_right <- gg_template + geom_point(aes(color=MitochondrionFraction), size=0.1, alpha=0.15) +
   scale_color_gradientn(colours=c("#1200ba", "#347fff", "#cc4000", "#ff3333"), 
                         values=scales::rescale(c(0, 0.1, 0.3, 0.8)), 
                         breaks=seq(0, 1.0, 0.2)) +
@@ -120,6 +124,30 @@ gg <- ggplot(umi_by_species %>% filter(!IsReal)) +
   theme_pdf()
 
 gg
+```
+
+## Figure
+```{r, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+arrows_df <- umi_by_species %>% group_by(Type) %>% 
+  summarise(MouseEnd=median(Mouse), HumanEnd=median(Human)) %>%
+  mutate(Mouse=c(1e1, 2e4, 7e1, 6e4), 
+         Human=c(1e3, 5e3, 7e4, 1.5e2))
+
+
+gg_fig <- gg_template + 
+  geom_point_rast(aes(color=MitochondrionFraction), size=0.1, alpha=0.15, width=6, height=4, dpi=200) +
+  scale_color_gradientn(colours=c("#1200ba", "#347fff", "#cc4000", "#ff3333"), 
+                        values=scales::rescale(c(0, 0.1, 0.3, 0.8)), 
+                        breaks=seq(0, 1.0, 0.2)) +
+  guides(color=guide_colorbar(direction="horizontal", title.position="top", 
+                              title="Mitochondrial\nfraction", 
+                              barwidth=unit(1.2, units="in"))) + 
+  stat_ellipse(aes(group=Type), level=0.9999) +
+  geom_segment(aes(xend=MouseEnd, yend=HumanEnd, group=Type),  data=arrows_df, arrow=arrow(length = unit(0.03, "npc"))) +
+  geom_label(aes(label=Type),  data=arrows_df, fill=alpha('white', 1))
+
+ggsave(paste0(kPlotDir, 'supp_human_mouse.pdf'), gg_fig, width=6, height=4)
+gg_fig
 ```
 
 ## Session information
