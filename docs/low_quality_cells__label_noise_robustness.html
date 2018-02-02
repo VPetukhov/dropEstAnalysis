@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Viktor Petukhov" />
+
+<meta name="date" content="2018-02-01" />
+
+<title>Comparison of classifiers’ robustness to label noise</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">dropEstAnalysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/jdblischak/workflowr">
+    <span class="fa fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Comparison of classifiers’ robustness to label noise</h1>
+<h4 class="author"><em>Viktor Petukhov</em></h4>
+<h4 class="date"><em>2018-02-01</em></h4>
+
+</div>
+
+
+<p><strong>Source file:</strong> notebooks/low_quality_cells/label_noise_robustness.Rmd</p>
+<p><strong>Last updated:</strong> 2018-02-02</p>
+<p><strong>Code version:</strong> b8b2fd2</p>
+<div id="initialization" class="section level2">
+<h2>Initialization</h2>
+<pre class="r"><code>library(ggplot2)
+library(ggrastr)
+library(parallel)
+library(dplyr)
+library(dropestr)
+library(dropEstAnalysis)
+library(reshape2)
+library(randomForest)
+library(ggpubr)
+library(cowplot)
+
+theme_set(theme_base)
+
+RgpPredict &lt;- function(clf, x) {
+  predictions &lt;- predictORMCGP(clf, x)$prob[,2]
+  names(predictions) &lt;- rownames(x)
+  return(predictions)
+}
+
+classifier_funcs &lt;- list(
+  KDE=list(train=TrainKDE, predict=function(clf, y) PredictKDE(clf, y)[, 2]), 
+  RF=list(train=function(x, y) randomForest(x=x, y=as.factor(y), ntree=1000, mtry=2), 
+          predict=function(clf, x) predict(clf, x, type=&#39;prob&#39;)[,2]),
+  RGP=list(train=function(x, y) epORGPC(x, as.factor(y), kernel=&#39;gaussian&#39;), 
+           predict=RgpPredict))</code></pre>
+<pre class="r"><code>kPlotDir &lt;- &#39;../../output/figures/&#39;
+holder &lt;- readRDS(&#39;../../data/dropest/allon_new/SRR3879617/est_11_22/cell.counts.rds&#39;)
+holder$reads_per_umi_per_cell &lt;- NULL</code></pre>
+<p>Number of cells:</p>
+<pre class="r"><code>analised_cbs &lt;- names(sort(holder$aligned_umis_per_cell, decreasing=T)[1:1300])
+umi_counts &lt;- holder$aligned_umis_per_cell[analised_cbs]
+
+features &lt;- PrepareLqCellsDataPipeline(holder, mit.chromosome.name=&quot;chrM&quot;)[analised_cbs,]
+classifier_data &lt;- GetOptimalPcs(features)$pca.data
+cell_number &lt;- EstimateCellsNumber(umi_counts)
+
+real_cbs &lt;- analised_cbs[1:cell_number$min]
+background_cbs &lt;- analised_cbs[cell_number$max:length(analised_cbs)]
+
+scores_base &lt;- mclapply(classifier_funcs, ScoringFunction, classifier_data, 
+                        real_cbs, background_cbs, mc.cores=3)
+
+PlotCellsNumberLine(umi_counts, estimate.cells.number=T, breaks=50) +
+  theme_pdf()</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-4-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p>Miochondrial fraction:</p>
+<pre class="r"><code>smoothScatter(features$MitochondrionFraction, xlab=&#39;Cell rank&#39;, 
+              ylab=&#39;Mitochondrion fraction&#39;, cex.lab=1.2)</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-5-1.png" width="480" style="display: block; margin: auto;" /></p>
+</div>
+<div id="cv-on-labeled-data" class="section level2">
+<h2>CV on labeled data</h2>
+<p>Simple cross-validation on labeled data. While, labels have errors, it can give us an estimate of the algorithms’ quality.</p>
+<pre class="r"><code>kfold_labeled_res &lt;- lapply(classifier_funcs, function(clf)
+  KFoldCV(classifier_data[c(real_cbs, background_cbs),], 
+          c(rep(1, length(real_cbs)), rep(0, length(background_cbs))), 
+          clf$train, clf$predict, k=5, stratify=F, 
+          measure = c(&#39;sensitivity&#39;, &#39;specifisity&#39;)))
+
+CvResultsTable(kfold_labeled_res)</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">Classifier</th>
+<th align="left">sensitivity</th>
+<th align="left">specifisity</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">KDE</td>
+<td align="left">90 (±4)</td>
+<td align="left">90.7 (±1.2)</td>
+</tr>
+<tr class="even">
+<td align="left">RF</td>
+<td align="left">89.1 (±3.8)</td>
+<td align="left">91.9 (±1)</td>
+</tr>
+<tr class="odd">
+<td align="left">RGP</td>
+<td align="left">87.7 (±2.3)</td>
+<td align="left">95.1 (±1.9)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="stability-of-labels-on-cv" class="section level2">
+<h2>Stability of labels on CV</h2>
+<p>Let’s check robustness to data subsetting. Now we will remove 20% of train data, but check unswers on the same dataset (with “Unknown” quality). Here, “correct” answer is the answer, obtained after training on the whole dataset.</p>
+<pre class="r"><code>train_cbs &lt;- c(real_cbs, background_cbs)
+intermediate_cbs &lt;- setdiff(analised_cbs, train_cbs)
+
+intermediate_res &lt;- mapply(function(scores, clf) 
+  KFoldCV(classifier_data[train_cbs,], scores[train_cbs], clf$train, clf$predict, 
+          k = 5, stratify = F, test.force = list(x=classifier_data[intermediate_cbs,], 
+                                                 y=scores[intermediate_cbs]), 
+          measure = c(&#39;sensitivity&#39;, &#39;specifisity&#39;)), 
+  scores_base, classifier_funcs, SIMPLIFY=F) %&gt;%
+  setNames(names(classifier_funcs))
+
+CvResultsTable(intermediate_res)</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">Classifier</th>
+<th align="left">sensitivity</th>
+<th align="left">specifisity</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">KDE</td>
+<td align="left">90.2 (±4.1)</td>
+<td align="left">96.3 (±0.6)</td>
+</tr>
+<tr class="even">
+<td align="left">RF</td>
+<td align="left">89.8 (±6.1)</td>
+<td align="left">96.5 (±1.9)</td>
+</tr>
+<tr class="odd">
+<td align="left">RGP</td>
+<td align="left">83.5 (±2.6)</td>
+<td align="left">99.3 (±0.6)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="dependency-between-scores-and-borders" class="section level2">
+<h2>Dependency between scores and borders</h2>
+<p>Again, we will check stability on “Unknown” cells. But now, we will widen borders of real / background cells. To estimate confidence intervals we randomly removes 10% of data (as in 10-fold CV).</p>
+<pre class="r"><code>offset_vals &lt;- seq(0.0, 0.95, 0.05)
+offset_accs &lt;- mclapply(names(classifier_funcs), function(n) 
+  mclapply(offset_vals, function(offset) 
+    ScoreDependsOnBorders(classifier_data, scores_base[[n]], classifier_funcs[[n]], 
+                          real_cbs, background_cbs, offset, offset), mc.cores=20), mc.cores=2)
+names(offset_accs) &lt;- names(classifier_funcs)</code></pre>
+<pre class="r"><code>plot_df &lt;- lapply(offset_accs, function(df) lapply(1:length(offset_vals), function(i) 
+  cbind(df[[i]], Measure=rownames(df[[i]]), Offset=offset_vals[i])) %&gt;% bind_rows()) %&gt;% 
+  bind_rows(.id=&quot;Classifier&quot;) %&gt;% mutate(mean=1-mean)
+plot_df$Measure &lt;- c(&#39;False negative rate&#39;, &#39;False positive rate&#39;)[as.integer(plot_df$Measure)]
+
+gg_borders &lt;- ggplot(plot_df, aes(x=Offset, ymin=mean-sd, ymax=mean+sd, 
+                                  y=mean, color=Classifier, shape=Measure)) + 
+  geom_pointrange(fatten=2.5, alpha=0.8, size=0.8) + 
+  geom_line(aes(linetype=Measure), size=0.8, alpha=0.7) + 
+  xlim(0, 1) + 
+  scale_color_manual(values = c(&quot;#4E58E0&quot;, &quot;#F08000&quot;, &quot;#349147&quot;)) + 
+  labs(x=&#39;Border offset&#39;, y=&#39;Value&#39;) +
+  theme_pdf()
+
+gg_borders</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-9-1.png" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="robustness-to-errors-in-labels" class="section level2">
+<h2>Robustness to errors in labels</h2>
+<p>Let’s assume that classifier answers are real class labels. We will introduce some noise to them and retrain the classifiers on the noisy labels. Here, 75% of the dataset are used to train classifiers, and 25% are used to test them.</p>
+<div id="symmetric-errors" class="section level3">
+<h3>Symmetric errors</h3>
+<pre class="r"><code>wrong_frac_vals &lt;- seq(0.0, 1.0, 0.1)
+
+var_types &lt;- c(&#39;fpr&#39;, &#39;fnr&#39;)
+wrong_labels_vars &lt;- list(wrong=paste0(&#39;wrong.&#39;, var_types), all=paste0(&#39;all.&#39;, var_types), test=paste0(&#39;test.&#39;, var_types))
+
+scores_with_err &lt;- mcmapply(function(clf, scores) 
+  mclapply(wrong_frac_vals, function(frac) mclapply(1:10, function(y) 
+      ScoreCellsWithWrongLabels(classifier_data, scores, clf, frac, frac, 0.25), mc.cores=2), mc.cores=10),
+  classifier_funcs, scores_base, SIMPLIFY=F, mc.cores=2)
+
+names(scores_with_err) &lt;- names(classifier_funcs)</code></pre>
+<div id="test-data" class="section level4">
+<h4>Test data</h4>
+<p>Results on the test subset (25% of data):</p>
+<pre class="r"><code>measure_names &lt;- c(fpr=&#39;False positive rate&#39;, fnr=&#39;False negative rate&#39;)
+gg_offset_test &lt;- scores_with_err %&gt;%
+  PlotTestedClassifierErrors(wrong_frac_vals, wrong_labels_vars, var_types, 
+                             filt.subset=&#39;test&#39;, measure.names=measure_names) +
+  theme_pdf()
+
+gg_offset_test</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-11-1.png" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="changed-labels" class="section level4">
+<h4>Changed labels</h4>
+<p>Results on cells with changed labels:</p>
+<pre class="r"><code>gg_offset_wrong &lt;- scores_with_err %&gt;%
+  PlotTestedClassifierErrors(wrong_frac_vals, wrong_labels_vars, var_types, 
+                             filt.subset=&#39;wrong&#39;, measure.names=measure_names) +
+  theme_pdf()
+
+gg_offset_wrong</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-12-1.png" width="768" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="nonsymmetric-errors" class="section level3">
+<h3>Nonsymmetric errors</h3>
+<p>Errors in real CBs only:</p>
+<pre class="r"><code>wrong_frac_vals_one_side &lt;- wrong_frac_vals[1:(length(wrong_frac_vals) - 1)]
+
+scores_with_err_real &lt;- mcmapply(function(clf, scores) 
+  mclapply(wrong_frac_vals, function(frac) mclapply(1:10, function(y) 
+      ScoreCellsWithWrongLabels(classifier_data, scores, clf, frac, 0.0, 0.25), mc.cores=2), 
+      mc.cores=10),
+  classifier_funcs, scores_base, SIMPLIFY=F, mc.cores=2)
+
+PlotTestedClassifierErrors(scores_with_err_real, wrong_frac_vals_one_side, 
+                           wrong_labels_vars, var_types) +
+  theme_pdf(legend.pos=c(0, 1))</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-13-1.png" width="768" style="display: block; margin: auto;" /></p>
+<p>Errors in background CBs only:</p>
+<pre class="r"><code>scores_with_err_background &lt;- mcmapply(function(clf, scores) 
+  mclapply(wrong_frac_vals, function(frac) mclapply(1:10, function(y) 
+      ScoreCellsWithWrongLabels(classifier_data, scores, clf, 0.0, frac, 0.25), mc.cores=2), 
+      mc.cores=10),
+  classifier_funcs, scores_base, SIMPLIFY=F, mc.cores=2)
+
+PlotTestedClassifierErrors(scores_with_err_background, wrong_frac_vals_one_side, 
+                           wrong_labels_vars, var_types) +
+  theme_pdf(legend.pos=c(0, 1))</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-14-1.png" width="768" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="complete-figure" class="section level2">
+<h2>Complete figure</h2>
+<pre class="r"><code>plotlist &lt;- list(gg_offset_test, gg_offset_wrong, gg_borders) %&gt;% 
+  lapply(function(gg) gg + rremove(&quot;legend&quot;)) %&gt;% 
+  lapply(`+`, theme(plot.margin=ggplot2::margin()))
+
+legend &lt;- get_legend(
+  gg_borders + 
+    scale_color_manual(values = c(&quot;#4E58E0&quot;, &quot;#F08000&quot;, &quot;#349147&quot;), 
+                       labels=c(&quot;Kernel density estimation&quot;, &quot;Random forest&quot;, 
+                                &quot;Robust Gaussian processes&quot;)) +
+    guides(color=guide_legend(override.aes=list(size=0.25)), 
+           shape=guide_legend(override.aes=list(size=0.5))) +
+    theme(legend.box.background=element_blank(), 
+          legend.text=element_text(size=11), 
+          legend.title=element_text(size=13)))
+
+plotlist[[1]] &lt;- plotlist[[1]] + rremove(&quot;x.text&quot;) + rremove(&quot;x.ticks&quot;) + rremove(&quot;xlab&quot;)
+plotlist[[3]] &lt;- plotlist[[3]] + rremove(&quot;y.text&quot;) + rremove(&quot;y.ticks&quot;) + rremove(&quot;ylab&quot;)
+
+gg_figure &lt;- plot_grid(plotlist[[1]], legend, plotlist[[2]], plotlist[[3]], ncol=2, 
+                       rel_widths=c(1, 0.9), rel_heights=c(0.9, 1),
+                       labels=c(&#39;A&#39;, &#39;&#39;, &#39;B&#39;, &#39;C&#39;), label_y=0.98, 
+                       label_x=c(0.15, 0.0, 0.15, 0.02)) +
+  theme(plot.margin=ggplot2::margin(2, 2, 2, 2))
+
+ggsave(paste0(kPlotDir, &#39;supp_label_noise_robustness.pdf&#39;),
+       gg_figure, width=8, height=6)
+gg_figure</code></pre>
+<p><img src="figure/label_noise_robustness.Rmd/unnamed-chunk-15-1.png" width="768" style="display: block; margin: auto;" /></p>
+</div>
+<div id="session-information" class="section level2">
+<h2>Session information</h2>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>version</td>
+<td align="left">R version 3.4.1 (2017-06-30)</td>
+</tr>
+<tr class="even">
+<td>os</td>
+<td align="left">Ubuntu 14.04.5 LTS</td>
+</tr>
+<tr class="odd">
+<td>system</td>
+<td align="left">x86_64, linux-gnu</td>
+</tr>
+<tr class="even">
+<td>ui</td>
+<td align="left">X11</td>
+</tr>
+<tr class="odd">
+<td>language</td>
+<td align="left">(EN)</td>
+</tr>
+<tr class="even">
+<td>collate</td>
+<td align="left">en_US.UTF-8</td>
+</tr>
+<tr class="odd">
+<td>tz</td>
+<td align="left">America/New_York</td>
+</tr>
+<tr class="even">
+<td>date</td>
+<td align="left">2018-02-02</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">package</th>
+<th align="left">loadedversion</th>
+<th align="left">date</th>
+<th align="left">source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td align="left">assertthat</td>
+<td align="left">0.2.0</td>
+<td align="left">2017-04-11</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td align="left">backports</td>
+<td align="left">1.1.2</td>
+<td align="left">2017-12-13</td>
+<td align="left">cran (<span class="citation">@1.1.2</span>)</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td align="left">bindr</td>
+<td align="left">0.1</td>
+<td align="left">2016-11-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td align="left">bindrcpp</td>
+<td align="left">0.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td align="left">clisymbols</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-05-21</td>
+<td align="left">cran (<span class="citation">@1.2.0</span>)</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td align="left">colorspace</td>
+<td align="left">1.2-6</td>
+<td align="left">2015-03-11</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td align="left">cowplot</td>
+<td align="left">0.8.0</td>
+<td align="left">2017-07-30</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td align="left">digest</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td align="left">dplyr</td>
+<td align="left">0.7.4</td>
+<td align="left">2017-09-28</td>
+<td align="left">cran (<span class="citation">@0.7.4</span>)</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td align="left">dropEstAnalysis</td>
+<td align="left">0.6.0</td>
+<td align="left">2018-02-02</td>
+<td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td align="left">dropestr</td>
+<td align="left">0.7.5</td>
+<td align="left">2018-02-01</td>
+<td align="left">local (<span class="citation">@0.7.5</span>)</td>
+</tr>
+<tr class="even">
+<td>15</td>
+<td align="left">evaluate</td>
+<td align="left">0.10.1</td>
+<td align="left">2017-06-24</td>
+<td align="left">cran (<span class="citation">@0.10.1</span>)</td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td align="left">ggplot2</td>
+<td align="left">2.2.1</td>
+<td align="left">2016-12-30</td>
+<td align="left">cran (<span class="citation">@2.2.1</span>)</td>
+</tr>
+<tr class="even">
+<td>17</td>
+<td align="left">ggpubr</td>
+<td align="left">0.1.4</td>
+<td align="left">2017-06-28</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>18</td>
+<td align="left">ggrastr</td>
+<td align="left">0.1.5</td>
+<td align="left">2018-01-29</td>
+<td align="left">Github (<a href="mailto:VPetukhov/ggrastr@cc56b45">VPetukhov/ggrastr@cc56b45</a>)</td>
+</tr>
+<tr class="even">
+<td>19</td>
+<td align="left">git2r</td>
+<td align="left">0.21.0</td>
+<td align="left">2018-01-04</td>
+<td align="left">cran (<span class="citation">@0.21.0</span>)</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td align="left">glue</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-10-29</td>
+<td align="left">cran (<span class="citation">@1.2.0</span>)</td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td align="left">gtable</td>
+<td align="left">0.2.0</td>
+<td align="left">2016-02-26</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="odd">
+<td>25</td>
+<td align="left">highr</td>
+<td align="left">0.6</td>
+<td align="left">2016-05-09</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="even">
+<td>26</td>
+<td align="left">htmltools</td>
+<td align="left">0.3.6</td>
+<td align="left">2017-04-28</td>
+<td align="left">cran (<span class="citation">@0.3.6</span>)</td>
+</tr>
+<tr class="odd">
+<td>27</td>
+<td align="left">KernSmooth</td>
+<td align="left">2.23-15</td>
+<td align="left">2015-06-29</td>
+<td align="left">CRAN (R 3.4.0)</td>
+</tr>
+<tr class="even">
+<td>28</td>
+<td align="left">knitr</td>
+<td align="left">1.19</td>
+<td align="left">2018-01-29</td>
+<td align="left">cran (<span class="citation">@1.19</span>)</td>
+</tr>
+<tr class="odd">
+<td>29</td>
+<td align="left">ks</td>
+<td align="left">1.11.0</td>
+<td align="left">2018-01-16</td>
+<td align="left">cran (<span class="citation">@1.11.0</span>)</td>
+</tr>
+<tr class="even">
+<td>30</td>
+<td align="left">labeling</td>
+<td align="left">0.3</td>
+<td align="left">2014-08-23</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="odd">
+<td>31</td>
+<td align="left">lattice</td>
+<td align="left">0.20-35</td>
+<td align="left">2017-03-25</td>
+<td align="left">CRAN (R 3.3.3)</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td align="left">lazyeval</td>
+<td align="left">0.2.0</td>
+<td align="left">2016-06-12</td>
+<td align="left">cran (<span class="citation">@0.2.0</span>)</td>
+</tr>
+<tr class="odd">
+<td>33</td>
+<td align="left">magrittr</td>
+<td align="left">1.5</td>
+<td align="left">2014-11-22</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td align="left">Matrix</td>
+<td align="left">1.2-10</td>
+<td align="left">2017-04-28</td>
+<td align="left">CRAN (R 3.4.0)</td>
+</tr>
+<tr class="odd">
+<td>35</td>
+<td align="left">mclust</td>
+<td align="left">5.4</td>
+<td align="left">2017-11-22</td>
+<td align="left">cran (<span class="citation">@5.4</span>)</td>
+</tr>
+<tr class="even">
+<td>37</td>
+<td align="left">munsell</td>
+<td align="left">0.4.3</td>
+<td align="left">2016-02-13</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="odd">
+<td>38</td>
+<td align="left">mvtnorm</td>
+<td align="left">1.0-7</td>
+<td align="left">2018-01-26</td>
+<td align="left">cran (<span class="citation">@1.0-7</span>)</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td align="left">pcaPP</td>
+<td align="left">1.9-73</td>
+<td align="left">2018-01-14</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>41</td>
+<td align="left">pillar</td>
+<td align="left">1.1.0</td>
+<td align="left">2018-01-14</td>
+<td align="left">cran (<span class="citation">@1.1.0</span>)</td>
+</tr>
+<tr class="even">
+<td>42</td>
+<td align="left">pkgconfig</td>
+<td align="left">2.0.1</td>
+<td align="left">2017-03-21</td>
+<td align="left">cran (<span class="citation">@2.0.1</span>)</td>
+</tr>
+<tr class="odd">
+<td>43</td>
+<td align="left">plyr</td>
+<td align="left">1.8.4</td>
+<td align="left">2016-06-08</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="even">
+<td>44</td>
+<td align="left">R6</td>
+<td align="left">2.2.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">cran (<span class="citation">@2.2.2</span>)</td>
+</tr>
+<tr class="odd">
+<td>45</td>
+<td align="left">randomForest</td>
+<td align="left">4.6-12</td>
+<td align="left">2015-10-07</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>46</td>
+<td align="left">Rcpp</td>
+<td align="left">0.12.15</td>
+<td align="left">2018-01-20</td>
+<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+</tr>
+<tr class="odd">
+<td>47</td>
+<td align="left">reshape2</td>
+<td align="left">1.4.2</td>
+<td align="left">2016-10-22</td>
+<td align="left">cran (<span class="citation">@1.4.2</span>)</td>
+</tr>
+<tr class="even">
+<td>48</td>
+<td align="left">rlang</td>
+<td align="left">0.1.6</td>
+<td align="left">2017-12-21</td>
+<td align="left">cran (<span class="citation">@0.1.6</span>)</td>
+</tr>
+<tr class="odd">
+<td>49</td>
+<td align="left">rmarkdown</td>
+<td align="left">1.8</td>
+<td align="left">2017-11-17</td>
+<td align="left">cran (<span class="citation">@1.8</span>)</td>
+</tr>
+<tr class="even">
+<td>50</td>
+<td align="left">rprojroot</td>
+<td align="left">1.3-2</td>
+<td align="left">2018-01-03</td>
+<td align="left">cran (<span class="citation">@1.3-2</span>)</td>
+</tr>
+<tr class="odd">
+<td>51</td>
+<td align="left">scales</td>
+<td align="left">0.4.1</td>
+<td align="left">2016-11-09</td>
+<td align="left">cran (<span class="citation">@0.4.1</span>)</td>
+</tr>
+<tr class="even">
+<td>52</td>
+<td align="left">sessioninfo</td>
+<td align="left">1.0.0</td>
+<td align="left">2017-06-21</td>
+<td align="left">cran (<span class="citation">@1.0.0</span>)</td>
+</tr>
+<tr class="odd">
+<td>54</td>
+<td align="left">stringi</td>
+<td align="left">1.1.1</td>
+<td align="left">2016-05-27</td>
+<td align="left">CRAN (R 3.3.1)</td>
+</tr>
+<tr class="even">
+<td>55</td>
+<td align="left">stringr</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-02-18</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>56</td>
+<td align="left">tibble</td>
+<td align="left">1.4.2</td>
+<td align="left">2018-01-22</td>
+<td align="left">cran (<span class="citation">@1.4.2</span>)</td>
+</tr>
+<tr class="even">
+<td>59</td>
+<td align="left">withr</td>
+<td align="left">2.1.1</td>
+<td align="left">2017-12-19</td>
+<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+</tr>
+<tr class="odd">
+<td>60</td>
+<td align="left">yaml</td>
+<td align="left">2.1.16</td>
+<td align="left">2017-12-12</td>
+<td align="left">cran (<span class="citation">@2.1.16</span>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+<hr>
+<p>
+    This <a href="http://rmarkdown.rstudio.com">R Markdown</a> site was created with <a href="https://github.com/jdblischak/workflowr">workflowr</a>
+</p>
+<hr>
+
+<!-- To enable disqus, uncomment the section below and provide your disqus_shortname -->
+
+<!-- disqus
+  <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'rmarkdown'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+-->
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
