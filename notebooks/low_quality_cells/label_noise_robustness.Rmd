@@ -1,0 +1,248 @@
+---
+title: "Comparison of classifiers' robustness to label noise"
+author: "Viktor Petukhov"
+date: 2018-02-01
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+## Initialization
+```{r, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggrastr)
+library(parallel)
+library(dplyr)
+library(dropestr)
+library(dropEstAnalysis)
+library(reshape2)
+library(randomForest)
+library(ggpubr)
+library(cowplot)
+
+theme_set(theme_base)
+
+RgpPredict <- function(clf, x) {
+  predictions <- predictORMCGP(clf, x)$prob[,2]
+  names(predictions) <- rownames(x)
+  return(predictions)
+}
+
+classifier_funcs <- list(
+  KDE=list(train=TrainKDE, predict=function(clf, y) PredictKDE(clf, y)[, 2]), 
+  RF=list(train=function(x, y) randomForest(x=x, y=as.factor(y), ntree=1000, mtry=2), 
+          predict=function(clf, x) predict(clf, x, type='prob')[,2]),
+  RGP=list(train=function(x, y) epORGPC(x, as.factor(y), kernel='gaussian'), 
+           predict=RgpPredict))
+```
+
+```{r}
+kPlotDir <- '../../output/figures/'
+holder <- readRDS('../../data/dropest/allon_new/SRR3879617/est_11_22/cell.counts.rds')
+holder$reads_per_umi_per_cell <- NULL
+```
+
+Number of cells:  
+```{r}
+analised_cbs <- names(sort(holder$aligned_umis_per_cell, decreasing=T)[1:1300])
+umi_counts <- holder$aligned_umis_per_cell[analised_cbs]
+
+features <- PrepareLqCellsDataPipeline(holder, mit.chromosome.name="chrM")[analised_cbs,]
+classifier_data <- GetOptimalPcs(features)$pca.data
+cell_number <- EstimateCellsNumber(umi_counts)
+
+real_cbs <- analised_cbs[1:cell_number$min]
+background_cbs <- analised_cbs[cell_number$max:length(analised_cbs)]
+
+scores_base <- mclapply(classifier_funcs, ScoringFunction, classifier_data, 
+                        real_cbs, background_cbs, mc.cores=3)
+
+PlotCellsNumberLine(umi_counts, estimate.cells.number=T, breaks=50) +
+  theme_pdf()
+```
+
+Miochondrial fraction:  
+```{r, fig.width=5, fig.height=3.5}
+smoothScatter(features$MitochondrionFraction, xlab='Cell rank', 
+              ylab='Mitochondrion fraction', cex.lab=1.2)
+```
+
+## CV on labeled data  
+Simple cross-validation on labeled data. While, labels have errors, it can give us an estimate of the algorithms' quality.
+
+```{r, message=FALSE, warning=FALSE}
+kfold_labeled_res <- lapply(classifier_funcs, function(clf)
+  KFoldCV(classifier_data[c(real_cbs, background_cbs),], 
+          c(rep(1, length(real_cbs)), rep(0, length(background_cbs))), 
+          clf$train, clf$predict, k=5, stratify=F, 
+          measure = c('sensitivity', 'specifisity')))
+
+CvResultsTable(kfold_labeled_res)
+```
+
+## Stability of labels on CV  
+Let's check robustness to data subsetting. Now we will remove 20% of train data, but check unswers on the same dataset (with "Unknown" quality).
+Here, "correct" answer is the answer, obtained after training on the whole dataset.
+
+```{r, message=FALSE, warning=FALSE}
+train_cbs <- c(real_cbs, background_cbs)
+intermediate_cbs <- setdiff(analised_cbs, train_cbs)
+
+intermediate_res <- mapply(function(scores, clf) 
+  KFoldCV(classifier_data[train_cbs,], scores[train_cbs], clf$train, clf$predict, 
+          k = 5, stratify = F, test.force = list(x=classifier_data[intermediate_cbs,], 
+                                                 y=scores[intermediate_cbs]), 
+          measure = c('sensitivity', 'specifisity')), 
+  scores_base, classifier_funcs, SIMPLIFY=F) %>%
+  setNames(names(classifier_funcs))
+
+CvResultsTable(intermediate_res)
+```
+
+## Dependency between scores and borders  
+Again, we will check stability on "Unknown" cells. But now, we will widen borders of real / background cells. To estimate confidence intervals we randomly removes 10% of data (as in 10-fold CV).
+```{r}
+offset_vals <- seq(0.0, 0.95, 0.05)
+offset_accs <- mclapply(names(classifier_funcs), function(n) 
+  mclapply(offset_vals, function(offset) 
+    ScoreDependsOnBorders(classifier_data, scores_base[[n]], classifier_funcs[[n]], 
+                          real_cbs, background_cbs, offset, offset), mc.cores=20), mc.cores=2)
+names(offset_accs) <- names(classifier_funcs)
+```
+
+```{r, fig.width=8, fig.height=4}
+plot_df <- lapply(offset_accs, function(df) lapply(1:length(offset_vals), function(i) 
+  cbind(df[[i]], Measure=rownames(df[[i]]), Offset=offset_vals[i])) %>% bind_rows()) %>% 
+  bind_rows(.id="Classifier") %>% mutate(mean=1-mean)
+plot_df$Measure <- c('False negative rate', 'False positive rate')[as.integer(plot_df$Measure)]
+
+gg_borders <- ggplot(plot_df, aes(x=Offset, ymin=mean-sd, ymax=mean+sd, 
+                                  y=mean, color=Classifier, shape=Measure)) + 
+  geom_pointrange(fatten=2.5, alpha=0.8, size=0.8) + 
+  geom_line(aes(linetype=Measure), size=0.8, alpha=0.7) + 
+  xlim(0, 1) + 
+  scale_color_manual(values = c("#4E58E0", "#F08000", "#349147")) + 
+  labs(x='Border offset', y='Value') +
+  theme_pdf()
+
+gg_borders
+```
+
+## Robustness to errors in labels  
+Let's assume that classifier answers are real class labels. We will introduce some noise to them and retrain the classifiers on the noisy labels. 
+Here, 75% of the dataset are used to train classifiers, and 25% are used to test them.
+
+### Symmetric errors
+```{r}
+wrong_frac_vals <- seq(0.0, 1.0, 0.1)
+
+var_types <- c('fpr', 'fnr')
+wrong_labels_vars <- list(wrong=paste0('wrong.', var_types), all=paste0('all.', var_types), test=paste0('test.', var_types))
+
+scores_with_err <- mcmapply(function(clf, scores) 
+  mclapply(wrong_frac_vals, function(frac) mclapply(1:10, function(y) 
+      ScoreCellsWithWrongLabels(classifier_data, scores, clf, frac, frac, 0.25), mc.cores=2), mc.cores=10),
+  classifier_funcs, scores_base, SIMPLIFY=F, mc.cores=2)
+
+names(scores_with_err) <- names(classifier_funcs)
+```
+
+#### Test data
+Results on the test subset (25% of data):
+
+```{r, fig.width=8, fig.height=4, message=FALSE, warning=FALSE}
+measure_names <- c(fpr='False positive rate', fnr='False negative rate')
+gg_offset_test <- scores_with_err %>%
+  PlotTestedClassifierErrors(wrong_frac_vals, wrong_labels_vars, var_types, 
+                             filt.subset='test', measure.names=measure_names) +
+  theme_pdf()
+
+gg_offset_test
+```
+
+#### Changed labels
+Results on cells with changed labels:
+
+```{r, fig.width=8, fig.height=4, message=FALSE, warning=FALSE}
+gg_offset_wrong <- scores_with_err %>%
+  PlotTestedClassifierErrors(wrong_frac_vals, wrong_labels_vars, var_types, 
+                             filt.subset='wrong', measure.names=measure_names) +
+  theme_pdf()
+
+gg_offset_wrong
+```
+
+### Nonsymmetric errors
+Errors in real CBs only:  
+```{r, message=FALSE, warning=FALSE, error=FALSE, fig.width=8, fig.height=4}
+wrong_frac_vals_one_side <- wrong_frac_vals[1:(length(wrong_frac_vals) - 1)]
+
+scores_with_err_real <- mcmapply(function(clf, scores) 
+  mclapply(wrong_frac_vals, function(frac) mclapply(1:10, function(y) 
+      ScoreCellsWithWrongLabels(classifier_data, scores, clf, frac, 0.0, 0.25), mc.cores=2), 
+      mc.cores=10),
+  classifier_funcs, scores_base, SIMPLIFY=F, mc.cores=2)
+
+PlotTestedClassifierErrors(scores_with_err_real, wrong_frac_vals_one_side, 
+                           wrong_labels_vars, var_types) +
+  theme_pdf(legend.pos=c(0, 1))
+```
+
+Errors in background CBs only:  
+```{r, message=FALSE, warning=FALSE, error=FALSE, fig.width=8, fig.height=4}
+scores_with_err_background <- mcmapply(function(clf, scores) 
+  mclapply(wrong_frac_vals, function(frac) mclapply(1:10, function(y) 
+      ScoreCellsWithWrongLabels(classifier_data, scores, clf, 0.0, frac, 0.25), mc.cores=2), 
+      mc.cores=10),
+  classifier_funcs, scores_base, SIMPLIFY=F, mc.cores=2)
+
+PlotTestedClassifierErrors(scores_with_err_background, wrong_frac_vals_one_side, 
+                           wrong_labels_vars, var_types) +
+  theme_pdf(legend.pos=c(0, 1))
+```
+
+## Complete figure
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=5}
+plotlist <- list(gg_offset_test, gg_offset_wrong, gg_borders) %>% 
+  lapply(function(gg) gg + rremove("legend")) %>% 
+  lapply(`+`, theme(plot.margin=ggplot2::margin()))
+
+legend <- get_legend(
+  gg_borders + 
+    scale_color_manual(values = c("#4E58E0", "#F08000", "#349147"), 
+                       labels=c("Kernel density estimation", "Random forest", 
+                                "Robust Gaussian processes")) +
+    guides(color=guide_legend(override.aes=list(size=0.25)), 
+           shape=guide_legend(override.aes=list(size=0.5))) +
+    theme(legend.box.background=element_blank(), 
+          legend.text=element_text(size=11), 
+          legend.title=element_text(size=13)))
+
+plotlist[[1]] <- plotlist[[1]] + rremove("x.text") + rremove("x.ticks") + rremove("xlab")
+plotlist[[3]] <- plotlist[[3]] + rremove("y.text") + rremove("y.ticks") + rremove("ylab")
+
+gg_figure <- plot_grid(plotlist[[1]], legend, plotlist[[2]], plotlist[[3]], ncol=2, 
+                       rel_widths=c(1, 0.9), rel_heights=c(0.9, 1),
+                       labels=c('A', '', 'B', 'C'), label_y=0.98, 
+                       label_x=c(0.15, 0.0, 0.15, 0.02)) +
+  theme(plot.margin=ggplot2::margin(2, 2, 2, 2))
+
+ggsave(paste0(kPlotDir, 'supp_label_noise_robustness.pdf'),
+       gg_figure, width=8, height=6)
+gg_figure
+```
+
+## Session information
+```{r session-info, echo=FALSE}
+```

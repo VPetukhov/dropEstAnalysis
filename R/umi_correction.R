@@ -120,3 +120,60 @@ PlotTrimmedCorrections <- function(trimmed.data, raw.data, trimed.length, log=T,
 
   return(list(small=gg.small, large=gg.large))
 }
+
+#' @export
+TrimAndCorrect <- function(reads.per.umi.per.cb.info, umi.trim.length, mc.cores.large, mc.cores.small,
+                           verbosity.level=0, prepare.only=FALSE) {
+  reads.per.umi.per.cb <- reads.per.umi.per.cb.info$reads_per_umi
+
+  if (length(reads.per.umi.per.cb) == 0)
+    stop("Empty input")
+
+  if (length(reads.per.umi.per.cb[[1]][[1]][[2]]) == 0)
+    stop("Information about quality is required for UMI correction")
+
+  trimmed <- list()
+  trimmed$reads.per.umi.per.cb <- lapply(reads.per.umi.per.cb, dropestr::TrimUmis, umi.trim.length)
+  trimmed$umis.per.gene <- sapply(trimmed$reads.per.umi.per.cb, length)
+
+  trimmed.reads.per.umi.per.cb <- reads.per.umi.per.cb.info
+  trimmed.reads.per.umi.per.cb$reads_per_umi <- trimmed$reads.per.umi.per.cb
+
+  umi.distribution <- dropestr::GetUmisDistribution(trimmed$reads.per.umi.per.cb, umi.trim.length)
+  trimmed$umi.probabilities <- umi.distribution / sum(umi.distribution)
+
+  max.umi.per.gene <- max(trimmed$umis.per.gene)
+
+  trimmed$collisions.info <- dropestr::FillCollisionsAdjustmentInfo(trimmed$umi.probabilities, max.umi.per.gene)
+  max.umi.per.gene.adj <- trimmed$collisions.info[max.umi.per.gene]
+
+  trimmed$correction.info <- dropestr::PrepareUmiCorrectionInfo(trimmed$umi.probabilities, max.umi.per.gene.adj,
+                                                                verbosity.level=if (verbosity.level > 1) verbosity.level else 0)
+
+  if (prepare.only)
+    return(trimmed)
+
+  filt_cells <- list()
+  filt_cells$Bayesian <- trimmed.reads.per.umi.per.cb %>%
+    dropestr::CorrectUmiSequenceErrors(umi.probabilities=trimmed$umi.probabilities, collisions.info=trimmed$collisions.info,
+                                       correction.info=trimmed$correction.info, mc.cores=mc.cores.large, return='umis',
+                                       verbosity.level=verbosity.level)
+
+  filt_cells$cluster <- trimmed.reads.per.umi.per.cb %>%
+    dropestr::CorrectUmiSequenceErrors(umi.probabilities=trimmed$umi.probabilities, collisions.info=trimmed$collisions.info,
+                                       correction.info=trimmed$correction.info, mc.cores=mc.cores.small,
+                                       verbosity.level=verbosity.level, return='umis', mult=1, method='Classic')
+
+  filt_cells$`cluster-neq` <- trimmed.reads.per.umi.per.cb %>%
+    dropestr::CorrectUmiSequenceErrors(umi.probabilities=trimmed$umi.probabilities, collisions.info=trimmed$collisions.info,
+                                       correction.info=trimmed$correction.info, mc.cores=mc.cores.small,
+                                       verbosity.level=verbosity.level, return='umis', mult=1 + 1e-5, method='Classic')
+
+  filt_cells$directional <- trimmed.reads.per.umi.per.cb %>%
+    dropestr::CorrectUmiSequenceErrors(umi.probabilities=trimmed$umi.probabilities, collisions.info=trimmed$collisions.info,
+                                       correction.info=trimmed$correction.info, mc.cores=mc.cores.small,
+                                       verbosity.level=verbosity.level, return='umis', mult=2, method='Classic')
+
+  trimmed$filt_cells <- filt_cells
+  return(trimmed)
+}
