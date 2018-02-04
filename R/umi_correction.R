@@ -188,3 +188,65 @@ TrimAndCorrect <- function(reads.per.umi.per.cb.info, umi.trim.length, mc.cores.
   trimmed$filt_cells <- filt_cells
   return(trimmed)
 }
+
+## Trimmed collisions
+
+#' @export
+TrimUmisSummary <- function(reads.per.umi.per.cell, trimmed.umi.length, reverse=FALSE) {
+  trimmed <- list()
+  trimmed$reads.per.umi.per.cb <- lapply(reads.per.umi.per.cell$reads_per_umi, dropestr::TrimUmis,
+                                         trimmed.umi.length, reverse=reverse)
+  trimmed$umis.per.gene <- sapply(trimmed$reads.per.umi.per.cb, length)
+
+  umi.distribution <- dropestr::GetUmisDistribution(trimmed$reads.per.umi.per.cb, trimmed.umi.length)
+  trimmed$umi.probabilities <- umi.distribution / sum(umi.distribution)
+
+  max.umi.per.gene <- max(trimmed$umis.per.gene)
+  trimmed$collisions.info <- dropestr::FillCollisionsAdjustmentInfo(trimmed$umi.probabilities, max.umi.per.gene)
+  trimmed$neighbours.per.umi <- dropestr::FillAdjacentUmisData(trimmed$umi.probabilities, adjacent_only=T, show_progress=0)[names(trimmed$umi.probabilities)]
+  return(trimmed)
+}
+
+
+MaxCharFreq <- function(str) {
+  return(max(table(strsplit(str, split='')) / nchar(str)))
+}
+
+#' @export
+MaxFreqDistribution <- function(prefix.length, umi.distr.tail) {
+  substrs <- sapply(names(umi.distr.tail),
+                    function(n) substr(n, 1, prefix.length))
+  max.frecs <- sapply(substrs, MaxCharFreq)
+  observed <- sapply(split(umi.distr.tail, max.frecs), sum) / sum(umi.distr.tail)
+
+  uniform <- sapply(1:10000, function(i) max(table(sample(1:4, size=prefix.length, replace = T)) / prefix.length))
+  estimated <- table(uniform) / length(uniform)
+
+  all.fracs <- union(names(estimated), names(observed))
+  all.observed <- setNames(rep(0, length(all.fracs)), all.fracs)
+  all.observed[names(observed)] <- observed
+  all.estimated <- setNames(rep(0, length(all.fracs)), all.fracs)
+  all.estimated[names(estimated)] <- estimated
+  all.fracs <- as.numeric(all.fracs)
+
+  return(data.frame(observed=c(0, as.vector(all.observed), 0),
+                    estimated=c(0, as.vector(all.estimated), 0),
+                    fracs=c(min(all.fracs) - 1e-5, all.fracs, max(all.fracs) + 1e-5)))
+}
+
+SampleNumOfAdjacentUmis <- function(gene.size, umi.probabilities, neighbours.per.umi, uniform=FALSE) {
+  if (uniform) {
+    umis <- SampleNoReps(gene.size, ids=names(umi.probabilities), probs=NULL)
+  } else {
+    umis <- SampleNoReps(gene.size, ids=names(umi.probabilities), probs=umi.probabilities)
+  }
+
+  rpu <- setNames(rep(1, gene.size), umis)
+  return(sum(dropestr::GetAdjacentUmisNum(rpu, rpu)$Total))
+}
+
+#' @export
+SampleNumbersOfAdjacentUmis <- function(gene.size, trimmed.info, samples.num, uniform=FALSE) {
+  return(sapply(1:samples.num, function(i)
+    SampleNumOfAdjacentUmis(gene.size, trimmed.info$umi.probabilities, trimmed.info$neighbours.per.umi, uniform=uniform)))
+}
