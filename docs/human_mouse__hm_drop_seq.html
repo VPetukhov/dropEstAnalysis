@@ -315,7 +315,7 @@ div.section {
 
 <p><strong>Source file:</strong> notebooks/human_mouse/hm_drop_seq.Rmd</p>
 <p><strong>Last updated:</strong> 2018-02-04</p>
-<p><strong>Code version:</strong> a288c05</p>
+<p><strong>Code version:</strong> 0306e1c</p>
 <pre class="r"><code>library(ggplot2)
 library(ggrastr)
 library(dplyr)
@@ -415,24 +415,29 @@ gg</code></pre>
   mutate(Mouse=c(1e1, 6e4, 2e1, 6e4), 
          Human=c(1e3, 5e3, 7e4, 7e1))
 
+fig_width &lt;- 3.7
+fig_height &lt;- 4.4
+
 gg_fig &lt;- gg_template + 
-  geom_point_rast(aes(color=MitochondrionFraction), size=0.2, alpha=0.15, width=4, 
-                  height=4, dpi=200) +
+  geom_point_rast(aes(color=MitochondrionFraction), size=0.2, alpha=0.15, 
+                  width=fig_width, height=fig_height, dpi=200) +
   scale_color_gradientn(colours=c(&quot;#1200ba&quot;, &quot;#347fff&quot;, &quot;#cc4000&quot;, &quot;#ff3333&quot;), 
                         values=scales::rescale(c(0, 0.1, 0.3, 0.8)), 
                         breaks=seq(0, 1.0, 0.2)) +
   guides(color=guide_colorbar(direction=&quot;horizontal&quot;, title.position=&quot;top&quot;, 
                               title=&quot;Mitochondrial\nfraction&quot;, 
-                              barwidth=unit(1.2, units=&quot;in&quot;))) + 
+                              barwidth=unit(1.0, units=&quot;in&quot;))) + 
   stat_ellipse(aes(group=Type), level=0.99) +
   geom_segment(aes(xend=MouseEnd, yend=HumanEnd, group=Type),  data=arrows_df, 
                arrow=arrow(length = unit(0.03, &quot;npc&quot;))) +
   geom_label(aes(label=Type),  data=arrows_df, fill=alpha(&#39;white&#39;, 1)) +
   theme(plot.margin=margin(1, 1, 1, 1))
 
-ggsave(paste0(kPlotDir, &#39;fig_human_mouse.pdf&#39;), gg_fig, width=4, height=4)</code></pre>
+try(invisible(dev.off()), silent=T)
+ggsave(paste0(kPlotDir, &#39;fig_human_mouse.pdf&#39;), gg_fig, 
+       width=fig_width, height=fig_height)</code></pre>
 <pre class="r"><code>gg_fig</code></pre>
-<p><img src="figure/hm_drop_seq.Rmd/unnamed-chunk-10-1.png" width="384" style="display: block; margin: auto;" /></p>
+<p><img src="figure/hm_drop_seq.Rmd/unnamed-chunk-10-1.png" width="336" style="display: block; margin: auto;" /></p>
 </div>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>

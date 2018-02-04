@@ -315,7 +315,7 @@ div.section {
 
 <p><strong>Source file:</strong> notebooks/human_mouse/hm_10x_6k.Rmd</p>
 <p><strong>Last updated:</strong> 2018-02-04</p>
-<p><strong>Code version:</strong> a288c05</p>
+<p><strong>Code version:</strong> 0306e1c</p>
 <pre class="r"><code>library(ggplot2)
 library(ggrastr)
 library(dropestr)
@@ -436,6 +436,7 @@ gg_fig &lt;- gg_template +
   geom_label(aes(label=Type),  data=arrows_df, fill=alpha(&#39;white&#39;, 1)) +
   theme(plot.margin=margin(1, 1, 1, 1))
 
+try(invisible(dev.off()), silent=T)
 ggsave(paste0(kPlotDir, &#39;supp_human_mouse.pdf&#39;), gg_fig, width=6, height=4)</code></pre>
 <pre class="r"><code>gg_fig</code></pre>
 <p><img src="figure/hm_10x_6k.Rmd/unnamed-chunk-9-1.png" width="576" style="display: block; margin: auto;" /></p>
