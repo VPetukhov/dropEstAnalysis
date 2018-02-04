@@ -1,0 +1,92 @@
+---
+title: "Validation of merge algorithm"
+author: "Viktor Petukhov"
+date: 2018-02-04
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+## Initialization
+```{r global_options, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggrastr)
+library(dplyr)
+library(parallel)
+library(dropestr)
+library(dropEstAnalysis)
+library(Matrix)
+
+theme_set(theme_base)
+
+kPlotsFolder <- '../../output/figures/'
+kDataPath <- '../../data/dropest/'
+```
+
+```{r}
+dataset_names <- c('precise', 'unmerged')
+kDropSeqPath <- paste0('dropseq/thousand/', c('est_01_16_precise/', 'est_01_16_unmerged/'), 
+                       'thousand.rds')
+kInDropPath <- paste0('SCG71/', c('est_11_16_poisson_simple/', 'est_11_16_unmerged/'), 
+                      'SCG71.rds')
+k10xPath <- paste0('10x/pbmc33k/', c('est_11_17_poisson/', 'est_11_17_unmerged/'), 
+                   'pbmc33k_no_umis.rds')
+
+kDataPaths <- list(dropseq=kDropSeqPath, indrop=kInDropPath, `10x`=k10xPath) %>% 
+  lapply(function(l) paste0(kDataPath, l) %>% setNames(dataset_names))
+
+holders <- mclapply(kDataPaths, function(x) mclapply(x, readRDS, mc.cores=length(x)),
+                    mc.cores=length(kDataPaths))
+```
+
+```{r}
+validation_data <- lapply(holders, function(hs) list(cms=lapply(hs, `[[`, 'cm')))
+
+validation_data$dropseq$cell_number <- 1000
+validation_data$indrop$cell_number <- 5200
+validation_data$`10x`$cell_number <- 30000
+
+for (n in names(validation_data)) {
+  cn <- validation_data[[n]]$cell_number
+  validation_data[[n]]$umi_per_cb <- lapply(validation_data[[n]]$cms, function(cm) 
+    sort(Matrix::colSums(cm), decreasing=T))
+  validation_data[[n]]$real_cbs <- names(validation_data[[n]]$umi_per_cb$precise)[1:cn]
+}
+
+size_increase <- lapply(validation_data, function(d) (
+  d$umi_per_cb$precise[d$real_cbs] - d$umi_per_cb$unmerged[d$real_cbs]) / 
+    d$umi_per_cb$unmerged[d$real_cbs])
+```
+
+## Figure
+```{r, fig.width=3.5, fig.height=2.3, message=FALSE, warning=FALSE}
+names(size_increase) <- c('Drop-seq, mixture', 'inDrop, BMCs', '10x, 33k PBMCs')
+plot_df <- mapply(function(v, n) tibble(Increase=v, Dataset=n), size_increase, 
+                  names(size_increase), SIMPLIFY=F) %>% bind_rows()
+
+gg_size <- ggplot(plot_df) + 
+  geom_histogram(aes(x=100 * Increase, fill=Dataset, y = 100 * 0.75 * ..density..), 
+                 binwidth=0.75, color=alpha('black', 0.05), position='identity', alpha=0.5) +
+  scale_x_continuous(expand=c(0, 0), limits=c(0.0, 20)) +
+  scale_y_continuous(expand=c(0, 0), limits=c(0, 35)) +
+  labs(x='Increase in #molecules per CB, %', y='Number of CBs, %') +
+  theme_pdf(legend.pos=c(1, 1)) + theme(panel.grid.minor=element_blank())
+
+ggsave(paste0(kPlotsFolder, "merge_size_increase.pdf"), gg_size, width=3.5, height=2.3)
+gg_size
+```
+
+## Session information
+```{r session-info, echo=FALSE}
+```
