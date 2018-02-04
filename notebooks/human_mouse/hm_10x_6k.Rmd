@@ -147,7 +147,8 @@ gg_fig <- gg_template +
   stat_ellipse(aes(group=Type), level=0.9999) +
   geom_segment(aes(xend=MouseEnd, yend=HumanEnd, group=Type),  data=arrows_df, 
                arrow=arrow(length = unit(0.03, "npc"))) +
-  geom_label(aes(label=Type),  data=arrows_df, fill=alpha('white', 1))
+  geom_label(aes(label=Type),  data=arrows_df, fill=alpha('white', 1)) +
+  theme(plot.margin=margin(1, 1, 1, 1))
 
 ggsave(paste0(kPlotDir, 'supp_human_mouse.pdf'), gg_fig, width=6, height=4)
 ```

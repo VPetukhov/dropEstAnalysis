@@ -24,6 +24,7 @@ library(ggrastr)
 library(dplyr)
 library(dropestr)
 library(dropEstAnalysis)
+library(Matrix)
 
 theme_set(theme_base)
 ```
@@ -31,18 +32,18 @@ theme_set(theme_base)
 ## Load data
 Here bam file was filtered by realigning it with `kallisto 0.43` separately on mouse and human genome. Only reads, which were aligned only on one of them were used in `dropEst`.
 ```{r}
-holder <- readRDS('../../data/dropest/dropseq/thousand/est_2018_01_26_tophat/thousand.rds')
-bc_data <- PrepareLqCellsDataPipeline(holder, scale=FALSE) %>% 
-  tibble::rownames_to_column("CB")
+# holder <- readRDS('../../data/dropest/dropseq/thousand/est_2018_01_26_tophat/thousand.rds')
+# saveRDS(holder$cm_raw, '../../data/dropest/dropseq/thousand/est_2018_01_26_tophat/cm.rds')
+cm <- readRDS('../../data/dropest/dropseq/thousand/est_2018_01_26_tophat/cm.rds')
+kPlotDir <- '../../output/figures/'
 ```
 
 ```{r}
-cm_real <- holder$cm_raw
 cell_number <- 1100
 
-gene_species <- ifelse(substr(rownames(cm_real), 1, 2) == "HU", 'Human', 'Mouse') %>% 
+gene_species <- ifelse(substr(rownames(cm), 1, 2) == "HU", 'Human', 'Mouse') %>% 
   as.factor()
-umi_by_species <- lapply(levels(gene_species), function(l) cm_real[gene_species == l,] %>% 
+umi_by_species <- lapply(levels(gene_species), function(l) cm[gene_species == l,] %>% 
                            Matrix::colSums()) %>% as.data.frame() %>% 
   `colnames<-`(levels(gene_species)) %>% tibble::rownames_to_column('CB') %>% 
   as_tibble() %>% 
@@ -50,24 +51,27 @@ umi_by_species <- lapply(levels(gene_species), function(l) cm_real[gene_species 
          IsReal=rank(Total) >= length(Total) - cell_number) %>%
   filter(Total > 20)
 
-mit_genes <- rownames(holder$cm_raw)[grep("_MT:.+", rownames(holder$cm_raw))]
-umi_by_species <- umi_by_species %>% mutate(
-    MitochondrionFraction = GetGenesetFraction(holder$cm_raw, mit_genes)[CB]
-  )
+mit_genes <- rownames(cm)[grep("_MT:.+", rownames(cm))]
+umi_by_species$MitochondrionFraction <- GetGenesetFraction(cm, mit_genes)[umi_by_species$CB]
+
+umi_by_species$Type <- ifelse(umi_by_species$IsReal, umi_by_species$Organism, "Background")
+umi_by_species$Type[umi_by_species$Mouse > 5e3 & umi_by_species$Human > 5e3] <- 'Dublets'
 ```
 
 ## Common view
 ```{r, fig.width=8, fig.height=4, message=FALSE, warning=FALSE}
-gg <- ggplot(umi_by_species, aes(x=Mouse, y=Human)) + 
+gg_template <- ggplot(umi_by_species, aes(x=Mouse, y=Human)) + 
   geom_abline(aes(slope=1, intercept=0), linetype='dashed', alpha=0.5) +
   scale_x_log10(limits=c(1, 2e5), name="#Mouse molecules") + 
   scale_y_log10(name="#Human molecules") + annotation_logticks() +
   theme_pdf(legend.pos=c(0.97, 0.05)) + theme(legend.margin=margin(l=3, r=3, unit="pt"))
 
-gg_left <- gg + geom_point(aes(color=IsReal), size=0.1, alpha=0.15) +
+gg_left <- gg_template + 
+  geom_point(aes(color=IsReal), size=0.1, alpha=0.15) +
   guides(color=guide_legend(override.aes=list(size=1.5, alpha=1)))
 
-gg_right <- gg + geom_point(aes(color=MitochondrionFraction), size=0.1, alpha=0.15) +
+gg_right <- gg_template + 
+  geom_point(aes(color=MitochondrionFraction), size=0.1, alpha=0.15) +
   scale_color_gradientn(colours=c("#1200ba", "#347fff", "#cc4000", "#ff3333"), 
                         values=scales::rescale(c(0, 0.1, 0.3, 0.8))) +
   guides(color=guide_colorbar(direction="horizontal", title.position="top", 
@@ -121,6 +125,35 @@ gg +
   annotation_logticks(sides="b")
 ```
 
+## Figure
+```{r, message=FALSE, warning=FALSE}
+arrows_df <- umi_by_species %>% group_by(Type) %>% 
+  summarise(MouseEnd=median(Mouse), HumanEnd=median(Human)) %>%
+  mutate(Mouse=c(1e1, 6e4, 2e1, 6e4), 
+         Human=c(1e3, 5e3, 7e4, 7e1))
+
+gg_fig <- gg_template + 
+  geom_point_rast(aes(color=MitochondrionFraction), size=0.2, alpha=0.15, width=4, 
+                  height=4, dpi=200) +
+  scale_color_gradientn(colours=c("#1200ba", "#347fff", "#cc4000", "#ff3333"), 
+                        values=scales::rescale(c(0, 0.1, 0.3, 0.8)), 
+                        breaks=seq(0, 1.0, 0.2)) +
+  guides(color=guide_colorbar(direction="horizontal", title.position="top", 
+                              title="Mitochondrial\nfraction", 
+                              barwidth=unit(1.2, units="in"))) + 
+  stat_ellipse(aes(group=Type), level=0.99) +
+  geom_segment(aes(xend=MouseEnd, yend=HumanEnd, group=Type),  data=arrows_df, 
+               arrow=arrow(length = unit(0.03, "npc"))) +
+  geom_label(aes(label=Type),  data=arrows_df, fill=alpha('white', 1)) +
+  theme(plot.margin=margin(1, 1, 1, 1))
+
+ggsave(paste0(kPlotDir, 'fig_human_mouse.pdf'), gg_fig, width=4, height=4)
+```
+
+```{r, fig.width=4, fig.height=4, message=FALSE, warning=FALSE}
+gg_fig
+```
+
 ## Session information
-```{r session-info}
+```{r session-info, echo=FALSE}
 ```
