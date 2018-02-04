@@ -314,8 +314,8 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/human_mouse/hm_10x_6k.Rmd</p>
-<p><strong>Last updated:</strong> 2018-02-02</p>
-<p><strong>Code version:</strong> 8f2c7d3</p>
+<p><strong>Last updated:</strong> 2018-02-04</p>
+<p><strong>Code version:</strong> a288c05</p>
 <pre class="r"><code>library(ggplot2)
 library(ggrastr)
 library(dropestr)
@@ -433,7 +433,8 @@ gg_fig &lt;- gg_template +
   stat_ellipse(aes(group=Type), level=0.9999) +
   geom_segment(aes(xend=MouseEnd, yend=HumanEnd, group=Type),  data=arrows_df, 
                arrow=arrow(length = unit(0.03, &quot;npc&quot;))) +
-  geom_label(aes(label=Type),  data=arrows_df, fill=alpha(&#39;white&#39;, 1))
+  geom_label(aes(label=Type),  data=arrows_df, fill=alpha(&#39;white&#39;, 1)) +
+  theme(plot.margin=margin(1, 1, 1, 1))
 
 ggsave(paste0(kPlotDir, &#39;supp_human_mouse.pdf&#39;), gg_fig, width=6, height=4)</code></pre>
 <pre class="r"><code>gg_fig</code></pre>
@@ -480,7 +481,7 @@ ggsave(paste0(kPlotDir, &#39;supp_human_mouse.pdf&#39;), gg_fig, width=6, height
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-02-02</td>
+<td align="left">2018-02-04</td>
 </tr>
 </tbody>
 </table>
