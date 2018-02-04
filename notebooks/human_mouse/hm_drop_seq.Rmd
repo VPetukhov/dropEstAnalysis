@@ -132,25 +132,30 @@ arrows_df <- umi_by_species %>% group_by(Type) %>%
   mutate(Mouse=c(1e1, 6e4, 2e1, 6e4), 
          Human=c(1e3, 5e3, 7e4, 7e1))
 
+fig_width <- 3.7
+fig_height <- 4.4
+
 gg_fig <- gg_template + 
-  geom_point_rast(aes(color=MitochondrionFraction), size=0.2, alpha=0.15, width=4, 
-                  height=4, dpi=200) +
+  geom_point_rast(aes(color=MitochondrionFraction), size=0.2, alpha=0.15, 
+                  width=fig_width, height=fig_height, dpi=200) +
   scale_color_gradientn(colours=c("#1200ba", "#347fff", "#cc4000", "#ff3333"), 
                         values=scales::rescale(c(0, 0.1, 0.3, 0.8)), 
                         breaks=seq(0, 1.0, 0.2)) +
   guides(color=guide_colorbar(direction="horizontal", title.position="top", 
                               title="Mitochondrial\nfraction", 
-                              barwidth=unit(1.2, units="in"))) + 
+                              barwidth=unit(1.0, units="in"))) + 
   stat_ellipse(aes(group=Type), level=0.99) +
   geom_segment(aes(xend=MouseEnd, yend=HumanEnd, group=Type),  data=arrows_df, 
                arrow=arrow(length = unit(0.03, "npc"))) +
   geom_label(aes(label=Type),  data=arrows_df, fill=alpha('white', 1)) +
   theme(plot.margin=margin(1, 1, 1, 1))
 
-ggsave(paste0(kPlotDir, 'fig_human_mouse.pdf'), gg_fig, width=4, height=4)
+try(invisible(dev.off()), silent=T)
+ggsave(paste0(kPlotDir, 'fig_human_mouse.pdf'), gg_fig, 
+       width=fig_width, height=fig_height)
 ```
 
-```{r, fig.width=4, fig.height=4, message=FALSE, warning=FALSE}
+```{r, fig.width=3.5, fig.height=4.3, message=FALSE, warning=FALSE}
 gg_fig
 ```
 

@@ -150,6 +150,7 @@ gg_fig <- gg_template +
   geom_label(aes(label=Type),  data=arrows_df, fill=alpha('white', 1)) +
   theme(plot.margin=margin(1, 1, 1, 1))
 
+try(invisible(dev.off()), silent=T)
 ggsave(paste0(kPlotDir, 'supp_human_mouse.pdf'), gg_fig, width=6, height=4)
 ```
 
