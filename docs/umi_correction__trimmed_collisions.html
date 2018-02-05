@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Viktor Petukhov" />
+
+<meta name="date" content="2018-02-04" />
+
+<title>Collisions plots for 10x Aml035 Post trimming</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3,h4",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">dropEstAnalysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/VPetukhov/dropEstAnalysis">Source</a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Collisions plots for 10x Aml035 Post trimming</h1>
+<h4 class="author"><em>Viktor Petukhov</em></h4>
+<h4 class="date"><em>2018-02-04</em></h4>
+
+</div>
+
+
+<p><strong>Source file:</strong> notebooks/umi_correction/trimmed_collisions.Rmd</p>
+<p><strong>Last updated:</strong> 2018-02-05</p>
+<p><strong>Code version:</strong> b0f122f</p>
+<pre class="r"><code>library(ggplot2)
+library(ggsci)
+library(ggridges)
+library(ggrastr)
+library(dplyr)
+library(parallel)
+library(reshape2)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)
+kPlotsFolder &lt;- &#39;../../output/figures/&#39;</code></pre>
+<pre class="r"><code>kDataPath &lt;- &#39;../../data/dropest/10x/aml035_post_transplant/est_10_20_umi_quality/&#39;
+# reads_per_umi_per_cell &lt;- holder$reads_per_umi_per_cell
+# reads_per_umi_per_cell$reads_per_umi &lt;- FilterNUmis(holder$reads_per_umi_per_cell$reads_per_umi)
+
+reads_per_umi_per_cell &lt;- readRDS(paste0(kDataPath, &#39;reads_per_umi_per_cell.rds&#39;))</code></pre>
+<pre class="r"><code>umi_lengths &lt;- rep(6:10, 2)
+is_reverse &lt;- c(rep(F, 5), rep(T, 5))
+
+trimmed &lt;- mcmapply(function(i, b) TrimUmisSummary(reads_per_umi_per_cell, i, b),
+                    umi_lengths, is_reverse, SIMPLIFY = F, mc.cores=10)</code></pre>
+<div id="collisions" class="section level2">
+<h2>Collisions</h2>
+<pre class="r"><code>collisions_infos &lt;- lapply(trimmed, function(d) d$collisions.info)
+collision_df &lt;- mapply(function(s, l, r) data.frame(Observed=1:length(s), Adjusted=s, 
+                                                    UmiLength=l, IsReverse=r),
+              collisions_infos, umi_lengths, is_reverse, SIMPLIFY = F) %&gt;% 
+  bind_rows() %&gt;% 
+  mutate(AdjustedUniform=mapply(AdjustGeneExpressionUniform, Observed, 4^UmiLength))
+
+collision_dfs &lt;- split(collision_df, collision_df$IsReverse) %&gt;% 
+  setNames(c(&#39;Reverse&#39;, &#39;Direct&#39;))</code></pre>
+<pre class="r"><code>trimmed_example &lt;- trimmed[[1]]
+rm(trimmed, collisions_infos, collision_df)
+invisible(gc())</code></pre>
+<div id="main-figure" class="section level3">
+<h3>Main figure</h3>
+<pre class="r"><code>plt_guide &lt;- guides(color=guide_legend(title=&#39;UMI length&#39;, nrow = 2, order=1),
+                    linetype=guide_legend(title=&#39;UMI distribution&#39;, order=2, keywidth = 1.5))
+
+expand &lt;- c(0.01, 0)
+
+fig_collisions &lt;- ggplot(collision_dfs$Direct, aes(x=Observed, col=as.factor(UmiLength))) + 
+  geom_line(aes(y=Adjusted - Observed, linetype=&#39;Empirical&#39;), size=0.9) +
+  geom_line(aes(y=AdjustedUniform - Observed, linetype=&#39;Uniform&#39;), size=0.9) +
+  scale_x_continuous(expand = expand, breaks=seq(4000, 12000, 4000)) + 
+  scale_y_continuous(expand = expand) +
+  labs(x=&#39;#Observed UMIs&#39;, y=&#39;#Collisions&#39;) +
+  theme_pdf(legend.pos=c(1, 1)) + plt_guide
+
+fig_collisions &lt;- cowplot::plot_grid(fig_collisions, labels=&#39;C&#39;)
+
+ggsave(paste0(kPlotsFolder, &#39;/fig_collisions.pdf&#39;), fig_collisions, height=5.5, width=3.5)
+fig_collisions</code></pre>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-7-1.png" width="336" style="display: block; margin: auto;" /></p>
+</div>
+<div id="ratio" class="section level3">
+<h3>Ratio</h3>
+<pre class="r"><code>gg_collisions_ext &lt;- ggplot(mapping=aes(x=Observed, col=as.factor(UmiLength), 
+                                        y=Adjusted / AdjustedUniform)) + 
+  geom_smooth(data=collision_dfs$Direct, mapping=aes(linetype=&#39;Empirical, back trim&#39;), 
+              size=0.9, se=F) +
+  geom_smooth(data=collision_dfs$Reverse, mapping=aes(linetype=&#39;Empirical, front trim&#39;), 
+              size=0.9, se=F) +
+  scale_x_continuous(expand = expand) + scale_y_continuous(expand = expand) +
+  labs(x=&#39;#Observed UMIs&#39;, y=&#39;#Collisions empirical / #Collisions uniform&#39;) +
+  theme_pdf(legend.pos=c(1, 1)) + plt_guide
+
+gg_collisions_ext</code></pre>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-8-1.png" width="384" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="aberrant-mononucleotide-stretches" class="section level2">
+<h2>Aberrant mononucleotide stretches</h2>
+<pre class="r"><code>umi_distribution &lt;- GetUmisDistribution(reads_per_umi_per_cell$reads_per_umi, smooth=0)
+umi_distribution &lt;- umi_distribution[umi_distribution &gt; 0]
+
+tail_threshold &lt;- quantile(umi_distribution, 0.995)
+umi_distribution_tail &lt;- umi_distribution[umi_distribution &gt; tail_threshold]</code></pre>
+<pre class="r"><code>rm(reads_per_umi_per_cell, collision_dfs, fig_collisions)
+invisible(gc())</code></pre>
+<pre class="r"><code>prefix_lengths &lt;- seq(2, 10, 2)
+distrs_by_length &lt;- mclapply(prefix_lengths, MaxFreqDistribution, umi_distribution_tail, 
+                             mc.cores=5)
+plot_df &lt;- lapply(1:length(prefix_lengths), function(i) 
+  cbind(melt(distrs_by_length[[i]], id.vars = &#39;fracs&#39;), PrefixLength=prefix_lengths[i])) %&gt;% 
+  bind_rows()</code></pre>
+<pre class="r"><code>gl &lt;- guide_legend(title=&#39;Distribution&#39;)
+gg_stretches &lt;- ggplot(plot_df, aes(x = fracs, y = as.factor(PrefixLength), height = value,
+                                    fill=variable, linetype=variable)) + 
+  geom_density_ridges(stat = &quot;identity&quot;, scale = 0.95, alpha=0.7) +
+  scale_x_continuous(expand = c(0.005, 0.005)) +
+  scale_y_discrete(expand = c(0.02, 0.02)) +
+  labs(x=&#39;Fraction of the most\nfrequent nucleotide&#39;, y=&#39;UMI prefix length&#39;) +
+  theme_pdf(legend.pos=c(0.01, 0)) +
+  guides(fill=gl, linetype=gl) + 
+  scale_fill_npg()
+
+gg_stretches</code></pre>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-12-1.png" width="384" style="display: block; margin: auto;" /></p>
+</div>
+<div id="estimated-number-of-adjacent-umis" class="section level2">
+<h2>Estimated number of adjacent UMIs</h2>
+<pre class="r"><code>gene_sizes &lt;- list(2:10, 11:50, seq(60, 300, 10), seq(300, 500, 25), seq(600, 4090, 200), 
+                   c(4050, 4095))
+sample_nums &lt;- unlist(mapply(rep, c(100000, 100000, 15000, 1000, 500, 500), 
+                             sapply(gene_sizes, length)))
+gene_sizes_f &lt;- unlist(gene_sizes)
+
+adjacent_umis_num &lt;- mcmapply(function(s, n) 
+  SampleNumbersOfAdjacentUmis(s, trimmed_example, n, uniform=F), gene_sizes_f, sample_nums, 
+  mc.cores=30)
+adjacent_umis_num_unif &lt;- mcmapply(function(s, n) 
+  SampleNumbersOfAdjacentUmis(s, trimmed_example, n, uniform=T), gene_sizes_f, sample_nums, 
+  mc.cores=30)</code></pre>
+<pre class="r"><code>plot_df &lt;- data.frame(GeneSize=c(1, unlist(gene_sizes))) %&gt;% 
+  mutate(ProbOfAdjacentUMIs=c(0, sapply(adjacent_umis_num, mean)) / GeneSize^2,
+         ProbOfAdjacentUMIsUnif=c(0, sapply(adjacent_umis_num_unif, mean)) / GeneSize^2)
+
+axis_ratio &lt;- 200
+axis_offset &lt;- 0.001
+
+gg_prob_ratio &lt;- ggplot(plot_df, aes(x=GeneSize)) + 
+  geom_line(aes(y=ProbOfAdjacentUMIs, color=&#39;Empirical&#39;), size=2, alpha=0.8) + 
+  geom_line(aes(y=ProbOfAdjacentUMIsUnif, color=&#39;Uniform&#39;), size=2, alpha=0.78) +
+  geom_smooth(aes(y=ProbOfAdjacentUMIs / ProbOfAdjacentUMIsUnif / axis_ratio - axis_offset, 
+                  linetype=&#39;Empirical / Uniform&#39;), size=1.5, color=&#39;black&#39;, se=FALSE) +
+  labs(x = &#39;#UMIs per gene&#39;, y=&#39;Adjacent UMI probability&#39;) +
+  scale_x_log10(expand=c(1e-10, 0)) + annotation_logticks(side=&#39;b&#39;) +
+  scale_y_continuous(expand=c(1e-5, 1e-5), limits=c(0.002, 0.006), 
+                     sec.axis=sec_axis(trans=~.*axis_ratio + axis_offset*axis_ratio, 
+                                       name=&#39;Probabilities ratio&#39;)) +
+  scale_linetype_manual(values=&#39;dashed&#39;, name=&#39;Probabilities ratio&#39;) +
+  guides(color=guide_legend(title=&#39;UMI distribution&#39;)) + 
+  guides(linetype=guide_legend(override.aes=list(linetype=6))) +
+  theme_pdf(legend.pos=c(0.5, 0)) + 
+  theme(legend.box=&#39;horizontal&#39;, legend.key.width=unit(0.3, &#39;in&#39;))
+gg_prob_ratio</code></pre>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-14-1.png" width="576" style="display: block; margin: auto;" /></p>
+</div>
+<div id="complete-figure" class="section level2">
+<h2>Complete figure</h2>
+<pre class="r"><code>gg_upper &lt;- cowplot::plot_grid(gg_stretches, gg_collisions_ext, ncol=2, 
+                               labels=c(&#39;A&#39;, &#39;B&#39;), align=&#39;h&#39;, label_x=0.03)
+gg_figure &lt;- cowplot::plot_grid(gg_upper, 
+                                gg_prob_ratio + theme(plot.margin=margin(0, 0, 0, 0, &#39;in&#39;)), 
+                                nrow=2, labels=c(&#39;&#39;, &#39;C&#39;), align=&#39;h&#39;, rel_heights=c(3, 2), 
+                                label_x=0.03, label_y=1.12)
+
+ggsave(paste0(kPlotsFolder, &#39;supp_impact_on_collisions.pdf&#39;), gg_figure, width=7, height=8)
+gg_figure</code></pre>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /></p>
+</div>
+<div id="session-information" class="section level2">
+<h2>Session information</h2>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>version</td>
+<td align="left">R version 3.4.1 (2017-06-30)</td>
+</tr>
+<tr class="even">
+<td>os</td>
+<td align="left">Ubuntu 14.04.5 LTS</td>
+</tr>
+<tr class="odd">
+<td>system</td>
+<td align="left">x86_64, linux-gnu</td>
+</tr>
+<tr class="even">
+<td>ui</td>
+<td align="left">X11</td>
+</tr>
+<tr class="odd">
+<td>language</td>
+<td align="left">(EN)</td>
+</tr>
+<tr class="even">
+<td>collate</td>
+<td align="left">en_US.UTF-8</td>
+</tr>
+<tr class="odd">
+<td>tz</td>
+<td align="left">America/New_York</td>
+</tr>
+<tr class="even">
+<td>date</td>
+<td align="left">2018-02-05</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">package</th>
+<th align="left">loadedversion</th>
+<th align="left">date</th>
+<th align="left">source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td align="left">assertthat</td>
+<td align="left">0.2.0</td>
+<td align="left">2017-04-11</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td align="left">backports</td>
+<td align="left">1.1.2</td>
+<td align="left">2017-12-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td align="left">bindr</td>
+<td align="left">0.1</td>
+<td align="left">2016-11-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td align="left">bindrcpp</td>
+<td align="left">0.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td align="left">clisymbols</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-05-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td align="left">colorspace</td>
+<td align="left">1.3-2</td>
+<td align="left">2016-12-14</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td align="left">cowplot</td>
+<td align="left">0.9.2</td>
+<td align="left">2017-12-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td align="left">digest</td>
+<td align="left">0.6.14</td>
+<td align="left">2018-01-14</td>
+<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td align="left">dplyr</td>
+<td align="left">0.7.4</td>
+<td align="left">2017-09-28</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td align="left">dropEstAnalysis</td>
+<td align="left">0.6.0</td>
+<td align="left">2018-02-05</td>
+<td align="left">local</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td align="left">dropestr</td>
+<td align="left">0.7.5</td>
+<td align="left">2018-02-05</td>
+<td align="left">local (<span class="citation">@0.7.5</span>)</td>
+</tr>
+<tr class="even">
+<td>15</td>
+<td align="left">evaluate</td>
+<td align="left">0.10.1</td>
+<td align="left">2017-06-24</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td align="left">ggplot2</td>
+<td align="left">2.2.1</td>
+<td align="left">2016-12-30</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>17</td>
+<td align="left">ggrastr</td>
+<td align="left">0.1.5</td>
+<td align="left">2017-12-28</td>
+<td align="left">Github (<a href="mailto:VPetukhov/ggrastr@cc56b45">VPetukhov/ggrastr@cc56b45</a>)</td>
+</tr>
+<tr class="odd">
+<td>18</td>
+<td align="left">ggridges</td>
+<td align="left">0.4.1</td>
+<td align="left">2017-09-15</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>19</td>
+<td align="left">ggsci</td>
+<td align="left">2.8</td>
+<td align="left">2017-09-30</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td align="left">git2r</td>
+<td align="left">0.21.0</td>
+<td align="left">2018-01-04</td>
+<td align="left">cran (<span class="citation">@0.21.0</span>)</td>
+</tr>
+<tr class="even">
+<td>21</td>
+<td align="left">glue</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-10-29</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>25</td>
+<td align="left">gtable</td>
+<td align="left">0.2.0</td>
+<td align="left">2016-02-26</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>26</td>
+<td align="left">highr</td>
+<td align="left">0.6</td>
+<td align="left">2016-05-09</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>27</td>
+<td align="left">htmltools</td>
+<td align="left">0.3.6</td>
+<td align="left">2017-04-28</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>28</td>
+<td align="left">knitr</td>
+<td align="left">1.18</td>
+<td align="left">2017-12-27</td>
+<td align="left">cran (<span class="citation">@1.18</span>)</td>
+</tr>
+<tr class="odd">
+<td>29</td>
+<td align="left">labeling</td>
+<td align="left">0.3</td>
+<td align="left">2014-08-23</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>30</td>
+<td align="left">lattice</td>
+<td align="left">0.20-35</td>
+<td align="left">2017-03-25</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>31</td>
+<td align="left">lazyeval</td>
+<td align="left">0.2.1</td>
+<td align="left">2017-10-29</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td align="left">magrittr</td>
+<td align="left">1.5</td>
+<td align="left">2014-11-22</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>33</td>
+<td align="left">Matrix</td>
+<td align="left">1.2-12</td>
+<td align="left">2017-11-16</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>35</td>
+<td align="left">mgcv</td>
+<td align="left">1.8-22</td>
+<td align="left">2017-09-19</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>36</td>
+<td align="left">munsell</td>
+<td align="left">0.4.3</td>
+<td align="left">2016-02-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>37</td>
+<td align="left">nlme</td>
+<td align="left">3.1-131</td>
+<td align="left">2017-02-06</td>
+<td align="left">CRAN (R 3.4.0)</td>
+</tr>
+<tr class="odd">
+<td>39</td>
+<td align="left">pkgconfig</td>
+<td align="left">2.0.1</td>
+<td align="left">2017-03-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td align="left">plyr</td>
+<td align="left">1.8.4</td>
+<td align="left">2016-06-08</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>41</td>
+<td align="left">R6</td>
+<td align="left">2.2.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>42</td>
+<td align="left">Rcpp</td>
+<td align="left">0.12.15</td>
+<td align="left">2018-01-20</td>
+<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+</tr>
+<tr class="odd">
+<td>43</td>
+<td align="left">reshape2</td>
+<td align="left">1.4.3</td>
+<td align="left">2017-12-11</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>44</td>
+<td align="left">rlang</td>
+<td align="left">0.1.4</td>
+<td align="left">2017-11-05</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>45</td>
+<td align="left">rmarkdown</td>
+<td align="left">1.8</td>
+<td align="left">2017-11-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>46</td>
+<td align="left">rprojroot</td>
+<td align="left">1.3-2</td>
+<td align="left">2018-01-03</td>
+<td align="left">cran (<span class="citation">@1.3-2</span>)</td>
+</tr>
+<tr class="odd">
+<td>47</td>
+<td align="left">scales</td>
+<td align="left">0.5.0</td>
+<td align="left">2017-08-24</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>48</td>
+<td align="left">sessioninfo</td>
+<td align="left">1.0.0</td>
+<td align="left">2017-06-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>50</td>
+<td align="left">stringi</td>
+<td align="left">1.1.6</td>
+<td align="left">2017-11-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>51</td>
+<td align="left">stringr</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-02-18</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>52</td>
+<td align="left">tibble</td>
+<td align="left">1.3.4</td>
+<td align="left">2017-08-22</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>55</td>
+<td align="left">withr</td>
+<td align="left">2.1.1</td>
+<td align="left">2017-12-19</td>
+<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+</tr>
+<tr class="odd">
+<td>56</td>
+<td align="left">yaml</td>
+<td align="left">2.1.16</td>
+<td align="left">2017-12-12</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+http://docs.mathjax.org/en/latest/configuration.html.  This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+<hr>
+<p>
+    This <a href="http://rmarkdown.rstudio.com">R Markdown</a> site was created with <a href="https://github.com/jdblischak/workflowr">workflowr</a>
+</p>
+<hr>
+
+<!-- To enable disqus, uncomment the section below and provide your disqus_shortname -->
+
+<!-- disqus
+  <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'rmarkdown'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+-->
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
