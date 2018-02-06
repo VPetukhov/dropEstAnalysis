@@ -22,7 +22,6 @@
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
-<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -190,10 +189,7 @@ $(document).ready(function () {
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-  <a href="https://github.com/jdblischak/workflowr">
-    <span class="fa fa-github"></span>
-     
-  </a>
+  <a href="https://github.com/VPetukhov/dropEstAnalysis">Source</a>
 </li>
       </ul>
     </div><!--/.nav-collapse -->
@@ -220,29 +216,81 @@ div.section {
 <ol style="list-style-type: decimal">
 <li>Dataset annotations:
 <ol style="list-style-type: decimal">
-<li><a href="annotation__annotation_bmmc1.html">10x Frozen BMMCs (Healthy Control 1)</a>.</li>
-<li><a href="annotation__annotation_pbmc8k.html">10x 8k PBMCs from a Healthy Donor</a>. <!-- 3. [inDrop Mouse Bone Marrow cells](). --></li>
+<li><a href="annotation__annotation_bmmc1.html">10x Frozen BMMCs (Healthy Control 1)</a></li>
+<li><a href="annotation__annotation_pbmc8k.html">10x 8k PBMCs from a Healthy Donor</a> <!-- 3. [inDrop Mouse Bone Marrow cells](). --></li>
 </ol></li>
-<li>Origin of mixed reads in Human/mouse datasets:
+<li>Origin of background cells in Human/mouse datasets:
 <ol style="list-style-type: decimal">
-<li><a href="human_mouse__hm_SCG29.html">InDrop SCG29</a></li>
 <li><a href="human_mouse__hm_drop_seq.html">Drop-seq thousand</a></li>
 <li><a href="human_mouse__hm_10x_1k.html">10x 1k 1:1 Mixture</a></li>
 <li><a href="human_mouse__hm_10x_6k.html">10x 6k 1:1 Mixture</a></li>
 </ol></li>
 <li>Filtration of low-quality cells</li>
-<li>UMI corrections</li>
+<li>UMI corrections:
+<ol style="list-style-type: decimal">
+<li><a href="umi_correction__umi_bmmc1.html">Correction effect on 10x BMMCs dataset</a></li>
+<li><a href="umi_correction__trim_aml_035_post.html">UMI trimming on 10x AML035 Post-transplant dataset</a></li>
+</ol></li>
 <li>Cell barcode merge validation</li>
 </ol>
+<div id="main-figures" class="section level3">
+<h3>Main figures</h3>
+<ol style="list-style-type: decimal">
+<li>[Figure 1. Skewed distribution of UMIs leads to increased number of UMI collisions.]
+<ul>
+<li>A. Skewness of UMI distribution</li>
+<li>B. Uneven nucleotide frequencies</li>
+<li><a href="umi_correction__trimmed_collisions.html#main_figure">C. Estimated number of collisions</a></li>
+</ul></li>
+<li><a href="umi_correction__trim_aml_035_post.html#complete_figure">Figure 2. Comparison of UMI collision and sequencing error correction methods.</a>
+<ul>
+<li><a href="umi_correction__trim_aml_035_post.html#figure_a">A. Collisions on trimmed UMIs</a></li>
+<li><a href="umi_correction__trim_aml_035_post.html#figure_b">B. Collision adjustment for trimmed UMIs</a></li>
+<li><a href="umi_correction__trim_aml_035_post.html#figure_c">C. Correction of UMI errors on trimmed data</a></li>
+<li><a href="umi_correction__umi_bmmc1.html#edit_distances">D. Distribution of edit distances between pairs of UMIs</a></li>
+<li><a href="umi_correction__umi_bmmc1.html#subset_for_main_figure">E. Magnitude of correction</a></li>
+</ul></li>
+<li>Figure 3. Correcting for Cellular Barcode errors.
+<ul>
+<li><a href="human_mouse__hm_drop_seq.html#figure">A. Origin of background cells</a></li>
+<li>[B. Number of equidistant adjacent CBs]</li>
+<li><a href="cell_barcode_correction__size_gain.html#figure">C. Increase in #molecules per cell</a></li>
+</ul></li>
+<li></li>
+</ol>
 </div>
-<div id="content-by-figures" class="section level2">
-<h2>Content by figures</h2>
+<div id="supplementary-figures" class="section level3">
+<h3>Supplementary figures</h3>
 <ol style="list-style-type: decimal">
 <li><ul>
 <li></li>
 </ul></li>
 <li><a href="low_quality_cells__validation_bmmc1.html#final_figure">Supp. Fig. Frozen BMMCs filtration</a></li>
+<li><a href="umi_correction__trimmed_collisions.html#complete_figure">S5. Impact of non-uniform distribution on UMI collisions</a></li>
+<li><a href="umi_correction__trim_aml_035_post.html#supp._figure_collisions">S6. Collisions on trimmed data</a></li>
+<li><a href="umi_correction__umi_bmmc1.html#normalized_expression">S7. Magnitude of UMI correction.</a></li>
+<li><a href="umi_correction__trim_aml_035_post.html#supp._figure_corrections">S8. Comparison of UMI correction algorithms on trimmed data</a></li>
+<li><a href="human_mouse__hm_10x_6k.html#figure">S9. 10x Human/mouse mixture</a></li>
 </ol>
+</div>
+</div>
+<div id="used-datasets" class="section level2">
+<h2>Used datasets</h2>
+<ul>
+<li>10x
+<ul>
+<li>BMMC1</li>
+<li>8k PBMCs</li>
+</ul></li>
+<li>InDrop
+<ul>
+<li>SCG79</li>
+</ul></li>
+<li>Drop-seq
+<ul>
+<li>thousand</li>
+</ul></li>
+</ul>
 </div>
 
 <!-- Adjust MathJax settings so that all math formulae are shown using
