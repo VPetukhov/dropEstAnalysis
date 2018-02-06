@@ -21,7 +21,7 @@ knitr::read_chunk("../../analysis/chunks.R")
 ## Load data
 [Link to the original dataset](https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/frozen_bmmc_healthy_donor1).
 
-```{r, include=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(ggplot2)
 library(ggrastr)
 library(ggpubr)

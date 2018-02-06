@@ -69,9 +69,9 @@ HeatmapLegendGuide <- function(title, barwidth=1.3, guide=ggplot2::guide_colorba
 }
 
 #' @export
-PlotFiltrationResults <- function(pgd, clusters, rescued.clusters, filtered.cbs=NULL, raster.width=NULL, raster.height=NULL,
+PlotFiltrationResults <- function(pgd, clusters, rescued.clusters=NULL, filtered.cbs=NULL, raster.width=NULL, raster.height=NULL,
                                   rescued.alpha=0.9, rescued.size=2, rescued.stroke=0.4, unchanged.alpha=0.4,
-                                  unchanged.size=0.5) {
+                                  unchanged.size=0.5, mark.clusters=TRUE) {
   clusters <- as.factor(clusters)
 
   if (!is.null(filtered.cbs)) {
@@ -79,11 +79,18 @@ PlotFiltrationResults <- function(pgd, clusters, rescued.clusters, filtered.cbs=
     filt.df <- PlotPagodaEmbeding(pgd, clusters=filt.clusters, return.df=T, plot.na=F)
   }
 
-  rescued.df <- PlotPagodaEmbeding(pgd, clusters=rescued.clusters, return.df=T)
+  if (!is.null(rescued.clusters)) {
+    rescued.df <- PlotPagodaEmbeding(pgd, clusters=rescued.clusters, return.df=T)
+    gg.rescued <- ggrastr::geom_point_rast(data=rescued.df, mapping=ggplot2::aes(x=V1, y=V2, shape='rescued', fill=Cluster),
+                                           size=rescued.size, alpha=rescued.alpha, stroke=rescued.stroke, color='black',
+                                           width=raster.width, height=raster.height)
+  } else {
+    gg.rescued <- NULL
+  }
 
   gg <- PlotPagodaEmbeding(pgd, clusters=clusters, alpha=unchanged.alpha, size=unchanged.size, font.size=NULL, plot.na=F,
                            raster=T, raster.width=raster.width, raster.height=raster.height,
-                           point.padding=ggplot2::unit(0, 'pt'), nudge_y=2)
+                           mark.clusters=mark.clusters, point.padding=ggplot2::unit(0, 'pt'), nudge_y=2)
 
   gg$layers[[1]]$mapping$shape <- 'unchanged'
 
@@ -95,14 +102,14 @@ PlotFiltrationResults <- function(pgd, clusters, rescued.clusters, filtered.cbs=
   }
   gg$layers <- c(gg$layers[[1]],
                  gg.filt,
-                 ggrastr::geom_point_rast(data=rescued.df, mapping=ggplot2::aes(x=V1, y=V2, shape='rescued', fill=Cluster),
-                                 size=rescued.size, alpha=rescued.alpha, stroke=rescued.stroke, color='black',
-                                 width=raster.width, height=raster.height),
-                 gg$layers[[2]])
+                 gg.rescued,
+                 if (mark.clusters) gg$layers[[2]] else NULL)
+
+
 
   color.values <- scales::hue_pal()(length(levels(clusters))) %>% setNames(levels(clusters))
   gg.tsne <- gg + ggplot2::scale_color_discrete(guide="none") +
-    ggplot2::scale_shape_manual(values=c(unchanged=4, rescued=24, filtered=19), name='Cell filtration') +
+    ggplot2::scale_shape_manual(values=c(unchanged=19, rescued=24, filtered=4), name='Cell filtration') +
     ggplot2::scale_size_continuous(range=c(3, 5), trans='identity') +
     ggplot2::scale_fill_manual(values=color.values) +
     ggplot2::scale_color_manual(values=color.values) +
