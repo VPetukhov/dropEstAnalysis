@@ -13,7 +13,7 @@
 
 <meta name="date" content="2018-02-04" />
 
-<title>Collisions plots for 10x Aml035 Post trimming</title>
+<title>Impact of non-uniform distribution on collision rate</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -306,7 +306,7 @@ div.section {
 
 
 
-<h1 class="title toc-ignore">Collisions plots for 10x Aml035 Post trimming</h1>
+<h1 class="title toc-ignore">Impact of non-uniform distribution on collision rate</h1>
 <h4 class="author"><em>Viktor Petukhov</em></h4>
 <h4 class="date"><em>2018-02-04</em></h4>
 
@@ -314,8 +314,8 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/umi_correction/trimmed_collisions.Rmd</p>
-<p><strong>Last updated:</strong> 2018-02-05</p>
-<p><strong>Code version:</strong> b0f122f</p>
+<p><strong>Last updated:</strong> 2018-02-18</p>
+<p><strong>Code version:</strong> e50352c</p>
 <pre class="r"><code>library(ggplot2)
 library(ggsci)
 library(ggridges)
@@ -327,19 +327,22 @@ library(dropestr)
 library(dropEstAnalysis)
 
 theme_set(theme_base)
-kPlotsFolder &lt;- &#39;../../output/figures/&#39;</code></pre>
-<pre class="r"><code>kDataPath &lt;- &#39;../../data/dropest/10x/aml035_post_transplant/est_10_20_umi_quality/&#39;
-# reads_per_umi_per_cell &lt;- holder$reads_per_umi_per_cell
+kPlotsFolder &lt;- &#39;../../output/figures/&#39;
+kDataPath &lt;- &#39;../../data/dropest/&#39;</code></pre>
+<pre class="r"><code># reads_per_umi_per_cell &lt;- holder$reads_per_umi_per_cell
 # reads_per_umi_per_cell$reads_per_umi &lt;- FilterNUmis(holder$reads_per_umi_per_cell$reads_per_umi)
 
-reads_per_umi_per_cell &lt;- readRDS(paste0(kDataPath, &#39;reads_per_umi_per_cell.rds&#39;))</code></pre>
+reads_per_umi_per_cell &lt;- kDataPath %&gt;% 
+  paste0(&#39;10x/aml035_post_transplant/est_10_20_umi_quality/reads_per_umi_per_cell.rds&#39;) %&gt;% 
+  readRDS()</code></pre>
+<div id="collisions" class="section level2">
+<h2>Collisions</h2>
+<p>Trimming:</p>
 <pre class="r"><code>umi_lengths &lt;- rep(6:10, 2)
 is_reverse &lt;- c(rep(F, 5), rep(T, 5))
 
 trimmed &lt;- mcmapply(function(i, b) TrimUmisSummary(reads_per_umi_per_cell, i, b),
                     umi_lengths, is_reverse, SIMPLIFY = F, mc.cores=10)</code></pre>
-<div id="collisions" class="section level2">
-<h2>Collisions</h2>
 <pre class="r"><code>collisions_infos &lt;- lapply(trimmed, function(d) d$collisions.info)
 collision_df &lt;- mapply(function(s, l, r) data.frame(Observed=1:length(s), Adjusted=s, 
                                                     UmiLength=l, IsReverse=r),
@@ -349,8 +352,7 @@ collision_df &lt;- mapply(function(s, l, r) data.frame(Observed=1:length(s), Adj
 
 collision_dfs &lt;- split(collision_df, collision_df$IsReverse) %&gt;% 
   setNames(c(&#39;Reverse&#39;, &#39;Direct&#39;))</code></pre>
-<pre class="r"><code>trimmed_example &lt;- trimmed[[1]]
-rm(trimmed, collisions_infos, collision_df)
+<pre class="r"><code>rm(trimmed, reads_per_umi_per_cell, collisions_infos, collision_df)
 invisible(gc())</code></pre>
 <div id="main-figure" class="section level3">
 <h3>Main figure</h3>
@@ -370,8 +372,9 @@ fig_collisions &lt;- ggplot(collision_dfs$Direct, aes(x=Observed, col=as.factor(
 fig_collisions &lt;- cowplot::plot_grid(fig_collisions, labels=&#39;C&#39;)
 
 ggsave(paste0(kPlotsFolder, &#39;/fig_collisions.pdf&#39;), fig_collisions, height=5.5, width=3.5)
-fig_collisions</code></pre>
+print(fig_collisions)</code></pre>
 <p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-7-1.png" width="336" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>rm(fig_collisions);</code></pre>
 </div>
 <div id="ratio" class="section level3">
 <h3>Ratio</h3>
@@ -383,43 +386,21 @@ fig_collisions</code></pre>
               size=0.9, se=F) +
   scale_x_continuous(expand = expand) + scale_y_continuous(expand = expand) +
   labs(x=&#39;#Observed UMIs&#39;, y=&#39;#Collisions empirical / #Collisions uniform&#39;) +
-  theme_pdf(legend.pos=c(1, 1)) + plt_guide
+  theme_pdf(legend.pos=c(1, 1)) + 
+  plt_guide
 
+rm(collision_dfs)
 gg_collisions_ext</code></pre>
-<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-8-1.png" width="384" style="display: block; margin: auto;" /></p>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-8-1.png" width="336" style="display: block; margin: auto;" /></p>
 </div>
-</div>
-<div id="aberrant-mononucleotide-stretches" class="section level2">
-<h2>Aberrant mononucleotide stretches</h2>
-<pre class="r"><code>umi_distribution &lt;- GetUmisDistribution(reads_per_umi_per_cell$reads_per_umi, smooth=0)
-umi_distribution &lt;- umi_distribution[umi_distribution &gt; 0]
-
-tail_threshold &lt;- quantile(umi_distribution, 0.995)
-umi_distribution_tail &lt;- umi_distribution[umi_distribution &gt; tail_threshold]</code></pre>
-<pre class="r"><code>rm(reads_per_umi_per_cell, collision_dfs, fig_collisions)
-invisible(gc())</code></pre>
-<pre class="r"><code>prefix_lengths &lt;- seq(2, 10, 2)
-distrs_by_length &lt;- mclapply(prefix_lengths, MaxFreqDistribution, umi_distribution_tail, 
-                             mc.cores=5)
-plot_df &lt;- lapply(1:length(prefix_lengths), function(i) 
-  cbind(melt(distrs_by_length[[i]], id.vars = &#39;fracs&#39;), PrefixLength=prefix_lengths[i])) %&gt;% 
-  bind_rows()</code></pre>
-<pre class="r"><code>gl &lt;- guide_legend(title=&#39;Distribution&#39;)
-gg_stretches &lt;- ggplot(plot_df, aes(x = fracs, y = as.factor(PrefixLength), height = value,
-                                    fill=variable, linetype=variable)) + 
-  geom_density_ridges(stat = &quot;identity&quot;, scale = 0.95, alpha=0.7) +
-  scale_x_continuous(expand = c(0.005, 0.005)) +
-  scale_y_discrete(expand = c(0.02, 0.02)) +
-  labs(x=&#39;Fraction of the most\nfrequent nucleotide&#39;, y=&#39;UMI prefix length&#39;) +
-  theme_pdf(legend.pos=c(0.01, 0)) +
-  guides(fill=gl, linetype=gl) + 
-  scale_fill_npg()
-
-gg_stretches</code></pre>
-<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-12-1.png" width="384" style="display: block; margin: auto;" /></p>
 </div>
 <div id="estimated-number-of-adjacent-umis" class="section level2">
 <h2>Estimated number of adjacent UMIs</h2>
+<pre class="r"><code>holder &lt;- readRDS(paste0(kDataPath, &#39;SCG71/est_01_15_umi_quality/SCG71.rds&#39;))
+umi_distribution &lt;- GetUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi)
+umi_probs &lt;- umi_distribution / sum(umi_distribution)</code></pre>
+<pre class="r"><code>rm(holder, umi_distribution)
+invisible(gc())</code></pre>
 <pre class="r"><code>gene_sizes &lt;- list(2:10, 11:50, seq(60, 300, 10), seq(300, 500, 25), seq(600, 4090, 200), 
                    c(4050, 4095))
 sample_nums &lt;- unlist(mapply(rep, c(100000, 100000, 15000, 1000, 500, 500), 
@@ -427,11 +408,11 @@ sample_nums &lt;- unlist(mapply(rep, c(100000, 100000, 15000, 1000, 500, 500),
 gene_sizes_f &lt;- unlist(gene_sizes)
 
 adjacent_umis_num &lt;- mcmapply(function(s, n) 
-  SampleNumbersOfAdjacentUmis(s, trimmed_example, n, uniform=F), gene_sizes_f, sample_nums, 
-  mc.cores=30)
+  SampleNumbersOfAdjacentUmis(s, umi_probs, n, uniform=F), 
+  gene_sizes_f, sample_nums, mc.cores=30)
 adjacent_umis_num_unif &lt;- mcmapply(function(s, n) 
-  SampleNumbersOfAdjacentUmis(s, trimmed_example, n, uniform=T), gene_sizes_f, sample_nums, 
-  mc.cores=30)</code></pre>
+  SampleNumbersOfAdjacentUmis(s, umi_probs, n, uniform=T), 
+  gene_sizes_f, sample_nums, mc.cores=30)</code></pre>
 <pre class="r"><code>plot_df &lt;- data.frame(GeneSize=c(1, unlist(gene_sizes))) %&gt;% 
   mutate(ProbOfAdjacentUMIs=c(0, sapply(adjacent_umis_num, mean)) / GeneSize^2,
          ProbOfAdjacentUMIsUnif=c(0, sapply(adjacent_umis_num_unif, mean)) / GeneSize^2)
@@ -445,8 +426,8 @@ gg_prob_ratio &lt;- ggplot(plot_df, aes(x=GeneSize)) +
   geom_smooth(aes(y=ProbOfAdjacentUMIs / ProbOfAdjacentUMIsUnif / axis_ratio - axis_offset, 
                   linetype=&#39;Empirical / Uniform&#39;), size=1.5, color=&#39;black&#39;, se=FALSE) +
   labs(x = &#39;#UMIs per gene&#39;, y=&#39;Adjacent UMI probability&#39;) +
-  scale_x_log10(expand=c(1e-10, 0)) + annotation_logticks(side=&#39;b&#39;) +
-  scale_y_continuous(expand=c(1e-5, 1e-5), limits=c(0.002, 0.006), 
+  scale_x_log10(expand=c(0, 0), limits=c(2, 4100)) + annotation_logticks(side=&#39;b&#39;) +
+  scale_y_continuous(expand=c(1e-5, 1e-5), limits=c(0.002, 0.0052), 
                      sec.axis=sec_axis(trans=~.*axis_ratio + axis_offset*axis_ratio, 
                                        name=&#39;Probabilities ratio&#39;)) +
   scale_linetype_manual(values=&#39;dashed&#39;, name=&#39;Probabilities ratio&#39;) +
@@ -455,20 +436,16 @@ gg_prob_ratio &lt;- ggplot(plot_df, aes(x=GeneSize)) +
   theme_pdf(legend.pos=c(0.5, 0)) + 
   theme(legend.box=&#39;horizontal&#39;, legend.key.width=unit(0.3, &#39;in&#39;))
 gg_prob_ratio</code></pre>
-<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-14-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-12-1.png" width="576" style="display: block; margin: auto;" /></p>
 </div>
 <div id="complete-figure" class="section level2">
 <h2>Complete figure</h2>
-<pre class="r"><code>gg_upper &lt;- cowplot::plot_grid(gg_stretches, gg_collisions_ext, ncol=2, 
-                               labels=c(&#39;A&#39;, &#39;B&#39;), align=&#39;h&#39;, label_x=0.03)
-gg_figure &lt;- cowplot::plot_grid(gg_upper, 
-                                gg_prob_ratio + theme(plot.margin=margin(0, 0, 0, 0, &#39;in&#39;)), 
-                                nrow=2, labels=c(&#39;&#39;, &#39;C&#39;), align=&#39;h&#39;, rel_heights=c(3, 2), 
-                                label_x=0.03, label_y=1.12)
+<pre class="r"><code>gg_figure &lt;- cowplot::plot_grid(gg_collisions_ext, gg_prob_ratio, ncol=2, labels=&quot;AUTO&quot;, 
+                                align=&#39;h&#39;, rel_widths=c(3.5, 4.5), label_x=0.03)
 
-ggsave(paste0(kPlotsFolder, &#39;supp_impact_on_collisions.pdf&#39;), gg_figure, width=7, height=8)
+ggsave(paste0(kPlotsFolder, &#39;supp_impact_on_collisions.pdf&#39;), gg_figure, width=8, height=4)
 gg_figure</code></pre>
-<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/trimmed_collisions.Rmd/unnamed-chunk-13-1.png" width="768" style="display: block; margin: auto;" /></p>
 </div>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>
@@ -511,7 +488,7 @@ gg_figure</code></pre>
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-02-05</td>
+<td align="left">2018-02-18</td>
 </tr>
 </tbody>
 </table>
@@ -595,14 +572,14 @@ gg_figure</code></pre>
 <td>13</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-02-05</td>
-<td align="left">local</td>
+<td align="left">2018-02-18</td>
+<td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="odd">
 <td>14</td>
 <td align="left">dropestr</td>
 <td align="left">0.7.5</td>
-<td align="left">2018-02-05</td>
+<td align="left">2018-02-18</td>
 <td align="left">local (<span class="citation">@0.7.5</span>)</td>
 </tr>
 <tr class="even">
