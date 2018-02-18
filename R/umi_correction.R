@@ -234,7 +234,7 @@ MaxFreqDistribution <- function(prefix.length, umi.distr.tail) {
                     fracs=c(min(all.fracs) - 1e-5, all.fracs, max(all.fracs) + 1e-5)))
 }
 
-SampleNumOfAdjacentUmis <- function(gene.size, umi.probabilities, neighbours.per.umi, uniform=FALSE) {
+SampleNumOfAdjacentUmis <- function(gene.size, umi.probabilities, uniform=FALSE) {
   if (uniform) {
     umis <- SampleNoReps(gene.size, ids=names(umi.probabilities), probs=NULL)
   } else {
@@ -246,7 +246,7 @@ SampleNumOfAdjacentUmis <- function(gene.size, umi.probabilities, neighbours.per
 }
 
 #' @export
-SampleNumbersOfAdjacentUmis <- function(gene.size, trimmed.info, samples.num, uniform=FALSE) {
+SampleNumbersOfAdjacentUmis <- function(gene.size, umi.probabilities, samples.num, uniform=FALSE) {
   return(sapply(1:samples.num, function(i)
-    SampleNumOfAdjacentUmis(gene.size, trimmed.info$umi.probabilities, trimmed.info$neighbours.per.umi, uniform=uniform)))
+    SampleNumOfAdjacentUmis(gene.size, umi.probabilities, uniform=uniform)))
 }

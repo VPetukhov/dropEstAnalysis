@@ -1,0 +1,161 @@
+---
+title: "Adjastment of UMI collisions on inDrop Bone Marrow dataset"
+author: "Viktor Petukhov"
+date: 2018-02-11
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggrastr)
+library(ggridges)
+library(ggsci)
+library(dplyr)
+library(parallel)
+library(reshape2)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)
+kPlotsFolder <- '../../output/figures/'
+kDataPath <- '../../data/dropest/SCG71/est_01_15_umi_quality/'
+```
+
+```{r}
+SampleNames <- function(prob, size) sample(names(prob), prob=prob, size=size, replace=T)
+```
+
+## Data loading
+```{r}
+holder <- readRDS(paste0(kDataPath, 'SCG71.rds'))
+```
+
+```{r}
+umi_distribution <- GetUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi)
+umi_probs <- umi_distribution / sum(umi_distribution)
+max_umi_per_gene <- 4^nchar(names(umi_probs)[1])
+```
+
+```{r}
+PlotUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi, bins=70)
+```
+
+## Modeling of collisions
+```{r}
+total_umi_nums <- seq(0, 25000, 20)
+n_reps <- 10
+uniq_umi_samples <- sapply(1:10, function(i) 
+  sapply(total_umi_nums, function(n) SampleNames(umi_probs, n) %>% unique() %>% length()))
+
+collisions_info <- FillCollisionsAdjustmentInfo(umi_probs, max_umi_per_gene)
+```
+
+```{r, message=FALSE, warning=FALSE}
+umis_df <- tibble(Unique=as.vector(uniq_umi_samples), 
+                  Total=rep(total_umi_nums, n_reps))
+
+fig_width <- 3.5
+fig_height <- 4
+
+collisions_df <- tibble(Unique=1:max_umi_per_gene, Empirical=collisions_info) %>%
+  mutate(Uniform=sapply(Unique, AdjustGeneExpressionUniform, umis_number=max_umi_per_gene))
+
+gg_collisions <- ggplot(collisions_df, aes(x=Unique, y=Total - Unique)) + 
+  geom_point_rast(aes(color='Sampling'), data=umis_df, size=1, alpha=0.1, 
+                  width=fig_width, height=fig_height) +
+  geom_vline(aes(xintercept=max_umi_per_gene), linetype='dashed') +
+  geom_line(aes(y=Empirical - Unique, color='Empirical'), size=1) +
+  geom_line(aes(y=Uniform - Unique, color='Uniform'), size=1) +
+  scale_color_hue(l=55) +
+  scale_y_continuous(expand=c(0, 0), name='#Underestimated UMIs', limits=c(0, 7500)) +
+  xlab('#Observed UMIs') +
+  scale_color_manual(values=c(Empirical='#e02323', Uniform='#194aea', Sampling='black'), 
+                     name='Estimation type') +
+  theme_pdf(legend.pos=c(0, 1)) +
+  guides(color=guide_legend(override.aes=list(size=c(1.0, 1.5, 1.0), shape=c(NA, 16, NA), 
+                                              linetype=c(1,0,1), alpha=1)))
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=3.5, fig.height=4}
+gg_collisions
+```
+
+```{r}
+rm(holder, umi_distribution, umi_probs, collisions_info, umis_df, collisions_df)
+invisible(gc())
+```
+
+## Aberrant mononucleotide stretches
+```{r}
+kDataPath <- '../../data/dropest/10x/aml035_post_transplant/est_10_20_umi_quality/'
+reads_per_umi <- readRDS(paste0(kDataPath, 'reads_per_umi_per_cell.rds'))$reads_per_umi
+```
+
+```{r}
+umi_distribution <- GetUmisDistribution(reads_per_umi, smooth=0)
+umi_distribution <- umi_distribution[umi_distribution > 0]
+
+tail_threshold <- quantile(umi_distribution, 0.995)
+umi_distribution_tail <- umi_distribution[umi_distribution > tail_threshold]
+```
+
+```{r}
+rm(reads_per_umi)
+invisible(gc())
+```
+
+```{r}
+prefix_lengths <- seq(2, 10, 2)
+distrs_by_length <- mclapply(prefix_lengths, MaxFreqDistribution, umi_distribution_tail, 
+                             mc.cores=5)
+plot_df <- lapply(1:length(prefix_lengths), function(i) 
+  cbind(melt(distrs_by_length[[i]], id.vars = 'fracs'), PrefixLength=prefix_lengths[i])) %>% 
+  bind_rows()
+```
+
+```{r, fig.width=4, fig.height=4.5}
+gl <- guide_legend(title='Distribution')
+gg_stretches <- ggplot(plot_df, aes(x = fracs, y = as.factor(PrefixLength), height = value,
+                                    fill=variable, linetype=variable)) + 
+  geom_density_ridges(stat = "identity", scale = 0.95, alpha=0.7) +
+  scale_x_continuous(expand = c(0.005, 0.005), limits=c(0.2, 1.0)) +
+  scale_y_discrete(expand = c(0.02, 0.02)) +
+  labs(x='Fraction of the most\nfrequent nucleotide', y='UMI prefix length') +
+  theme_pdf(legend.pos=c(0.01, 0)) +
+  guides(fill=gl, linetype=gl) + 
+  scale_fill_npg()
+
+gg_stretches
+```
+
+## Complete figure
+```{r, fig.width=7, fig.height=4.5, message=FALSE, warning=FALSE}
+gg_fig <- cowplot::plot_grid(gg_stretches, gg_collisions, 
+                             labels="AUTO", align="h")
+```
+
+```{r, fig.width=7, fig.height=4.5, message=FALSE, warning=FALSE}
+gg_fig
+```
+
+```{r, message=FALSE, warning=FALSE}
+ggsave(paste0(kPlotsFolder, 'supp_umi_collision_modeling.pdf'), gg_fig, 
+       width=8, height=4)
+```
+
+## Session information
+```{r session-info, echo=FALSE}
+```

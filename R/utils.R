@@ -111,7 +111,9 @@ MergeComparisonSummary <- function(merge.targets, cell.species, dataset,
     dplyr::mutate(SameAsReal = round(100 * SameAsReal / MergesNum, 2) %>% paste0("%"),
            WrongPercent = round(100 * WrongPercent, 2) %>% paste0("%"),
            Dataset=dataset) %>%
-    dplyr::select(Dataset, Merge, MergesNum, WrongPercent, SameAsReal)
+    dplyr::select(Dataset, Merge, MergesNum, WrongPercent, SameAsReal) %>%
+    dplyr::rename(`Merge type`=Merge, `#Merges`=MergesNum, `Fraction of mixed merges`=WrongPercent,
+                  `Similarity to merge with barcodes`=SameAsReal)
 
   return(res)
 }
