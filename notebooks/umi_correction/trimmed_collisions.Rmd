@@ -1,5 +1,5 @@
 ---
-title: "Collisions plots for 10x Aml035 Post trimming"
+title: "Impact of non-uniform distribution on collision rate"
 author: "Viktor Petukhov"
 date: 2018-02-04
 output: html_document
@@ -31,16 +31,20 @@ library(dropEstAnalysis)
 
 theme_set(theme_base)
 kPlotsFolder <- '../../output/figures/'
+kDataPath <- '../../data/dropest/'
 ```
 
 ```{r}
-kDataPath <- '../../data/dropest/10x/aml035_post_transplant/est_10_20_umi_quality/'
 # reads_per_umi_per_cell <- holder$reads_per_umi_per_cell
 # reads_per_umi_per_cell$reads_per_umi <- FilterNUmis(holder$reads_per_umi_per_cell$reads_per_umi)
 
-reads_per_umi_per_cell <- readRDS(paste0(kDataPath, 'reads_per_umi_per_cell.rds'))
+reads_per_umi_per_cell <- kDataPath %>% 
+  paste0('10x/aml035_post_transplant/est_10_20_umi_quality/reads_per_umi_per_cell.rds') %>% 
+  readRDS()
 ```
 
+## Collisions
+Trimming:
 ```{r}
 umi_lengths <- rep(6:10, 2)
 is_reverse <- c(rep(F, 5), rep(T, 5))
@@ -49,7 +53,6 @@ trimmed <- mcmapply(function(i, b) TrimUmisSummary(reads_per_umi_per_cell, i, b)
                     umi_lengths, is_reverse, SIMPLIFY = F, mc.cores=10)
 ```
 
-## Collisions
 ```{r}
 collisions_infos <- lapply(trimmed, function(d) d$collisions.info)
 collision_df <- mapply(function(s, l, r) data.frame(Observed=1:length(s), Adjusted=s, 
@@ -63,8 +66,7 @@ collision_dfs <- split(collision_df, collision_df$IsReverse) %>%
 ```
 
 ```{r}
-trimmed_example <- trimmed[[1]]
-rm(trimmed, collisions_infos, collision_df)
+rm(trimmed, reads_per_umi_per_cell, collisions_infos, collision_df)
 invisible(gc())
 ```
 
@@ -86,11 +88,12 @@ fig_collisions <- ggplot(collision_dfs$Direct, aes(x=Observed, col=as.factor(Umi
 fig_collisions <- cowplot::plot_grid(fig_collisions, labels='C')
 
 ggsave(paste0(kPlotsFolder, '/fig_collisions.pdf'), fig_collisions, height=5.5, width=3.5)
-fig_collisions
+print(fig_collisions)
+rm(fig_collisions);
 ```
 
 ### Ratio
-```{r, fig.width=4, fig.height=5, message=FALSE, warning=FALSE}
+```{r, fig.width=3.5, fig.height=4, message=FALSE, warning=FALSE}
 gg_collisions_ext <- ggplot(mapping=aes(x=Observed, col=as.factor(UmiLength), 
                                         y=Adjusted / AdjustedUniform)) + 
   geom_smooth(data=collision_dfs$Direct, mapping=aes(linetype='Empirical, back trim'), 
@@ -99,50 +102,25 @@ gg_collisions_ext <- ggplot(mapping=aes(x=Observed, col=as.factor(UmiLength),
               size=0.9, se=F) +
   scale_x_continuous(expand = expand) + scale_y_continuous(expand = expand) +
   labs(x='#Observed UMIs', y='#Collisions empirical / #Collisions uniform') +
-  theme_pdf(legend.pos=c(1, 1)) + plt_guide
+  theme_pdf(legend.pos=c(1, 1)) + 
+  plt_guide
 
+rm(collision_dfs)
 gg_collisions_ext
 ```
 
-## Aberrant mononucleotide stretches
+## Estimated number of adjacent UMIs
 ```{r}
-umi_distribution <- GetUmisDistribution(reads_per_umi_per_cell$reads_per_umi, smooth=0)
-umi_distribution <- umi_distribution[umi_distribution > 0]
-
-tail_threshold <- quantile(umi_distribution, 0.995)
-umi_distribution_tail <- umi_distribution[umi_distribution > tail_threshold]
+holder <- readRDS(paste0(kDataPath, 'SCG71/est_01_15_umi_quality/SCG71.rds'))
+umi_distribution <- GetUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi)
+umi_probs <- umi_distribution / sum(umi_distribution)
 ```
 
 ```{r}
-rm(reads_per_umi_per_cell, collision_dfs, fig_collisions)
+rm(holder, umi_distribution)
 invisible(gc())
 ```
 
-```{r}
-prefix_lengths <- seq(2, 10, 2)
-distrs_by_length <- mclapply(prefix_lengths, MaxFreqDistribution, umi_distribution_tail, 
-                             mc.cores=5)
-plot_df <- lapply(1:length(prefix_lengths), function(i) 
-  cbind(melt(distrs_by_length[[i]], id.vars = 'fracs'), PrefixLength=prefix_lengths[i])) %>% 
-  bind_rows()
-```
-
-```{r, fig.width=4, fig.height=6}
-gl <- guide_legend(title='Distribution')
-gg_stretches <- ggplot(plot_df, aes(x = fracs, y = as.factor(PrefixLength), height = value,
-                                    fill=variable, linetype=variable)) + 
-  geom_density_ridges(stat = "identity", scale = 0.95, alpha=0.7) +
-  scale_x_continuous(expand = c(0.005, 0.005)) +
-  scale_y_discrete(expand = c(0.02, 0.02)) +
-  labs(x='Fraction of the most\nfrequent nucleotide', y='UMI prefix length') +
-  theme_pdf(legend.pos=c(0.01, 0)) +
-  guides(fill=gl, linetype=gl) + 
-  scale_fill_npg()
-
-gg_stretches
-```
-
-## Estimated number of adjacent UMIs
 ```{r}
 gene_sizes <- list(2:10, 11:50, seq(60, 300, 10), seq(300, 500, 25), seq(600, 4090, 200), 
                    c(4050, 4095))
@@ -151,11 +129,11 @@ sample_nums <- unlist(mapply(rep, c(100000, 100000, 15000, 1000, 500, 500),
 gene_sizes_f <- unlist(gene_sizes)
 
 adjacent_umis_num <- mcmapply(function(s, n) 
-  SampleNumbersOfAdjacentUmis(s, trimmed_example, n, uniform=F), gene_sizes_f, sample_nums, 
-  mc.cores=30)
+  SampleNumbersOfAdjacentUmis(s, umi_probs, n, uniform=F), 
+  gene_sizes_f, sample_nums, mc.cores=30)
 adjacent_umis_num_unif <- mcmapply(function(s, n) 
-  SampleNumbersOfAdjacentUmis(s, trimmed_example, n, uniform=T), gene_sizes_f, sample_nums, 
-  mc.cores=30)
+  SampleNumbersOfAdjacentUmis(s, umi_probs, n, uniform=T), 
+  gene_sizes_f, sample_nums, mc.cores=30)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -172,8 +150,8 @@ gg_prob_ratio <- ggplot(plot_df, aes(x=GeneSize)) +
   geom_smooth(aes(y=ProbOfAdjacentUMIs / ProbOfAdjacentUMIsUnif / axis_ratio - axis_offset, 
                   linetype='Empirical / Uniform'), size=1.5, color='black', se=FALSE) +
   labs(x = '#UMIs per gene', y='Adjacent UMI probability') +
-  scale_x_log10(expand=c(1e-10, 0)) + annotation_logticks(side='b') +
-  scale_y_continuous(expand=c(1e-5, 1e-5), limits=c(0.002, 0.006), 
+  scale_x_log10(expand=c(0, 0), limits=c(2, 4100)) + annotation_logticks(side='b') +
+  scale_y_continuous(expand=c(1e-5, 1e-5), limits=c(0.002, 0.0052), 
                      sec.axis=sec_axis(trans=~.*axis_ratio + axis_offset*axis_ratio, 
                                        name='Probabilities ratio')) +
   scale_linetype_manual(values='dashed', name='Probabilities ratio') +
@@ -185,15 +163,11 @@ gg_prob_ratio
 ```
 
 ## Complete figure
-```{r, fig.height=8, fig.width=7, message=FALSE, warning=FALSE}
-gg_upper <- cowplot::plot_grid(gg_stretches, gg_collisions_ext, ncol=2, 
-                               labels=c('A', 'B'), align='h', label_x=0.03)
-gg_figure <- cowplot::plot_grid(gg_upper, 
-                                gg_prob_ratio + theme(plot.margin=margin(0, 0, 0, 0, 'in')), 
-                                nrow=2, labels=c('', 'C'), align='h', rel_heights=c(3, 2), 
-                                label_x=0.03, label_y=1.12)
+```{r, fig.height=4, fig.width=8, message=FALSE, warning=FALSE}
+gg_figure <- cowplot::plot_grid(gg_collisions_ext, gg_prob_ratio, ncol=2, labels="AUTO", 
+                                align='h', rel_widths=c(3.5, 4.5), label_x=0.03)
 
-ggsave(paste0(kPlotsFolder, 'supp_impact_on_collisions.pdf'), gg_figure, width=7, height=8)
+ggsave(paste0(kPlotsFolder, 'supp_impact_on_collisions.pdf'), gg_figure, width=8, height=4)
 gg_figure
 ```
 
