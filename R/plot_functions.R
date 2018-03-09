@@ -88,10 +88,10 @@ PlotFiltrationResults <- function(pgd, clusters, rescued.clusters=NULL, filtered
   }
 
   if (!is.null(rescued.clusters)) {
-    rescued.df <- PlotPagodaEmbeding(pgd, clusters=rescued.clusters, return.df=T)
+    rescued.df <- PlotPagodaEmbeding(pgd, clusters=rescued.clusters, return.df=T, ...)
     gg.rescued <- ggrastr::geom_point_rast(data=rescued.df, mapping=ggplot2::aes(x=V1, y=V2, shape='rescued', fill=Cluster),
                                            size=rescued.size, alpha=rescued.alpha, stroke=rescued.stroke, color='black',
-                                           width=raster.width, height=raster.height, ...)
+                                           width=raster.width, height=raster.height)
   } else {
     gg.rescued <- NULL
   }
