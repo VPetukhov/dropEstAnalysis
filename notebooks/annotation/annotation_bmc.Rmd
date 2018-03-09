@@ -18,7 +18,7 @@ knitr::read_chunk("../../analysis/chunks.R")
 ```{r code-version, echo=FALSE, results='asis'}
 ```
 
-```{r global_options}
+```{r global_options, message=FALSE, warning=FALSE}
 library(ggplot2)
 library(ggrastr)
 library(dplyr)
@@ -125,10 +125,8 @@ write.csv(markers_df[c('Type', 'Markers')],
 markers_df
 ```
 
-```{r, message=FALSE, warning=FALSE}
+```{r}
 clusters_annotated <- AnnotateClusters(clusters, type_ids)
-gg_annotation <- PlotClustering(pgd, clusters_annotated) + theme_pdf()
-gg_annotation
 ```
 
 ```{r}
@@ -138,6 +136,26 @@ write.csv(data.frame(Barcode=names(clusters_annotated),
 ```
 
 ## Expression plots
+```{r, message=FALSE, warning=FALSE}
+raster_width <- 8 / 3
+raster_height <- 7 / 3
+raster_dpi <- 150
+
+long_type_names <- c("Maturing neutrophils", "Maturing macrophages", "Cycling cells",
+                     "B cells, immature", "B cells, mature", "pre-B cells")
+for (type in long_type_names) {
+  clusters_annotated[clusters_annotated == type] <- stringi::stri_replace_last(type, "\n", regex=" ")
+}
+
+gg_annotation <- PlotClustering(pgd, clusters_annotated, lineheight=0.9, size=0.3, 
+                                raster=T, raster.width=raster_width, 
+                                raster.height=raster_height, raster.dpi=raster_dpi) + 
+  theme_pdf(show.ticks=F) + ggpubr::rremove("xylab") +
+  scale_size_continuous(range=c(3, 3)) +
+  theme(plot.margin=margin())
+gg_annotation
+```
+
 ```{r}
 plot_mtx <- apply(log_mtx, 2, function(vec) scales::rescale(rank(vec)))
 ```
@@ -152,8 +170,8 @@ metacluster_borders <- list(
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-plot_genes <- c('Mmp9', 'Srgn', 'Cxcr2', 'Cd7', 'Cd34', 'Lyz1', 'Vpreb3', 'Cd22', 'Nkg7')
-plot_borders <- lapply(c("l", "l", "l", "b", "b", "b", "r", "r", "r"), 
+plot_genes <- c('Vpreb3', 'Nkg7', 'Mmp9', 'Srgn', 'Cxcr2', 'Cd7', 'Cd34', 'Lyz1')
+plot_borders <- lapply(c("r", "r", "l", "l", "l", "b", "b", "b"), 
                        function(n) metacluster_borders[[n]])
 
 gene_plots <-  mapply(function(g, b) 
@@ -162,10 +180,8 @@ gene_plots <-  mapply(function(g, b)
                    class.label.layer=gg_annotation$layers[[3]], 
                    raster=T, raster.width=8/3, raster.height=7/3, raster.dpi=150),
   plot_genes, plot_borders, SIMPLIFY=F)
-```
 
-```{r, message=FALSE, warning=FALSE}
-gg_fig <- cowplot::plot_grid(plotlist=gene_plots, ncol=3)
+gg_fig <- cowplot::plot_grid(plotlist=c(list(gg_annotation), gene_plots), ncol=3)
 ```
 
 ```{r, fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
