@@ -1,0 +1,209 @@
+---
+title: "Annotation of inDrop mouse bone marrow cells"
+author: "Viktor Petukhov"
+date: 2018-01-23
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options}
+library(ggplot2)
+library(ggrastr)
+library(dplyr)
+library(parallel)
+library(reshape2)
+library(pagoda2)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_bw() + theme_pdf(show.ticks=F, legend.pos=c(0, 1)))
+set.seed(42)
+
+kDataPath <- '../../data/'
+
+kDropEstData <- paste0(kDataPath, 'dropest/SCG71/est_11_14_poisson_real/')
+kAnnotationData <- paste0(kDataPath, 'annotation/')
+kOutputPath <- '../../output/'
+```
+
+## Load data
+```{r, warning=FALSE, message=FALSE}
+holder <- readRDS(paste0(kDropEstData, 'SCG71.rds'))
+est_cell_num <- dropestr::EstimateCellsNumber(holder$aligned_umis_per_cell)
+
+real_cbs <- sort(holder$aligned_umis_per_cell, decreasing=T)[1:est_cell_num$expected] %>%
+  names()
+scores <- ScorePipelineCells(holder, mit.chromosome.name='chrM', predict.all=T)
+
+PlotCellScores(scores, cells.number=est_cell_num)
+```
+
+```{r, message=FALSE}
+cm <- holder$cm_raw[, names(scores)[scores > 0.9]]
+cm <- cm[Matrix::rowSums(cm > 0) > 10, ]
+
+pgd <- GetPagoda(cm, n.cores=30, tsne.iter.num=5000)
+```
+
+```{r}
+# clusters <- pgd$clusters$PCA$infomap
+# write.csv(clusters, paste0(kAnnotationData, 'indrop_bmc_clusters.csv'))
+clusters <- read.csv(paste0(kAnnotationData, 'indrop_bmc_clusters.csv'), row.names=1)
+clusters <- setNames(clusters$x, rownames(clusters))
+
+log_mtx <- log10(1e-3 + as.matrix(pgd$counts[names(clusters), ]))
+```
+
+Pagoda embeding:  
+```{r, fig.height=4, fig.width=6, message=FALSE, warning=FALSE}
+PlotClustering(pgd, clusters)
+```
+
+## Annotation
+Heatmap for marker genes:  
+```{r}
+type_ids <- lst(
+  `Maturing neutrophils` = c(1:4, 12:13, 15, 19, 22),
+  `Maturing macrophages` = c(5, 7),
+  `Cycling cells` = c(9),
+  `B cells, mature` = c(6, 8),
+  `B cells, immature` = c(14),
+  `pre-B cells` = c(17, 20),
+  `T cells` = c(16),
+  `NK cells` = c(18),
+  `Mast cells` = c(21, 23),
+  `Progenitors` = c(10, 11)
+)
+
+heatmap_genes <- c(
+  'Mmp9', 'Srgn', 'Cxcr2',
+  'Cd14', 'Ly6c2',
+  'Cd79a', 'Cd79b',
+  'Cd74', 'Cd83',
+  'Vpreb3', 'Vpreb1',
+  'Cd7',
+  'Nkg7',
+  'Cd34', 'Kit',
+  'Lyz1', 'Lyz2',
+  'Cd38',
+  'Ccl3', 'Ccl4')
+
+
+heatmap_clusters <- clusters
+# heatmap_clusters <- heatmap_clusters[heatmap_clusters > 16]
+PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)
+```
+
+### Cell type markers
+```{r}
+markers_df <- data.frame(
+  Type = c(
+    "Maturing neutrophils", "Maturing macrophages", "T cells", 
+    "B cells", "B cells, mature", "B cells, immature", "pre-B cells",
+    "Progenitors", "NK cells"),
+  Markers = c(
+    "Mmp9, Srgn, Cxcr2", "Cd14, Ly6c2", "Cd7", 
+    "Cd79a, Cd79b", "Cd74, Cd83", "Vpreb1", "Vpreb3",
+    "Cd34, Kit", "Nkg7")
+)
+
+markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(markers_df$Type)]
+write.csv(markers_df[c('Type', 'Markers')], 
+          paste0(kOutputPath, 'tables/annotation_bmc_markers.csv'), row.names=F)
+markers_df
+```
+
+```{r, message=FALSE, warning=FALSE}
+clusters_annotated <- AnnotateClusters(clusters, type_ids)
+gg_annotation <- PlotClustering(pgd, clusters_annotated) + theme_pdf()
+gg_annotation
+```
+
+```{r}
+write.csv(data.frame(Barcode=names(clusters_annotated), 
+                     Type=as.vector(clusters_annotated)), 
+          paste0(kAnnotationData, 'indrop_bmc_clusters_annotated.csv'))
+```
+
+## Expression plots
+```{r}
+plot_mtx <- apply(log_mtx, 2, function(vec) scales::rescale(rank(vec)))
+```
+
+```{r}
+metacluster_borders <- list(
+    b = c('Maturing macrophages', 'Progenitors', 'T cells', 'Mast cells'),
+    l = c('Maturing neutrophils', 'Cycling cells'),
+    r = c('NK cells', 'B cells, immature', 'B cells, mature', 'pre-B cells')
+  ) %>%
+  lapply(BordersOfClusterUnion, clusters, type_ids, pgd$embeddings$PCA$tSNE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+plot_genes <- c('Mmp9', 'Srgn', 'Cxcr2', 'Cd7', 'Cd34', 'Lyz1', 'Vpreb3', 'Cd22', 'Nkg7')
+plot_borders <- lapply(c("l", "l", "l", "b", "b", "b", "r", "r", "r"), 
+                       function(n) metacluster_borders[[n]])
+
+gene_plots <-  mapply(function(g, b) 
+  PlotGeneFraction(g, pgd, plot_mtx, limits=b, title.x=0.04, title.y=0.99, 
+                   legend.position="none", size=0.3, 
+                   class.label.layer=gg_annotation$layers[[3]], 
+                   raster=T, raster.width=8/3, raster.height=7/3, raster.dpi=150),
+  plot_genes, plot_borders, SIMPLIFY=F)
+```
+
+```{r, message=FALSE, warning=FALSE}
+gg_fig <- cowplot::plot_grid(plotlist=gene_plots, ncol=3)
+```
+
+```{r, fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
+gg_fig
+```
+
+```{r, message=FALSE, warning=FALSE}
+ggsave(paste0(kOutputPath, 'figures/supp_annotation_bmc.pdf'), width=8, height=7)
+```
+
+```{r}
+# # Web app
+# go_env <- p2.generate.mouse.go(pgd)
+# pgd$testPathwayOverdispersion(setenv = go_env, verbose = T, correlation.distance.threshold = 0.9,
+#                               recalculate.pca = F, min.pathway.size = 100, max.pathway.size = 1000)
+# 
+# go_sets <- names(go_env) %>% setNames(names(go_env)) %>% lapply(function(x) {
+#   list(properties = list(locked = T, genesetname = x, 
+#     shortdescription = GO.db::GOTERM[[x]]@Term), genes = c(go_env[[x]]))
+# })
+# 
+# de_sets <- get.de.geneset(pgd, groups = pgd$clusters$PCA$infomap, prefix = 'de_')
+# go_sets <- c(go_sets, de_sets)
+# 
+# additional_metadata <- list()
+# additional_metadata$altCluster <- as.factor(clusters_annotated) %>%
+#   p2.metadata.from.factor(displayname='Annotated', s=0.7, v=0.8, start=0, end=0.5)
+# 
+# pgd_web_object <- make.p2.app(pgd, dendrogramCellGroups = pgd$clusters$PCA$infomap,
+#                               additionalMetadata = additional_metadata,
+#                               geneSets = go_sets, show.clusters = T)
+# 
+# # pgd_web_object$serializeToStaticFast(binary.filename = paste0(kEstFolder, 'bmmc1_pagoda_annotated.bin'))
+# # saveRDS(pgd_web_object, paste0(kEstFolder, 'pagoda_annotation_web.rds'))
+# 
+# show.app(pgd_web_object, "bmmc")
+```
+
+## Session information
+```{r session-info, echo=FALSE}
+```

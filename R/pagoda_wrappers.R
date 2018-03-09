@@ -1,5 +1,6 @@
 #' @export
-GetPagoda <- function(cm, n.cores=10, clustering.type='infomap', embeding.type='tSNE', verbose=TRUE) {
+GetPagoda <- function(cm, n.cores=10, clustering.type='infomap', embeding.type='tSNE',
+                      tsne.iter.num=1000, verbose=TRUE) {
   r <- pagoda2::Pagoda2$new(cm, modelType='plain', trim=5, n.cores=n.cores, verbose=verbose)
   r$adjustVariance(plot=F, do.par=F, gam.k=10, verbose=verbose)
 
@@ -16,7 +17,7 @@ GetPagoda <- function(cm, n.cores=10, clustering.type='infomap', embeding.type='
   }
 
   if ('tSNE' %in% embeding.type) {
-    r$getEmbedding(type='PCA', perplexity=30, embeddingType = 'tSNE')
+    r$getEmbedding(type='PCA', perplexity=30, embeddingType = 'tSNE', max_iter=tsne.iter.num)
   }
 
   return(r)
@@ -48,8 +49,8 @@ PlotPagodaEmbeding <- function(r, embeding.type='tSNE', clusters=NULL, clusterin
       dplyr::filter(Size >= min.cluster.size))$Cluster %>% as.vector()
 
     plot.df$Cluster[!(plot.df$Cluster %in% big.clusts)] <- NA
-    na.plot.df <- plot.df %>% filter(is.na(Cluster))
-    plot.df <- plot.df %>% filter(!is.na(Cluster))
+    na.plot.df <- plot.df %>% dplyr::filter(is.na(Cluster))
+    plot.df <- plot.df %>% dplyr::filter(!is.na(Cluster))
 
     gg <- ggplot2::ggplot(plot.df, ggplot2::aes(x=V1, y=V2)) +
       geomp_point_w(ggplot2::aes(col=Cluster), alpha=alpha, size=size) +
