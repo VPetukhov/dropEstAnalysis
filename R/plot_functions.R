@@ -39,6 +39,12 @@ HeatmapAnnotGG <- function(df, umi.per.cell.limits=c(2, 4.5), raster.width=5, ra
 
   heatmap.width <- 1 - 2 * annot.width
 
+  annotationLabel <- function(text) {
+    ggplot2::geom_text(ggplot2::aes(label=label, x=x, y=y),
+                       data.frame(label=text, x=1, y=length(unique(df$Barcode)) / 2),
+                       angle=90, size=12 / ggplot2:::.pt, hjust=0.5, vjust=0.5)
+  }
+
   ggs <- list(
     heatmap = gg +
       ggrastr::geom_tile_rast(ggplot2::aes(x=Gene, fill=Expression),
@@ -50,13 +56,15 @@ HeatmapAnnotGG <- function(df, umi.per.cell.limits=c(2, 4.5), raster.width=5, ra
                                          height=raster.height, dpi=raster.dpi) +
       ggplot2::scale_x_continuous(expand = c(0, 0)) +
       ggplot2::scale_fill_discrete(drop=F) +
-      ggplot2::theme(plot.margin=ggplot2::margin()) + ggpubr::rremove('xylab'),
+      ggplot2::theme(plot.margin=ggplot2::margin()) + ggpubr::rremove('xylab') +
+      annotationLabel("Cell type"),
     umis = gg + ggrastr::geom_tile_rast(ggplot2::aes(x=1, fill=UmisPerCb),
                                         width=raster.width * annot.width,
                                         height=raster.height, dpi=raster.dpi) +
       ggplot2::scale_x_continuous(expand = c(0, 0)) +
       ggplot2::scale_fill_distiller(palette='OrRd', limits=umi.per.cell.limits, direction=1) +
-      ggplot2::theme(plot.margin=ggplot2::margin()) + ggpubr::rremove('xylab')
+      ggplot2::theme(plot.margin=ggplot2::margin()) + ggpubr::rremove('xylab') +
+      annotationLabel("Depth")
   )
 
   return(ggs)
@@ -71,26 +79,26 @@ HeatmapLegendGuide <- function(title, barwidth=1.3, guide=ggplot2::guide_colorba
 #' @export
 PlotFiltrationResults <- function(pgd, clusters, rescued.clusters=NULL, filtered.cbs=NULL, raster.width=NULL, raster.height=NULL,
                                   rescued.alpha=0.9, rescued.size=2, rescued.stroke=0.4, unchanged.alpha=0.4,
-                                  unchanged.size=0.5, mark.clusters=TRUE) {
+                                  unchanged.size=0.5, mark.clusters=TRUE, ...) {
   clusters <- as.factor(clusters)
 
   if (!is.null(filtered.cbs)) {
     filt.clusters <- rep("none", length(filtered.cbs)) %>% setNames(filtered.cbs)
-    filt.df <- PlotPagodaEmbeding(pgd, clusters=filt.clusters, return.df=T, plot.na=F)
+    filt.df <- PlotPagodaEmbeding(pgd, clusters=filt.clusters, return.df=T, plot.na=F, ...)
   }
 
   if (!is.null(rescued.clusters)) {
     rescued.df <- PlotPagodaEmbeding(pgd, clusters=rescued.clusters, return.df=T)
     gg.rescued <- ggrastr::geom_point_rast(data=rescued.df, mapping=ggplot2::aes(x=V1, y=V2, shape='rescued', fill=Cluster),
                                            size=rescued.size, alpha=rescued.alpha, stroke=rescued.stroke, color='black',
-                                           width=raster.width, height=raster.height)
+                                           width=raster.width, height=raster.height, ...)
   } else {
     gg.rescued <- NULL
   }
 
   gg <- PlotPagodaEmbeding(pgd, clusters=clusters, alpha=unchanged.alpha, size=unchanged.size, font.size=NULL, plot.na=F,
                            raster=T, raster.width=raster.width, raster.height=raster.height,
-                           mark.clusters=mark.clusters, point.padding=ggplot2::unit(0, 'pt'), nudge_y=2)
+                           mark.clusters=mark.clusters, point.padding=ggplot2::unit(0, 'pt'), nudge_y=2, ...)
 
   gg$layers[[1]]$mapping$shape <- 'unchanged'
 

@@ -76,7 +76,7 @@ AnnotateClustersByGraph <- function(graph, annotated.clusters, notannotated.cell
   getNeighbourCorrs <- function(source.cb, graph) {
     n.cbs <- as.list(igraph::neighbors(graph, source.cb)) %>% names()
     dists <- sapply(n.cbs, function(target.cb) igraph::get.edge.ids(graph, c(source.cb, target.cb)) %>%
-                      igraph::edge.attributes(graph=graph) %>% .$weight)
+                      igraph::edge.attributes(graph=graph) %>% (function(x) x$weight))
     return(1 - dists[dists < 1])
   }
 
@@ -91,6 +91,9 @@ AnnotateClustersByGraph <- function(graph, annotated.clusters, notannotated.cell
     annotated.clusters[names(notannotated.clusters)] <- notannotated.clusters
     if (length(notannotated.clusters) == length(notannotated.cells))
       break()
+
+    if (i == max.iter)
+      warning(paste0("Annotation of clusters didn't converge for ", max.iter, " iterations"))
   }
 
   return(annotated.clusters)

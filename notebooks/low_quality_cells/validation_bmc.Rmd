@@ -1,0 +1,202 @@
+---
+title: "Validation of filtration of low-quality cells on inDrio Mouse BMCs"
+author: "Viktor Petukhov"
+date: 2018-01-23
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggpubr)
+library(ggrastr)
+library(dplyr)
+library(parallel)
+library(Seurat)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)
+
+set.seed(42)
+kPlotsFolder <- '../../output/figures/'
+kDataPath <- '../../data/'
+kEstDataPath <- paste0(kDataPath, 'dropest/SCG71/est_11_14_poisson_real/')
+kAnnotationDataPath <- paste0(kDataPath, 'annotation/')
+```
+
+## Load data
+```{r}
+holder <- readRDS(paste0(kEstDataPath, 'SCG71.rds'))
+```
+
+```{r}
+est_cell_num <- EstimateCellsNumber(holder$aligned_umis_per_cell)
+umis_per_cell <- sort(holder$aligned_umis_per_cell, decreasing=T)
+```
+
+```{r, message=FALSE, warning=FALSE}
+scores <- ScorePipelineCells(holder, mit.chromosome.name='chrM', predict.all=T, 
+                             verbose=T)[names(umis_per_cell)]
+PlotCellScores(scores)
+```
+
+```{r}
+intersect_cbs <- names(scores[1:est_cell_num$expected])
+intersect_cbs <- intersect_cbs[scores[intersect_cbs] > 0.9]
+
+unknown_cell_scores <- scores[(est_cell_num$expected+1):length(scores)]
+rescued_cbs <- names(unknown_cell_scores)[unknown_cell_scores > 0.9]
+
+unknown_cell_scores <- scores[1:est_cell_num$expected]
+filtered_cbs <- names(unknown_cell_scores)[unknown_cell_scores < 0.1]
+
+c(Unchanged=length(intersect_cbs), 
+  Rescued=length(rescued_cbs), Filtered=length(filtered_cbs))
+```
+
+```{r}
+r_cm_rescued <- holder$cm_raw[, c(names(umis_per_cell)[1:est_cell_num$expected], 
+                                  rescued_cbs)]
+```
+
+```{r}
+# You need to run "annotation/annotation_bmc.Rmd" first
+clusters_annotated <- paste0(kAnnotationDataPath, 'indrop_bmc_clusters_annotated.csv') %>%
+  read.csv() %>% (function(x) setNames(as.character(x$Type), x$Barcode))
+```
+
+## Rescued cells
+```{r, message=FALSE}
+r_rescued <- GetPagoda(r_cm_rescued, n.cores=30)
+```
+
+```{r}
+intersect_clusters <- clusters_annotated[intersect(names(clusters_annotated), 
+                                                   intersect_cbs)]
+notannotated_cells <- setdiff(colnames(r_cm_rescued), names(clusters_annotated))
+
+clusters_annotated_resc <- AnnotateClustersByGraph(r_rescued$graphs$PCA, 
+                                                   clusters_annotated, notannotated_cells, 
+                                                   max.iter=100, mc.cores=10)
+rescued_clusters <- clusters_annotated_resc[rescued_cbs]
+intersect_clusters <- clusters_annotated[intersect_cbs]
+```
+
+```{r, fig.width=4, fig.height=4.8, message=FALSE, warning=FALSE}
+plot_cbs <- names(clusters_annotated) %>% setdiff(rescued_cbs) %>% setdiff(filtered_cbs)
+plot_clusters <- clusters_annotated[plot_cbs]
+plot_rescued_clusters <- rescued_clusters
+
+for (type in c("Maturing neutrophils", "Maturing macrophages", "Cycling cells")) {
+  plot_clusters[plot_clusters == type] <- gsub(" ", "\n", type)
+  plot_rescued_clusters[plot_rescued_clusters == type] <- gsub(" ", "\n", type)
+}
+
+gg_tsne <- PlotFiltrationResults(r_rescued, plot_clusters, filtered.cbs=filtered_cbs, 
+                                 rescued.clusters=plot_rescued_clusters, 
+                                 raster.width=4, raster.height=4.8, lineheight=0.9) +
+  ylim(-35, 33) +
+  theme_pdf(legend.pos=c(0, 1), show.ticks = F)
+
+gg_tsne
+```
+
+### Seurat analysis
+```{r, message=FALSE, warning=FALSE}
+seurat_cm <- r_cm_rescued[Matrix::rowSums(r_cm_rescued) > 200, ]
+srt <- CreateSeuratObject(raw.data=r_cm_rescued, project="BMC", display.progress=F)
+srt <- NormalizeData(object=srt, normalization.method="LogNormalize", scale.factor=10000)
+srt <- FindVariableGenes(object=srt, mean.function=ExpMean, dispersion.function=LogVMR,
+                         x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 1, do.plot=F)
+srt <- ScaleData(object = srt, vars.to.regress = "nUMI", display.progress=F)
+```
+
+```{r}
+srt@ident <- as.factor(clusters_annotated_resc[colnames(srt@raw.data)])
+names(srt@ident) <- colnames(srt@raw.data)
+compared_clusters <- unique(srt@ident)
+cluster_markers <- mclapply(compared_clusters, function(i) 
+  mclapply(setdiff(compared_clusters, i), FindClusterMarkers, i, srt, mc.cores=4), 
+  mc.cores=11)
+```
+
+```{r}
+overexpressed_genes <- GetOverexpressedGenes(srt, compared_clusters, cluster_markers)
+clusters_info <- list(clusters=srt@ident, marks=cluster_markers, 
+                      overexpressed_genes=overexpressed_genes)
+```
+
+## Heatmaps
+```{r}
+tested_clusts <- sort(c(intersect_clusters, rescued_clusters))
+separation <- c(setNames(rep('rescued', length(rescued_cbs)), rescued_cbs),
+                setNames(rep('real', length(intersect_clusters)), names(intersect_clusters)))
+
+umis_per_cb_subset <- log10(Matrix::colSums(r_cm_rescued[, names(tested_clusts)]))
+tested_clusts <- tested_clusts[order(tested_clusts, -umis_per_cb_subset)]
+
+de_genes <- clusters_info$overexpressed_genes
+```
+
+```{r}
+plot_df <- ExpressionMatrixToDataFrame(r_rescued$counts[names(tested_clusts), de_genes],
+                                       umis_per_cb_subset, as.factor(tested_clusts),
+                                       filtration.type=separation)
+plot_df <- plot_df %>% filter(UmisPerCb < 2.83)
+plot_dfs <- split(plot_df, plot_df$FiltrationType)
+```
+
+```{r, fig.width=6, fig.height=7}
+ggs <- lapply(plot_dfs, HeatmapAnnotGG, umi.per.cell.limits=range(plot_df$UmisPerCb))
+legend_guides <- list(HeatmapLegendGuide('Expression'),
+                      HeatmapLegendGuide('Cell type', guide=guide_legend, ncol=3),
+                      HeatmapLegendGuide('log10(#molecules)'))
+
+gg_legends <- mapply(`+`, ggs$real, legend_guides, SIMPLIFY=F) %>%
+  lapply(`+`, theme(legend.margin=margin(l=4, r=4, unit='pt'))) %>% lapply(get_legend)
+
+ggs$real$heatmap <- ggs$real$heatmap + rremove('xlab') + ylab('Cells')
+ggs$rescued$heatmap <- ggs$rescued$heatmap + labs(x = 'Genes', y = 'Cells')
+ggs_annot <- ggs %>%
+  lapply(function(gg) cowplot::plot_grid(
+    plotlist=lapply(gg, `+`, theme(legend.position="none", plot.margin=margin())), 
+    nrow=1, rel_widths=c(1.5, 0.1, 0.1), align='h'))
+```
+
+## Figure
+```{r, fig.width=8, fig.height=6, message=FALSE, warning=FALSE}
+gg_left <- cowplot::plot_grid(ggs_annot$real, ggs_annot$rescued, nrow=2, labels=c('A', 'B'))
+gg_right <- gg_tsne + theme(plot.margin=margin(l=0.1, unit='in'), 
+                            axis.text=element_blank(), axis.ticks=element_blank())
+gg_bottom <- cowplot::plot_grid(plotlist=gg_legends[c(1, 3, 2)], ncol=3, 
+                                rel_widths=c(1, 1, 2.2))
+
+gg_fig <- cowplot::plot_grid(gg_left, gg_right, labels=c('', 'C'), ncol=2) %>%
+  cowplot::plot_grid(gg_bottom, nrow=2, rel_heights=c(1, 0.25), align='v') +
+  theme(plot.margin=margin(1, 1, 1, 1))
+```
+
+```{r, fig.width=8, fig.height=6, message=FALSE, warning=FALSE}
+gg_fig
+```
+
+```{r}
+ggsave(paste0(kPlotsFolder, 'fig_bmc_lq_cells.pdf'), gg_fig, width=8, height=6)
+```
+
+## Session information
+```{r session-info, echo=FALSE}
+```
