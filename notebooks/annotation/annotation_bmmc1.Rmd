@@ -18,7 +18,7 @@ knitr::read_chunk("../../analysis/chunks.R")
 ```{r code-version, echo=FALSE, results='asis'}
 ```
 
-```{r global_options, include=FALSE}
+```{r global_options}
 library(ggplot2)
 library(dplyr)
 library(dropestr)

@@ -1,5 +1,5 @@
 ---
-title: "Validation of filtration of low-quality cells on inDrio Mouse BMCs"
+title: "Validation of filtration of low-quality cells on inDrop Mouse BMCs"
 author: "Viktor Petukhov"
 date: 2018-01-23
 output: html_document
