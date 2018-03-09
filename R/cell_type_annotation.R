@@ -1,6 +1,6 @@
 #' @export
-PlotClustering <- function(pgd, clusters) {
-  PlotPagodaEmbeding(pgd, clusters=clusters, show.ticks=F, size=1, alpha=0.5, nudge_x=1, nudge_y=1, font.size=NULL) +
+PlotClustering <- function(pgd, clusters, size=1, alpha=0.5, ...) {
+  PlotPagodaEmbeding(pgd, clusters=clusters, show.ticks=F, size=size, alpha=alpha, nudge_x=1, nudge_y=1, font.size=NULL, ...) +
     ggplot2::scale_size_continuous(range=c(3, 6))
 }
 
