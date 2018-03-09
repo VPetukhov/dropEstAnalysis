@@ -52,22 +52,23 @@ est_cell_num <- EstimateCellsNumber(umis_per_cell)
 ```
 
 Quality scores:  
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 scores <- ScorePipelineCells(holder, mit.chromosome.name='MT', 
-                             predict.all=T)[names(umis_per_cell)]
+                             predict.all=T, verbose=T)[names(umis_per_cell)]
 PlotCellScores(scores, cells.number=est_cell_num)
 ```
 
 Pagoda run:  
 ```{r, message=FALSE}
 real_cbs <- names(scores)[1:est_cell_num$expected]
-real_cbs <- real_cbs[scores[real_cbs] > 0.9]
+real_cbs <- real_cbs[scores[real_cbs] > 0.5]
+real_cbs <- union(names(scores)[scores > 0.9], real_cbs)
 
 r_cm <- holder$cm_raw[, real_cbs]
 r_cm <- r_cm[intersect(rownames(r_cm), names(gene_id_to_names)), ]
 rownames(r_cm) <- gene_id_to_names[rownames(r_cm)]
 
-pgd <- GetPagoda(r_cm, n.cores=30)
+pgd <- GetPagoda(r_cm, n.cores=30, tsne.iter.num=5000)
 
 # clusters <- pgd$clusters$PCA$infomap
 # write.csv(clusters, paste0(kAnnotationData, 'bmmc1_clusters.csv'))
@@ -114,34 +115,34 @@ heatmap_genes <- c(
   'FCER1A', 'CST3',
   'CD34', 'PTPRC', 'ITGB1', 'ENG',
   'EPCAM', 'APOE',
-  'GYPA', 'CD36'
+  'GYPA', 'CD36', 'TFRC'
   )
 
 heatmap_clusters <- clusters[!(clusters %in% unlist(major_cell_types))]
-# heatmap_clusters <- heatmap_clusters[heatmap_clusters > 9]
+heatmap_clusters <- heatmap_clusters[heatmap_clusters > 9]
 PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)
 ```
 
 ```{r}
 type_ids <- c(major_cell_types, lst(
   `CD14+ Monocytes` = c(2),
-  `NK cells` = c(5),
-  `Dendritic cells` = c(13),
-  `Mesenchymal stroma cells` = c(9, 15),
-  `Epithelial cells` = 10,
-  `Erythrocytes` = c(4, 6, 8, 9)
+  `NK cells` = c(4),
+  `Dendritic cells` = c(14),
+  `Monocyte progenitors` = c(11, 15),
+  `Epithelial cells` = c(9),
+  `Erythroblasts` = c(5, 6, 8)
 ))
 
-type_ids$`B cells` <- c(type_ids$`B cells`, 11, 12, 14, 18)
-type_ids$`T cells` <- c(type_ids$`T cells`, 16, 17)
+type_ids$`B cells` <- c(type_ids$`B cells`, 10, 12:13)
+type_ids$`T cells` <- c(type_ids$`T cells`, 16:17)
 
 markers_df <- data.frame(
   Type = c("B cells", "T cells", "CD14+ Monocytes", "NK cells", "Dendritic cells", 
-           "Mesenchymal stroma cells", "Epithelial cells", "Erythrocytes"),
+           "Monocyte progenitors", "Epithelial cells", "Erythroblasts"),
   Markers = c("CD19, MME (CD10), MS4A1 (CD20)", "CD3D", 
               "LYZ, CD14", "GZMA, GZMB, GNLY, NKG7", "FCER1A, CST3", 
-              "CD34, PTPRC (CD45), ITGB1 (CD29), ENG(CD105)", 
-              "EPCAM (CD326), CD226-, APOE (CD165)", "GYPA (CD235a), CD36")
+              "LYZ, CD34", 
+              "EPCAM (CD326), CD226-, APOE (CD165)", "GYPA (CD235a), CD36, TFRC (CD71)")
 )
 
 markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(markers_df$Type)]
@@ -158,7 +159,8 @@ PlotClustering(pgd, clusters_annotated)
 heatmap_genes <- c(
   'MS4A1', 'CD40', 'IL4R', 'IL7R',
   'CD34', 'CD38', 'MME',
-  'CD19')
+  'CD19',
+  'CD37', 'IGLL5')
 
 heatmap_clusters <- clusters[clusters %in% type_ids$`B cells`]
 # heatmap_clusters <- heatmap_clusters[heatmap_clusters > 9]
@@ -167,15 +169,16 @@ PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)
 
 ```{r}
 b_markers_df <- data.frame(
-  Type = c("Immature B cells", "Pre-pro B cells", "Pre B cells"),
+  Type = c("Immature B cells", "Pre-pro B cells", "Pro B cells"),
   Markers = c("MS4A1 (CD20), CD40, IL4R, IL7R-", "CD34, CD38, MME (CD10), CD24-, IL7R-", 
               "CD34-, CD40-, IL7R+, IL4R-, CD19+")
 )
 
 type_ids <- c(type_ids, lst(
-  `Immature B cells` = c(3, 18),
-  `Pre-pro B cells` = c(14),
-  `Pre B cells` = c(11, 12)
+  `Immature B cells` = c(3),
+  `Pre-pro B cells` = c(13),
+  `Non-dividing pro B cells` = c(10),
+  `Pro B cells` = c(12)
   ))
 
 type_ids$`B cells` <- NULL
@@ -184,7 +187,7 @@ b_markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(b_m
 b_markers_df
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 clusters_annotated <- AnnotateClusters(clusters, type_ids)
 PlotClustering(pgd, clusters_annotated)
 ```
@@ -205,10 +208,10 @@ t_markers_df <- data.frame(
 )
 
 type_ids <- c(type_ids, lst(
-  `Cytotoxic T cells` = c(7, 16, 17)
+  `Cytotoxic T cells` = c(7)
 ))
 
-type_ids$`T cells` <- 1
+type_ids$`T cells` <- setdiff(type_ids$`T cells`, type_ids$`Cytotoxic T cells`)
 
 t_markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(t_markers_df$Type)]
 t_markers_df
@@ -219,11 +222,45 @@ clusters_annotated <- AnnotateClusters(clusters, type_ids)
 PlotClustering(pgd, clusters_annotated)
 ```
 
+## Erythroblasts
+[Erythrocyte maturing paper](https://cosmosscholars.com/phms/index.php/gjhbt/article/viewFile/56/10)  
+[KRT1 is expressed at erythroblasts](https://discovery.lifemapsc.com/in-vivo-development/blood/hematopoietic-bone-marrow/erythroblasts)  
+[CD47, CD71, RHAG as markers of differentiation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2762680/). Fig.1.  
+[CD71](http://sci-hub.tw/https://link.springer.com/article/10.1007/s10059-012-0090-6)  
 
-```{r, echo=FALSE}
-# Web app
+CD117(KIT)-, CD105(ENG)-, CD10(MME)-, CD33-, CD34-, CD38-
+
+```{r, fig.width=8, fig.height=9, message=FALSE, warning=FALSE}
+genes <- tibble(CD36="CD36", CD235a="GYPA", CD71="TFRC", KRT1="KRT1", RHAG="RHAG", 
+                CD45="PTPRC", `HLA-DR`="HLA-DRB1", RPS11="RPS11")
+
+
+clust_cbs <- names(clusters_annotated)[clusters_annotated == 'Erythroblasts']
+clust_points <- pgd$embeddings$PCA$tSNE[clust_cbs,]
+
+plotPagoda <- function(title, ...) 
+  PlotPagodaEmbeding(pgd, size=1, alpha=0.5, raster=T, raster.width=8/3, 
+                     raster.height=3, ...) + 
+  ggtitle(title) +  ggrastr::theme_pdf(show.ticks=F) + 
+  ylim(range(clust_points[,2])) + xlim(range(clust_points[,1])) +
+  theme(axis.title.x=element_blank(), axis.title.y=element_blank())
+
+ggs <- mapply(function(g, n) plotPagoda(n, colors=log10(1e-3 + pgd$counts[,g])) + 
+                scale_color_distiller(palette="RdYlBu"), genes, names(genes), SIMPLIFY=F)
+ggs <- c(list(plotPagoda("Clusters", clusters=clusters)), ggs)
+
+gg <- cowplot::plot_grid(plotlist=ggs, ncol=3)
+```
+
+```{r, fig.width=8, fig.height=9, message=FALSE, warning=FALSE}
+gg
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# # Web app
+# library(pagoda2)
 # go_env <- p2.generate.human.go(pgd)
-# pgd$testPathwayOverdispersion(setenv = go_env, verbose = T, correlation.distance.threshold = 0.9, 
+# pgd$testPathwayOverdispersion(setenv = go_env, verbose = T, correlation.distance.threshold = 0.9,
 #                               recalculate.pca = F, min.pathway.size = 100, max.pathway.size = 1000)
 # 
 # go_sets <- p2.generate.human.go.web(colnames(pgd$counts))
@@ -231,15 +268,21 @@ PlotClustering(pgd, clusters_annotated)
 # go_sets <- c(go_sets, de_sets)
 # 
 # additional_metadata <- list()
-# additional_metadata$altCluster <- p2.metadata.from.factor(as.factor(clusters_annotated), displayname = 'Annotated', s = 0.7, v = 0.8, start = 0, end = 0.5)
+# additional_metadata$altCluster <- as.factor(clusters_annotated) %>%
+#   p2.metadata.from.factor(displayname='Annotated', s=0.7, v=0.8, start=0, end=0.5)
+# 
+# is_rescued <- rep(T, ncol(r_cm)) %>% setNames(colnames(r_cm))
+# is_rescued[intersect(names(umis_per_cell)[1:2000], colnames(r_cm))] <- F
+# additional_metadata$isRescued <- p2.metadata.from.factor(as.factor(is_rescued), displayname='IsRescued')
 # 
 # pgd_web_object <- make.p2.app(pgd, dendrogramCellGroups = pgd$clusters$PCA$infomap,
 #                               additionalMetadata = additional_metadata,
-#                               geneSets = go_sets,
-#                               show.clusters = T)
+#                               geneSets = go_sets, show.clusters = T)
 # 
 # pgd_web_object$serializeToStaticFast(binary.filename = paste0(kEstFolder, 'bmmc1_pagoda_annotated.bin'))
 # saveRDS(pgd_web_object, paste0(kEstFolder, 'pagoda_annotation_web.rds'))
+# 
+# # show.app(pgd_web_object, "bmmc")
 ```
 
 ```{r}
