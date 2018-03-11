@@ -23,6 +23,7 @@ knitr::read_chunk("../../analysis/chunks.R")
 
 ```{r global_options, include=FALSE}
 library(ggplot2)
+library(ggrastr)
 library(dplyr)
 library(dropestr)
 library(dropEstAnalysis)
@@ -32,6 +33,7 @@ theme_set(theme_base)
 
 set.seed(42)
 kDataPath <- '../../data/'
+kOutputPath <- '../../output/'
 
 kDropEstData <- paste0(kDataPath, 'dropest/10x/pbmc8k/')
 kAnnotationData <- paste0(kDataPath, 'annotation/')
@@ -183,9 +185,69 @@ t_markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(t_m
 t_markers_df
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 clusters_annotated <- AnnotateClusters(clusters, type_ids)
-PlotClustering(pgd, clusters_annotated)
+
+write.csv(data.frame(Barcode=names(clusters_annotated), 
+                     Type=as.vector(clusters_annotated)), 
+          paste0(kAnnotationData, 'pbmc8k_clusters_annotated.csv'))
+```
+
+## All markers
+```{r, message=FALSE, warning=FALSE}
+all_markers_df <- rbind(markers_df, t_markers_df)
+write.csv(all_markers_df[c('Type', 'Markers')], 
+          paste0(kOutputPath, 'tables/annotation_pbmc8k_markers.csv'), row.names=F)
+all_markers_df
+```
+
+## Expression plots
+```{r, message=FALSE, warning=FALSE}
+raster_width <- 8 / 3
+raster_height <- 8 / 4
+raster_dpi <- 150
+
+long_type_names <- c("CD14+ Monocytes", "FCGR3A+ Monocytes", "Dendritic cells",
+                     "Naive T cells", "Cytotoxic T cells", "CD4+ T cells")
+for (type in long_type_names) {
+  clusters_annotated[clusters_annotated == type] <- sub(" ", "\n", type)
+}
+
+gg_annotation <- PlotClustering(pgd, clusters_annotated, lineheight=0.7, size=0.2, 
+                                raster=T, raster.width=raster_width, 
+                                raster.height=raster_height, raster.dpi=raster_dpi) + 
+  theme_pdf(show.ticks=F) + ggpubr::rremove("xylab") +
+  scale_size_continuous(range=c(3, 3)) +
+  theme(plot.margin=margin())
+```
+
+```{r}
+plot_mtx <- apply(log_mtx, 2, function(vec) scales::rescale(rank(vec)))
+```
+
+```{r, message=FALSE, warning=FALSE}
+plot_genes <- c('MS4A1', 'LYZ',
+                'FCGR3A', 'FCER1A', 'PPBP',
+                'CD3D', 'CCR7', 'CD8A', 'IL7R', 
+                'NKG7', 'GZMB')
+
+gene_plots <-  lapply(plot_genes, PlotGeneFraction, pgd, plot_mtx, title.x=0.04, 
+                      title.y=0.99, legend.position="none", size=0.2, 
+                      raster=T, raster.width=raster_width, 
+                      raster.height=raster_height, raster.dpi=raster_dpi)
+
+gene_plots <- c(list(gg_annotation), gene_plots)
+
+gg_fig <- cowplot::plot_grid(plotlist=gene_plots, ncol=3) +
+  theme(plot.margin=margin(1, 1, 1, 1))
+```
+
+```{r, fig.height=8, fig.width=8, message=FALSE, warning=FALSE}
+gg_fig
+```
+
+```{r, message=FALSE, warning=FALSE}
+ggsave(paste0(kOutputPath, 'figures/supp_annotation_pbmc8k.pdf'), width=8, height=8)
 ```
 
 ```{r, echo=FALSE}
@@ -207,12 +269,6 @@ PlotClustering(pgd, clusters_annotated)
 # 
 # pgd_web_object$serializeToStaticFast(binary.filename = paste0(kEstFolder, 'pbmc8k_pagoda.bin'))
 # # saveRDS(pgd_web_object, paste0(kEstFolder, 'pagoda_annotation_web.rds'))
-```
-
-```{r}
-write.csv(data.frame(Barcode=names(clusters_annotated), 
-                     Type=as.vector(clusters_annotated)), 
-          paste0(kAnnotationData, 'pbmc8k_clusters_annotated.csv'))
 ```
 
 ## Session information

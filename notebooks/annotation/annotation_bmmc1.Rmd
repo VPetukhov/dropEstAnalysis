@@ -170,7 +170,7 @@ PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)
 
 ```{r}
 b_markers_df <- data.frame(
-  Type = c("Immature B cells", "Pre-pro B cells", "Pro B cells", "Non-dividing Pro B cells"),
+  Type = c("Immature B cells", "Pre-pro B cells", "Pre B cells", "Non-dividing Pre B cells"),
   Markers = c("MS4A1 (CD20), CD40, IL4R, IL7R-", "CD34, CD38, MME (CD10), CD24-, IL7R-", 
               "CD34-, CD40-, IL7R+, IL4R-, CD19+", "CD34, IGLL5")
 )
@@ -178,19 +178,14 @@ b_markers_df <- data.frame(
 type_ids <- c(type_ids, lst(
   `Immature B cells` = c(3),
   `Pre-pro B cells` = c(13),
-  `Non-dividing Pro B cells` = c(10),
-  `Pro B cells` = c(12)
+  `Non-dividing Pre B cells` = c(10),
+  `Pre B cells` = c(12)
   ))
 
 type_ids$`B cells` <- NULL
 
 b_markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(b_markers_df$Type)]
 b_markers_df
-```
-
-```{r, message=FALSE, warning=FALSE}
-clusters_annotated <- AnnotateClusters(clusters, type_ids)
-PlotClustering(pgd, clusters_annotated)
 ```
 
 ## T cells
@@ -218,6 +213,13 @@ t_markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(t_m
 t_markers_df
 ```
 
+```{r}
+clusters_annotated <- AnnotateClusters(clusters, type_ids)
+write.csv(data.frame(Barcode=names(clusters_annotated), 
+                     Type=as.vector(clusters_annotated)), 
+          paste0(kAnnotationData, 'bmmc1_clusters_annotated.csv'))
+```
+
 ## All markers
 ```{r, message=FALSE, warning=FALSE}
 all_markers_df <- bind_rows(list(markers_df, t_markers_df, b_markers_df))
@@ -239,7 +241,7 @@ raster_dpi <- 150
 clusters_annotated <- AnnotateClusters(clusters, type_ids)
 plot_clusters_annotated <- clusters_annotated
 
-long_type_names <- c("CD14+ Monocytes", "Non-dividing Pro B cells", "Monocyte progenitors", 
+long_type_names <- c("CD14+ Monocytes", "Non-dividing Pre B cells", "Monocyte progenitors", 
                      "Epithelial cells", "Cytotoxic T cells", "Immature B cells", 
                      "Dendritic cells", "Pre-pro B cells")
 for (type in long_type_names) {
@@ -307,12 +309,6 @@ ggsave(paste0(kOutputPath, 'figures/supp_annotation_bmmc1.pdf'), width=8, height
 # saveRDS(pgd_web_object, paste0(kEstFolder, 'pagoda_annotation_web.rds'))
 # 
 # # show.app(pgd_web_object, "bmmc")
-```
-
-```{r}
-write.csv(data.frame(Barcode=names(clusters_annotated), 
-                     Type=as.vector(clusters_annotated)), 
-          paste0(kAnnotationData, 'bmmc1_clusters_annotated.csv'))
 ```
 
 ## Session information

@@ -48,7 +48,8 @@ classifier_funcs <- list(
 ```
 
 ```{r}
-kPlotDir <- '../../output/figures/'
+kOutputDir <- '../../output/'
+
 holder <- readRDS('../../data/dropest/allon_new/SRR3879617/est_11_22/cell.counts.rds')
 holder$reads_per_umi_per_cell <- NULL
 ```
@@ -82,13 +83,15 @@ smoothScatter(features$MitochondrionFraction, xlab='Cell rank',
 Simple cross-validation on labeled data. While, labels have errors, it can give us an estimate of the algorithms' quality.
 
 ```{r, message=FALSE, warning=FALSE}
-kfold_labeled_res <- lapply(classifier_funcs, function(clf)
+kfold_labeled_res <- mclapply(classifier_funcs, function(clf)
   KFoldCV(classifier_data[c(real_cbs, background_cbs),], 
           c(rep(1, length(real_cbs)), rep(0, length(background_cbs))), 
           clf$train, clf$predict, k=5, stratify=F, 
-          measure = c('sensitivity', 'specifisity')))
+          measure = c('sensitivity', 'specifisity'), mc.cores=5), mc.cores=5)
 
-CvResultsTable(kfold_labeled_res)
+cv_table <- CvResultsTable(kfold_labeled_res)
+write.csv(cv_table, paste0(kOutputDir, "tables/lq_cv.csv"))
+cv_table
 ```
 
 ## Stability of labels on CV  
@@ -99,15 +102,17 @@ Here, "correct" answer is the answer, obtained after training on the whole datas
 train_cbs <- c(real_cbs, background_cbs)
 intermediate_cbs <- setdiff(analised_cbs, train_cbs)
 
-intermediate_res <- mapply(function(scores, clf) 
+intermediate_res <- mcmapply(function(scores, clf) 
   KFoldCV(classifier_data[train_cbs,], scores[train_cbs], clf$train, clf$predict, 
           k = 5, stratify = F, test.force = list(x=classifier_data[intermediate_cbs,], 
                                                  y=scores[intermediate_cbs]), 
-          measure = c('sensitivity', 'specifisity')), 
-  scores_base, classifier_funcs, SIMPLIFY=F) %>%
+          measure = c('sensitivity', 'specifisity'), mc.cores=5), 
+  scores_base, classifier_funcs, SIMPLIFY=F, mc.cores=5) %>%
   setNames(names(classifier_funcs))
 
-CvResultsTable(intermediate_res)
+stability_table <- CvResultsTable(intermediate_res)
+write.csv(stability_table, paste0(kOutputDir, "tables/lq_stability.csv"))
+stability_table
 ```
 
 ## Dependency between scores and borders  
@@ -238,7 +243,7 @@ gg_figure <- plot_grid(plotlist[[1]], legend, plotlist[[2]], plotlist[[3]], ncol
                        label_x=c(0.15, 0.0, 0.15, 0.02)) +
   theme(plot.margin=ggplot2::margin(2, 2, 2, 2))
 
-ggsave(paste0(kPlotDir, 'supp_label_noise_robustness.pdf'),
+ggsave(paste0(kOutputDir, 'figures/supp_label_noise_robustness.pdf'),
        gg_figure, width=8, height=6)
 gg_figure
 ```
