@@ -314,8 +314,22 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/annotation/annotation_bmmc1.Rmd</p>
-<p><strong>Last updated:</strong> 2018-03-09</p>
-<p><strong>Code version:</strong> 7b78a95</p>
+<p><strong>Last updated:</strong> 2018-03-11</p>
+<p><strong>Code version:</strong> 169f0b2</p>
+<pre class="r"><code>library(ggplot2)
+library(dplyr)
+library(dropestr)
+library(dropEstAnalysis)
+library(Matrix)
+
+theme_set(theme_base)
+
+set.seed(42)
+kDropEstData &lt;- &#39;../../data/dropest/10x/frozen_bmmc_healthy_donor1/&#39;
+kEstFolder &lt;- paste0(kDropEstData, &#39;est_11_10_umi_quality/&#39;)
+k10xFolder &lt;- paste0(kDropEstData, &#39;filtered_matrices_mex/hg19/&#39;)
+kAnnotationData &lt;- &#39;../../data/annotation/&#39;
+kOutputPath &lt;- &#39;../../output/&#39;</code></pre>
 <div id="read-data" class="section level2">
 <h2>Read data</h2>
 <p><a href="https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/frozen_bmmc_healthy_donor1">Link to original dataset</a>.</p>
@@ -485,7 +499,7 @@ heatmap_clusters &lt;- clusters[clusters %in% type_ids$`B cells`]
 PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)</code></pre>
 <p><img src="figure/annotation_bmmc1.Rmd/unnamed-chunk-11-1.png" width="480" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>b_markers_df &lt;- data.frame(
-  Type = c(&quot;Immature B cells&quot;, &quot;Pre-pro B cells&quot;, &quot;Pro B cells&quot;, &quot;Non-dividing Pro B cells&quot;),
+  Type = c(&quot;Immature B cells&quot;, &quot;Pre-pro B cells&quot;, &quot;Pre B cells&quot;, &quot;Non-dividing Pre B cells&quot;),
   Markers = c(&quot;MS4A1 (CD20), CD40, IL4R, IL7R-&quot;, &quot;CD34, CD38, MME (CD10), CD24-, IL7R-&quot;, 
               &quot;CD34-, CD40-, IL7R+, IL4R-, CD19+&quot;, &quot;CD34, IGLL5&quot;)
 )
@@ -493,8 +507,8 @@ PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)</code></pre>
 type_ids &lt;- c(type_ids, lst(
   `Immature B cells` = c(3),
   `Pre-pro B cells` = c(13),
-  `Non-dividing Pro B cells` = c(10),
-  `Pro B cells` = c(12)
+  `Non-dividing Pre B cells` = c(10),
+  `Pre B cells` = c(12)
   ))
 
 type_ids$`B cells` &lt;- NULL
@@ -522,21 +536,18 @@ b_markers_df</code></pre>
 <td align="left">13</td>
 </tr>
 <tr class="odd">
-<td align="left">Pro B cells</td>
+<td align="left">Pre B cells</td>
 <td align="left">CD34-, CD40-, IL7R+, IL4R-, CD19+</td>
 <td align="left">12</td>
 </tr>
 <tr class="even">
-<td align="left">Non-dividing Pro B cells</td>
+<td align="left">Non-dividing Pre B cells</td>
 <td align="left">CD34, IGLL5</td>
 <td align="left">10</td>
 </tr>
 </tbody>
 </table>
 </div>
-<pre class="r"><code>clusters_annotated &lt;- AnnotateClusters(clusters, type_ids)
-PlotClustering(pgd, clusters_annotated)</code></pre>
-<p><img src="figure/annotation_bmmc1.Rmd/unnamed-chunk-13-1.png" width="576" style="display: block; margin: auto;" /></p>
 </div>
 <div id="t-cells" class="section level2">
 <h2>T cells</h2>
@@ -545,7 +556,7 @@ PlotClustering(pgd, clusters_annotated)</code></pre>
 
 heatmap_clusters &lt;- clusters[clusters %in% type_ids$`T cells`]
 PlotExpressionHeatmap(log_mtx, heatmap_clusters, heatmap_genes)</code></pre>
-<p><img src="figure/annotation_bmmc1.Rmd/unnamed-chunk-14-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p><img src="figure/annotation_bmmc1.Rmd/unnamed-chunk-13-1.png" width="576" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>t_markers_df &lt;- data.frame(
   Type = c(&quot;Cytotoxic T cells&quot;, &quot;T cells&quot;),
   Markers = c(&quot;NKG7, GZMA, GZMH, GZMK&quot;, &quot;CD3E, CD8B, IL7R&quot;)
@@ -582,6 +593,10 @@ t_markers_df</code></pre>
 </tbody>
 </table>
 </div>
+<pre class="r"><code>clusters_annotated &lt;- AnnotateClusters(clusters, type_ids)
+write.csv(data.frame(Barcode=names(clusters_annotated), 
+                     Type=as.vector(clusters_annotated)), 
+          paste0(kAnnotationData, &#39;bmmc1_clusters_annotated.csv&#39;))</code></pre>
 </div>
 <div id="all-markers" class="section level2">
 <h2>All markers</h2>
@@ -660,12 +675,12 @@ all_markers_df</code></pre>
 <td align="left">13</td>
 </tr>
 <tr class="odd">
-<td align="left">Pro B cells</td>
+<td align="left">Pre B cells</td>
 <td align="left">CD34-, CD40-, IL7R+, IL4R-, CD19+</td>
 <td align="left">12</td>
 </tr>
 <tr class="even">
-<td align="left">Non-dividing Pro B cells</td>
+<td align="left">Non-dividing Pre B cells</td>
 <td align="left">CD34, IGLL5</td>
 <td align="left">10</td>
 </tr>
@@ -683,7 +698,7 @@ raster_dpi &lt;- 150
 clusters_annotated &lt;- AnnotateClusters(clusters, type_ids)
 plot_clusters_annotated &lt;- clusters_annotated
 
-long_type_names &lt;- c(&quot;CD14+ Monocytes&quot;, &quot;Non-dividing Pro B cells&quot;, &quot;Monocyte progenitors&quot;, 
+long_type_names &lt;- c(&quot;CD14+ Monocytes&quot;, &quot;Non-dividing Pre B cells&quot;, &quot;Monocyte progenitors&quot;, 
                      &quot;Epithelial cells&quot;, &quot;Cytotoxic T cells&quot;, &quot;Immature B cells&quot;, 
                      &quot;Dendritic cells&quot;, &quot;Pre-pro B cells&quot;)
 for (type in long_type_names) {
@@ -711,9 +726,6 @@ gene_plots &lt;- c(list(gg_annotated), gene_plots)</code></pre>
 <pre class="r"><code>gg_fig</code></pre>
 <p><img src="figure/annotation_bmmc1.Rmd/unnamed-chunk-21-1.png" width="768" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>ggsave(paste0(kOutputPath, &#39;figures/supp_annotation_bmmc1.pdf&#39;), width=8, height=8)</code></pre>
-<pre class="r"><code>write.csv(data.frame(Barcode=names(clusters_annotated), 
-                     Type=as.vector(clusters_annotated)), 
-          paste0(kAnnotationData, &#39;bmmc1_clusters_annotated.csv&#39;))</code></pre>
 </div>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>
@@ -756,7 +768,7 @@ gene_plots &lt;- c(list(gg_annotated), gene_plots)</code></pre>
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-03-09</td>
+<td align="left">2018-03-11</td>
 </tr>
 </tbody>
 </table>
@@ -924,7 +936,7 @@ gene_plots &lt;- c(list(gg_annotated), gene_plots)</code></pre>
 <td>25</td>
 <td align="left">dropestr</td>
 <td align="left">0.7.6</td>
-<td align="left">2018-02-26</td>
+<td align="left">2018-03-10</td>
 <td align="left">local (<span class="citation">@0.7.6</span>)</td>
 </tr>
 <tr class="odd">
