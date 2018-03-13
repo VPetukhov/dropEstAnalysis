@@ -1,0 +1,247 @@
+---
+title: "Validation of filtration of low-quality cells on the inDrop Mouse PCs dataset"
+author: "Viktor Petukhov"
+date: 2018-02-13
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options}
+library(cowplot)
+library(ggplot2)
+library(ggpubr)
+library(ggrastr)
+library(dplyr)
+library(Matrix)
+library(parallel)
+library(reshape2)
+library(Seurat)
+
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)
+
+set.seed(42)
+kDataPath <- '../../data/dropest/allon_new/'
+
+kOutputFolder <- '../../output/'
+kCsvLink <- 'ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM2230nnn/GSM2230762/suppl/GSM2230762%5Fmouse2%5Fumifm%5Fcounts%2Ecsv%2Egz'
+kRescuedScoreThreshold <- 0.9
+kFilteredScoreThreshold <- 0.1
+```
+
+```{r}
+LibrariesUnion <- function(libs, names.func=names, set.names.func=setNames, union.func=unlist) {
+  return(lapply(1:length(libs), function(i) 
+    set.names.func(libs[[i]], paste0(names.func(libs[[i]]), '-', i))) %>% union.func())
+}
+```
+
+## Load data
+### Pipeline data
+```{r}
+d_folders <- c('SRR3879617/est_11_22/', 'SRR3879618/est_11_22/', 'SRR3879619/est_11_29/')
+rds_paths <- paste0(kDataPath, d_folders, 'cell.counts.rds')
+holders <- mclapply(rds_paths, readRDS, mc.cores=3)
+```
+
+```{r}
+cms <- lapply(holders, `[[`, 'cm')
+common_genes <- Reduce(intersect, lapply(cms, rownames))
+cms <- lapply(cms, function(x) x[common_genes,])
+
+cm_union <- LibrariesUnion(cms, colnames, `colnames<-`, function(x) Reduce(cbind, x))
+scores <- mclapply(holders, ScorePipelineCells, mit.chromosome.name='chrM', 
+                   mc.cores=length(holders)) %>% LibrariesUnion()
+
+mit_fracs <- lapply(holders, `[[`, 'reads_per_chr_per_cells') %>% lapply(`[[`, 'Exon') %>%
+  lapply(GetChromosomeFraction, 'chrM') %>% LibrariesUnion()
+
+umis_per_cb <- sort(Matrix::colSums(cm_union), decreasing=T)
+```
+
+### Data from the paper
+```{r}
+published_csv <- url(kCsvLink) %>% gzcon() %>% readLines() %>% paste0(collapse='\n') %>% 
+  data.table::fread(data.table=F)
+
+published_csv <- published_csv[, 1:3] %>%
+  mutate(LibId = substr(V1, 11, 11) %>% as.integer(),
+         Barcode = gsub("-", "", barcode) %>% paste0('-', LibId),
+         Cluster = gsub("_", " ", assigned_cluster)) %>%
+  dplyr::select(-V1, -barcode, -LibId, -assigned_cluster)
+
+cluster_by_barcodes <- setNames(published_csv$Cluster, published_csv$Barcode)
+dim(published_csv)
+```
+
+### Pagoda analysis
+```{r}
+r_cm <- cm_union[, order(Matrix::colSums(cm_union), decreasing=T)]
+
+cell_mask <- setNames(rep(FALSE, ncol(r_cm)), colnames(r_cm))
+cell_mask[names(scores)[scores > kRescuedScoreThreshold]] <- TRUE
+cell_mask[intersect(names(cluster_by_barcodes), names(cell_mask))] <- TRUE
+r_cm <- r_cm[, cell_mask]
+
+r_cm <- r_cm[Matrix::rowSums(r_cm) > 20, ]
+
+cluster_by_barcodes <- cluster_by_barcodes[names(cluster_by_barcodes) %>% 
+                                             intersect(colnames(r_cm))]
+```
+
+```{r, message=FALSE}
+r <- GetPagoda(r_cm, n.cores=10)
+```
+
+```{r, fig.width=6, fig.height=4}
+PlotPagodaEmbeding(r, colors=mit_fracs, show.legend=T, title='Mitochondrial fraction',
+                   alpha=0.9, size=0.5, font.size=4.5) +
+  scale_color_continuous(name='Fraction') +
+  theme_pdf(legend.pos=c(1, 1))
+```
+
+## Rescued cells
+```{r}
+filtered_cbs <- intersect(names(cluster_by_barcodes), 
+                          names(scores)[scores <= kFilteredScoreThreshold])
+rescued_cbs <- setdiff(names(scores)[scores > kRescuedScoreThreshold], 
+                       names(cluster_by_barcodes))
+intersect_cbs <- intersect(names(r$clusters$PCA$infomap), names(cluster_by_barcodes))
+```
+
+```{r}
+notannotated_cells <- setdiff(colnames(r_cm), names(cluster_by_barcodes))
+clusters_annotated_resc <- AnnotateClustersByGraph(r$graphs$PCA, cluster_by_barcodes, 
+                                            notannotated_cells,
+                                            max.iter=100, mc.cores=10)
+rescued_clusters <- clusters_annotated_resc[rescued_cbs]
+```
+
+```{r, message=FALSE, fig.width=4, fig.height=4.6}
+plot_clusters <- cluster_by_barcodes[names(scores)[scores > kFilteredScoreThreshold]]
+plot_rescued_clusters <- rescued_clusters
+
+for (type in c("immune other", "activated stellate", "quiescent stellate")) {
+  plot_clusters[plot_clusters == type] <- gsub(" ", "\n", type)
+  plot_rescued_clusters[plot_rescued_clusters == type] <- gsub(" ", "\n", type)
+}
+
+gg_tsne <- PlotFiltrationResults(r, clusters=plot_clusters, 
+                                 rescued.clusters=plot_rescued_clusters,
+                                 filtered.cbs=filtered_cbs,
+                                 unchanged.alpha=1, rescued.alpha=1, lineheight=0.7,
+                                 raster.width=7 / 1.75, raster.height=6 / 1.3) +
+  theme_pdf(legend.pos=c(0, 1), show.ticks=F)
+
+gg_tsne
+```
+
+### Number of rescued cells per cluster
+```{r}
+rescued_table <- TableOfRescuedCells(clusters_annotated_resc, rescued_cbs)
+write.csv(rescued_table, paste0(kOutputFolder, "tables/rescued_cbc_srr3.csv"), row.names=F)
+rescued_table
+```
+
+### Seurat analysis
+```{r, message=FALSE}
+srt <- CreateSeuratObject(raw.data=r_cm, min.cells=10, min.genes=0, display.progress=F)
+srt <- NormalizeData(object = srt, normalization.method = "LogNormalize", 
+                     scale.factor = 10000, display.progress=F)
+srt <- FindVariableGenes(object=srt, mean.function=ExpMean, dispersion.function=LogVMR,
+                         x.low.cutoff = 0.0125, x.high.cutoff = 3, y.cutoff = 1, 
+                         do.plot=F, display.progress=F)
+srt <- ScaleData(object = srt, vars.to.regress = "nUMI", display.progress=F)
+```
+
+```{r}
+srt@ident <- as.factor(clusters_annotated_resc[colnames(srt@raw.data)])
+names(srt@ident) <- colnames(srt@raw.data)
+compared_clusters <- c('beta', 'delta', 'alpha', 'gamma')
+cluster_markers <- mclapply(compared_clusters, function(i) 
+  mclapply(setdiff(compared_clusters, i), FindClusterMarkers, i, srt, mc.cores=3), 
+  mc.cores=4)
+overexpressed_genes <- GetOverexpressedGenes(srt, compared_clusters, cluster_markers, 
+                                             genes.from.cluster=50, 
+                                             expression.threshold=0.3)
+length(overexpressed_genes)
+```
+
+## Heatmaps
+```{r}
+clusts_after_filt <- cluster_by_barcodes[setdiff(names(cluster_by_barcodes), filtered_cbs)]
+real_clusts <- c(clusts_after_filt, rescued_clusters)
+```
+
+```{r}
+selected_clusters <- compared_clusters
+
+tested_clusts <- sort(real_clusts[real_clusts %in% selected_clusters])
+separation <- c(setNames(rep('rescued', length(rescued_cbs)), rescued_cbs),
+                setNames(rep('real', length(clusts_after_filt)), names(clusts_after_filt)))
+
+umis_per_cb_subset <- log10(Matrix::colSums(r_cm[, names(tested_clusts)]))
+tested_clusts <- tested_clusts[order(tested_clusts, -umis_per_cb_subset)]
+de_genes <- intersect(overexpressed_genes, colnames(r$counts))
+```
+
+```{r, fig.width=6, fig.height=7}
+plot_df <- ExpressionMatrixToDataFrame(r$counts[names(tested_clusts), de_genes], 
+                                       umis_per_cb_subset, tested_clusts, rescued_cbs)
+# plot_df <- plot_df %>% filter(UmisPerCb < 3.5)
+plot_dfs <- split(plot_df, plot_df$IsRescued) %>% setNames(c('real', 'rescued'))
+
+ggs <- lapply(plot_dfs, HeatmapAnnotGG) %>%
+  lapply(lapply, `+`, theme(plot.margin=margin()))
+
+legend_guides <- list(HeatmapLegendGuide('Expression'),
+                      HeatmapLegendGuide('Cell type', guide=guide_legend, nrow=4),
+                      HeatmapLegendGuide('log10(#molecules)'))
+gg_legends <- mapply(`+`, ggs$real, legend_guides, SIMPLIFY=F) %>%
+  lapply(`+`, theme(legend.margin=margin(l=4, r=4, unit='pt'))) %>% lapply(get_legend)
+
+ggs$real$heatmap <- ggs$real$heatmap + rremove('xlab') + ylab('Cells')
+ggs$rescued$heatmap <- ggs$rescued$heatmap + labs(x = 'Genes', y = 'Cells')
+ggs_annot <- lapply(ggs, function(gg) plot_grid(plotlist=lapply(gg, `+`, rremove('legend')), 
+                                                nrow=1, rel_widths=c(1.5, 0.12, 0.12),
+                                                align='h'))
+```
+
+## Figure
+```{r, message=FALSE, warning=FALSE}
+gg_legends_plot <- plot_grid(plotlist=gg_legends[c(1, 3)], nrow=2, align='v') %>%
+  plot_grid(gg_legends[[2]], ncol=2, rel_widths=c(2, 1))
+
+gg_left <- plot_grid(ggs_annot$real, ggs_annot$rescued, nrow=2, labels='AUTO')
+gg_right <- plot_grid(gg_tsne + theme(plot.margin=margin(l=0.1, unit='in')), gg_legends_plot,
+                      nrow=2, rel_heights=c(1, 0.3), align='v', labels=c('C'))
+
+gg_fig <- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
+  theme(plot.margin=margin(1, 1, 1, 1))
+```
+
+```{r, fig.width=7, fig.height=6, message=FALSE, warning=FALSE}
+gg_fig
+```
+
+```{r}
+ggsave(paste0(kOutputFolder, 'figures/supp_lq_srr3.pdf'), gg_fig, width=7, height=6)
+```
+
+## Session information
+```{r session-info, echo=FALSE}
+```
