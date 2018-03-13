@@ -94,7 +94,7 @@ heatmap_genes <- c(
   'Cd74', 'Cd83',
   'Vpreb3', 'Vpreb1',
   'Cd7',
-  'Nkg7',
+  'Nkg7', 'Il2rb', 'Thy1',
   'Cd34', 'Kit',
   'Lyz1', 'Lyz2',
   'Cd38',
@@ -116,7 +116,7 @@ markers_df <- data.frame(
   Markers = c(
     "Mmp9, Srgn, Cxcr2", "Cd14, Ly6c2", "Cd7", 
     "Cd79a, Cd79b", "Cd74, Cd83", "Vpreb1", "Vpreb3",
-    "Cd34, Kit", "Nkg7")
+    "Cd34, Kit", "Nkg7, Il2rb, Thy1")
 )
 
 markers_df$Clusters <- sapply(type_ids, paste, collapse=", ")[as.character(markers_df$Type)]
@@ -136,7 +136,7 @@ write.csv(data.frame(Barcode=names(clusters_annotated),
 ```
 
 ## Expression plots
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, fig.width=2.66, fig.height=2.33}
 raster_width <- 8 / 3
 raster_height <- 7 / 3
 raster_dpi <- 150
@@ -170,7 +170,7 @@ metacluster_borders <- list(
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-plot_genes <- c('Vpreb3', 'Nkg7', 'Mmp9', 'Srgn', 'Cxcr2', 'Cd7', 'Cd34', 'Lyz1')
+plot_genes <- c('Vpreb3', 'Il2rb', 'Mmp9', 'Srgn', 'Cxcr2', 'Cd7', 'Cd34', 'Lyz1')
 plot_borders <- lapply(c("r", "r", "l", "l", "l", "b", "b", "b"), 
                        function(n) metacluster_borders[[n]])
 
@@ -199,7 +199,7 @@ ggsave(paste0(kOutputPath, 'figures/supp_annotation_bmc.pdf'), width=8, height=7
 #                               recalculate.pca = F, min.pathway.size = 100, max.pathway.size = 1000)
 # 
 # go_sets <- names(go_env) %>% setNames(names(go_env)) %>% lapply(function(x) {
-#   list(properties = list(locked = T, genesetname = x, 
+#   list(properties = list(locked = T, genesetname = x,
 #     shortdescription = GO.db::GOTERM[[x]]@Term), genes = c(go_env[[x]]))
 # })
 # 
@@ -214,10 +214,10 @@ ggsave(paste0(kOutputPath, 'figures/supp_annotation_bmc.pdf'), width=8, height=7
 #                               additionalMetadata = additional_metadata,
 #                               geneSets = go_sets, show.clusters = T)
 # 
-# # pgd_web_object$serializeToStaticFast(binary.filename = paste0(kEstFolder, 'bmmc1_pagoda_annotated.bin'))
-# # saveRDS(pgd_web_object, paste0(kEstFolder, 'pagoda_annotation_web.rds'))
+# pgd_web_object$serializeToStaticFast(binary.filename = paste0(kDropEstData, 'bmc_pagoda_annotated.bin'))
+# saveRDS(pgd_web_object, paste0(kDropEstData, 'pagoda_annotation_web.rds'))
 # 
-# show.app(pgd_web_object, "bmmc")
+# show.app(pgd_web_object, "bmc")
 ```
 
 ## Session information

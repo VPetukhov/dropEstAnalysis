@@ -1,0 +1,150 @@
+---
+title: "10x merge targets on 6k human/mouse dataset"
+author: "Viktor Petukhov"
+date: 2018-01-23
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggrastr)
+library(dplyr)
+library(parallel)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)
+```
+
+## Load data
+```{r}
+kDataPath <- '../../data/dropest/'
+kTablesPath <- '../../output/tables/'
+# k10xSubfolders <- c(poisson='est_01_14_precise/', real='est_01_14_barcodes/', 
+#                     unmerged='est_01_14_unmerged/', merge_all='est_01_16_merge_all/')
+# 
+# kDropSeqSubolders <- c(poisson='est_01_16_precise/', unmerged='est_01_16_unmerged/', 
+#                        merge_all='est_01_16_merge_all/')
+# kDataFiles <- list(
+#   `10x`=paste0(kDataPath, '10x/hgmm_6k/', k10xSubfolders, "hgmm6k.rds") %>% 
+#     setNames(names(k10xSubfolders)),
+#   drop_seq=paste0(kDataPath, 'dropseq/thousand/', kDropSeqSubolders, "thousand.rds") %>% 
+#     setNames(names(kDropSeqSubolders))
+# )
+```
+
+```{r}
+```
+
+```{r}
+# holders <- mclapply(kDataFiles, function(paths) mclapply(paths, readRDS, mc.cores=4),
+#                     mc.cores=2)
+# 
+# validation_data <- lapply(holders, function(hs) list(
+#   merge_targets = lapply(hs, function(holder) unlist(holder$merge_targets)),
+#   cms_raw = lapply(hs, `[[`, 'cm_raw'),
+#   cms = lapply(hs, `[[`, 'cm')
+# ))
+# 
+# 
+# validation_data$`10x`$cms_raw <- lapply(validation_data$`10x`$cms_raw,
+#                                         function(cm) cm[grep("^[^;]+$", rownames(cm)),])
+# validation_data$`10x`$cms <- lapply(validation_data$`10x`$cms,
+#                                     function(cm) cm[grep("^[^;]+$", rownames(cm)),])
+# 
+# saveRDS(validation_data, paste0(kDataPath, 'human_mouse_mixture_validation_data.rds'))
+validation_data <- readRDS(paste0(kDataPath, 'human_mouse_mixture_validation_data.rds'))
+```
+
+## 10x
+```{r}
+umis_per_cb <- Matrix::colSums(validation_data$`10x`$cms$unmerged) %>% sort(decreasing=T)
+real_cbs <- names(umis_per_cb)[1:6000]
+PlotCellsNumberLine(umis_per_cb[1:10000])
+```
+
+```{r}
+GeneSpeciesFromMixture <- function(cm, org1.marker, org1.name, org2.name) {
+  res <- ifelse(substr(rownames(cm), 1, nchar(org1.marker)) == org1.marker, org1.name, org2.name)
+  return(as.factor(res))
+}
+
+CellSpeciesFromMixture <- function(gene.species, cm) {
+  res <- levels(gene.species) %>%
+    lapply(function(l) cm[gene.species == l,] %>% Matrix::colSums())
+  
+  res <- levels(gene.species)[as.integer(res[[1]] < res[[2]]) + 1] %>% 
+    setNames(colnames(cm)) %>% as.factor()
+  
+  return(res)
+}
+```
+
+```{r}
+gene_species <- GeneSpeciesFromMixture(validation_data$`10x`$cms_raw$unmerged, 
+                                       'hg', 'Human', 'Mouse')
+cell_species <- CellSpeciesFromMixture(gene_species, 
+                                       validation_data$`10x`$cms_raw$unmerged)
+
+table(cell_species[real_cbs])
+table(cell_species) / sum(table(cell_species))
+```
+
+```{r}
+merge_targets <- lapply(validation_data$`10x`$merge_targets, 
+                        function(mt) mt[mt %in% real_cbs])
+comparison_10x <- MergeComparisonSummary(merge_targets, cell_species, dataset="10x hgmm6k")
+comparison_10x$`Merge type` <- c('Poisson', 'Known barcodes', 'Simple')
+comparison_10x
+```
+
+## Drop-seq
+```{r}
+umis_per_cb <- Matrix::colSums(validation_data$drop_seq$cms$unmerged) %>% 
+  sort(decreasing=T)
+real_cbs <- names(umis_per_cb)[1:1000]
+PlotCellsNumberLine(umis_per_cb[1:5000])
+```
+
+```{r}
+gene_species <- GeneSpeciesFromMixture(validation_data$drop_seq$cms_raw$unmerged, 
+                                       'HUMAN', 'Human', 'Mouse')
+cell_species <- CellSpeciesFromMixture(gene_species, 
+                                       validation_data$drop_seq$cms_raw$unmerged)
+
+table(cell_species[real_cbs])
+table(cell_species)
+```
+
+```{r}
+
+merge_targets <- lapply(validation_data$drop_seq$merge_targets, 
+                        function(mt) mt[mt %in% real_cbs])
+comparison_drop_seq <- MergeComparisonSummary(merge_targets, cell_species, 
+                                              dataset='Drop-seq thousand')
+comparison_drop_seq$`Merge type` <- c('Poisson', 'Simple')
+comparison_drop_seq
+```
+
+```{r}
+complete_table <- rbind(comparison_10x, comparison_drop_seq)
+write.csv(complete_table, paste0(kTablesPath, 'merge_comparison.csv'), row.names=F)
+```
+
+
+## Session information
+```{r session-info, echo=FALSE}
+```

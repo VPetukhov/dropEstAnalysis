@@ -31,7 +31,7 @@ library(dropEstAnalysis)
 theme_set(theme_base)
 
 set.seed(42)
-kPlotsFolder <- '../../output/figures/'
+kOutputFolder <- '../../output/'
 kDataPath <- '../../data/'
 kEstDataPath <- paste0(kDataPath, 'dropest/SCG71/est_11_14_poisson_real/')
 kAnnotationDataPath <- paste0(kDataPath, 'annotation/')
@@ -114,6 +114,13 @@ gg_tsne <- PlotFiltrationResults(r_rescued, plot_clusters, filtered.cbs=filtered
 gg_tsne
 ```
 
+### Number of rescued cells per cluster
+```{r}
+rescued_table <- TableOfRescuedCells(clusters_annotated_resc, rescued_cbs)
+write.csv(rescued_table, paste0(kOutputFolder, "tables/rescued_cbc_bmc.csv"), row.names=F)
+rescued_table
+```
+
 ### Seurat analysis
 ```{r, message=FALSE, warning=FALSE}
 seurat_cm <- r_cm_rescued[Matrix::rowSums(r_cm_rescued) > 200, ]
@@ -194,7 +201,7 @@ gg_fig
 ```
 
 ```{r}
-ggsave(paste0(kPlotsFolder, 'fig_bmc_lq_cells.pdf'), gg_fig, width=8, height=6)
+ggsave(paste0(kOutputFolder, 'figures/fig_bmc_lq_cells.pdf'), gg_fig, width=8, height=6)
 ```
 
 ## Session information

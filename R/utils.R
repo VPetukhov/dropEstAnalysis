@@ -107,7 +107,12 @@ MergeComparisonSummary <- function(merge.targets, cell.species, dataset,
 
   wrong.merge.fractions <- lapply(merge.targets, function(mt) mean(cell.species[mt] != cell.species[names(mt)])) %>%
     unlist()
-  same.as.real <- merge.targets %>% sapply(function(mt) intersect(cbPair(mt), cbPair(merge.targets$real)) %>% length())
+
+  if (is.null(merge.targets$real)) {
+    same.as.real <- rep(NA, length(merge.targets)) %>% setNames(names(merge.targets))
+  } else {
+    same.as.real <- merge.targets %>% sapply(function(mt) intersect(cbPair(mt), cbPair(merge.targets$real)) %>% length())
+  }
 
   res <- data.frame(WrongPercent=wrong.merge.fractions, MergesNum=sapply(merge.targets, length), SameAsReal=same.as.real) %>%
     tibble::rownames_to_column('Merge') %>% filter(Merge %in% filt.merge.types) %>%
@@ -139,4 +144,12 @@ Read10xMatrix <- function(path, use.gene.names=FALSE) {
   colnames(mtx) <- read.table(paste0(path, 'barcodes.tsv'), stringsAsFactors=F)$V1
   rownames(mtx) <- read.table(paste0(path, 'genes.tsv'), stringsAsFactors=F)[[gene.var]]
   return(mtx)
+}
+
+#' @export
+TableOfRescuedCells <- function(clusters.annotated, rescued.cbs) {
+  table(clusters.annotated[rescued.cbs]) %>%
+    tibble::as_tibble() %>%
+    dplyr::mutate(frac = as.numeric(100 * n / table(clusters.annotated)[Var1])) %>%
+    `colnames<-`(c("Cell type", "Num. of rescued", "Fraction of rescued, %"))
 }

@@ -31,7 +31,7 @@ library(dropEstAnalysis)
 theme_set(theme_base)
 
 set.seed(42)
-kPlotsFolder <- '../../output/figures/'
+kOutputFolder <- '../../output/'
 kDataPath <- '../../data/'
 kEstDataPath <- paste0(kDataPath, 'dropest/10x/frozen_bmmc_healthy_donor1/')
 kAnnotationDataPath <- paste0(kDataPath, 'annotation/')
@@ -115,11 +115,11 @@ gg_tsne <- PlotFiltrationResults(r_rescued, plot_clusters, filtered.cbs=NULL,
 gg_tsne
 ```
 
+### Number of rescued cells per cluster
 ```{r}
-(table(clusters_annotated_resc[rescued_cbs]) / 
-  (table(clusters_annotated) + table(clusters_annotated_resc[rescued_cbs]))) %>% 
-  as_tibble() %>% mutate(n = round(100 * n, 1)) %>%
-  `colnames<-`(c("Cell type", "Fraction of rescued, %"))
+rescued_table <- TableOfRescuedCells(clusters_annotated_resc, rescued_cbs)
+write.csv(rescued_table, paste0(kOutputFolder, "tables/rescued_cbc_bmmc1.csv"), row.names=F)
+rescued_table
 ```
 
 ## Comparison of unchanged and rescued cells
@@ -260,7 +260,7 @@ gg_fig <- cowplot::plot_grid(gg_cell_number + theme(plot.margin=margin(b=0.1, un
                              labels=c('A', '')) +
   theme(plot.margin=margin(1, 1, 1, 1))
 
-ggsave(paste0(kPlotsFolder, 'fig_bmmc_filtration.pdf'), gg_fig, width=7.5, height=7)
+ggsave(paste0(kOutputFolder, 'figures/fig_bmmc_filtration.pdf'), gg_fig, width=7.5, height=7)
 
 gg_fig
 ```
