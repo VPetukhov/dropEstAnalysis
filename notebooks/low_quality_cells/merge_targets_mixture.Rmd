@@ -1,5 +1,5 @@
 ---
-title: "10x merge targets on 6k human/mouse dataset"
+title: "10x merge targets on human/mouse datasets"
 author: "Viktor Petukhov"
 date: 2018-01-23
 output: html_document
