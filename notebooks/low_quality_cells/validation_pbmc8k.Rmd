@@ -281,7 +281,8 @@ tested_clusts <- tested_clusts[tested_clusts %in% large_rescued]
 
 ### Number of rescued cells per cluster
 ```{r}
-rescued_table <- TableOfRescuedCells(clusters_annotated_resc, rescued_cbs)
+rescued_table <- TableOfRescuedCells(clusters_annotated_resc[c(intersect_cbs, rescued_cbs)], 
+                                     rescued_cbs)
 write.csv(rescued_table, paste0(kOutputFolder, "tables/rescued_cbc_pbmc8k.csv"), row.names=F)
 rescued_table
 ```

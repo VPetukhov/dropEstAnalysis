@@ -152,7 +152,8 @@ gg_tsne
 
 ### Number of rescued cells per cluster
 ```{r}
-rescued_table <- TableOfRescuedCells(clusters_annotated_resc, rescued_cbs)
+rescued_table <- TableOfRescuedCells(clusters_annotated_resc[c(intersect_cbs, rescued_cbs)], 
+                                     rescued_cbs)
 write.csv(rescued_table, paste0(kOutputFolder, "tables/rescued_cbc_srr3.csv"), row.names=F)
 rescued_table
 ```

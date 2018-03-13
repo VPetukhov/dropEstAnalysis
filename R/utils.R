@@ -148,8 +148,11 @@ Read10xMatrix <- function(path, use.gene.names=FALSE) {
 
 #' @export
 TableOfRescuedCells <- function(clusters.annotated, rescued.cbs) {
-  table(clusters.annotated[rescued.cbs]) %>%
+  clusters.annotated <- as.factor(clusters.annotated)
+  rescued.num <- as.integer(table(clusters.annotated[rescued.cbs]))
+  table(clusters.annotated) %>%
     tibble::as_tibble() %>%
-    dplyr::mutate(frac = as.numeric(100 * n / table(clusters.annotated)[Var1])) %>%
-    `colnames<-`(c("Cell type", "Num. of rescued", "Fraction of rescued, %"))
+    dplyr::mutate(rescued = rescued.num) %>%
+    dplyr::mutate(frac = round(100 * rescued / n, 2)) %>%
+    `colnames<-`(c("Cell type", "Total num. of cells", "Num. of rescued", "Fraction of rescued, %"))
 }
