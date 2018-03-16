@@ -1,0 +1,97 @@
+---
+title: "Runtimes for the inDrop ESCs dataset"
+author: "Viktor Petukhov"
+date: 2018-03-16
+output: html_document
+---
+
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("../../analysis/chunks.R")
+```
+
+```{r knitr-opts-chunk, include=FALSE}
+```
+
+```{r last-updated, echo=FALSE, results='asis'}
+```
+
+```{r code-version, echo=FALSE, results='asis'}
+```
+
+```{r global_options, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggrastr)
+library(ggpubr)
+library(dplyr)
+library(Matrix)
+library(parallel)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)
+
+set.seed(42)
+kOutputFolder <- '../../output/'
+kDataPath <- '../../data/'
+kEstDataPath <- paste0(kDataPath, 'dropest/SRR1784310/runtimes/est_2018_03_15_real/')
+```
+
+```{r}
+holder <- readRDS(paste0(kEstDataPath, 'cell.counts.rds'))
+```
+
+### UMI collisions
+```{r}
+TimeCollisions <- function(holder) {
+  t0 <- proc.time();
+  umi_dist <- GetUmisDistribution(holder$reads_per_umi_per_cell)
+  coll_info <- FillCollisionsAdjustmentInfo(umi_dist / sum(umi_dist), max(holder$cm_raw@x))
+  r <- coll_info[holder$cm_raw@x]
+  return((proc.time() - t0)[3])
+}
+times_coll <- sapply(1:10, function(i) TimeCollisions(holder))
+mean(times_coll, trim=0.2)
+```
+### Error corrections directional
+```{r}
+TimeUmiErrors <- function(rpu.per.cell, method = 'Bayesian', mc.cores=1) {
+  t0 <- proc.time()
+  if (method == 'directional') {
+    corrected_mtx <- CorrectUmiSequenceErrors(rpu.per.cell, method='Classic', mult=2, mc.cores=mc.cores)
+  } else {
+    corrected_mtx <- CorrectUmiSequenceErrors(rpu.per.cell, mc.cores=mc.cores)
+  }
+  
+  return((proc.time() - t0)[3])
+}
+
+times_directional <- sapply(1:10, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 'directional', mc.cores=10))
+print(times_directional)
+mean(times_directional, trim=0.1)
+```
+
+### Error corrections Bayesian
+```{r}
+times_bayesian <- sapply(1:5, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 
+                                                        mc.cores=10))
+print(times_bayesian)
+mean(times_directional, trim=0.1)
+```
+
+### Quality scoring
+```{r, warning=FALSE}
+TimeQuality <- function(holder) {
+  t0 <- proc.time()
+  ScorePipelineCells(holder)
+  return((proc.time() - t0)[3])
+}
+
+times_quality <- sapply(1:10, function(i) TimeQuality(holder))
+print(times_quality)
+mean(times_quality, trim=0.1)
+```
+
+
+## Session information
+```{r session-info, echo=FALSE}
+```
