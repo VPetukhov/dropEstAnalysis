@@ -75,7 +75,7 @@ mean(times_directional, trim=0.1)
 times_bayesian <- sapply(1:5, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 
                                                         mc.cores=10))
 print(times_bayesian)
-mean(times_directional, trim=0.1)
+mean(times_bayesian, trim=0.1)
 ```
 
 ### Quality scoring
