@@ -1,7 +1,7 @@
 ---
-title: "Runtimes for the inDrop ESCs dataset"
+title: "Runtimes for the inDrop BMCs dataset"
 author: "Viktor Petukhov"
-date: 2018-03-16
+date: 2018-01-23
 output: html_document
 ---
 
@@ -33,7 +33,9 @@ theme_set(theme_base)
 set.seed(42)
 kOutputFolder <- '../../output/'
 kDataPath <- '../../data/'
-kEstDataPath <- paste0(kDataPath, 'dropest/SRR1784310/runtimes/est_2018_03_15_real/')
+kEstDataPath <- paste0(kDataPath, 'dropest/SCG71/runtimes/est_2018_03_15_real/')
+
+tag_stats <- readRDS(paste0(kEstDataPath, '../tag_2018_03_15/SCG_71_C2_S2_R1_001.fastq.gz.tagged.rds'))
 ```
 
 ```{r}
@@ -62,7 +64,7 @@ mean(times_bayesian, trim=0.1)
 
 ### Quality scoring
 ```{r, warning=FALSE}
-times_quality <- sapply(1:10, function(i) TimeQuality(holder))
+times_quality <- sapply(1:10, function(i) TimeQuality(holder, mit.chromosome.name='chrM', tags.data=tag_stats))
 print(times_quality)
 mean(times_quality, trim=0.1)
 ```
