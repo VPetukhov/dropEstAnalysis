@@ -47,9 +47,6 @@ kTablesPath <- '../../output/tables/'
 ```
 
 ```{r}
-```
-
-```{r}
 # holders <- mclapply(kDataFiles, function(paths) mclapply(paths, readRDS, mc.cores=4),
 #                     mc.cores=2)
 # 
