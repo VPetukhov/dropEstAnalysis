@@ -313,9 +313,9 @@ div.section {
 </div>
 
 
-<p><strong>Source file:</strong> notebooks/low_quality_cells/merge_targets_mixture.Rmd</p>
-<p><strong>Last updated:</strong> 2018-03-13</p>
-<p><strong>Code version:</strong> ba9f32c</p>
+<p><strong>Source file:</strong> notebooks/cell_barcode_correction/merge_targets_mixture.Rmd</p>
+<p><strong>Last updated:</strong> 2018-03-19</p>
+<p><strong>Code version:</strong> ee0ca8e</p>
 <pre class="r"><code>library(ggplot2)
 library(ggrastr)
 library(dplyr)
@@ -362,7 +362,7 @@ validation_data &lt;- readRDS(paste0(kDataPath, &#39;human_mouse_mixture_validat
 <pre class="r"><code>umis_per_cb &lt;- Matrix::colSums(validation_data$`10x`$cms$unmerged) %&gt;% sort(decreasing=T)
 real_cbs &lt;- names(umis_per_cb)[1:6000]
 PlotCellsNumberLine(umis_per_cb[1:10000])</code></pre>
-<p><img src="figure/merge_targets_mixture.Rmd/unnamed-chunk-5-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p><img src="figure/merge_targets_mixture.Rmd/unnamed-chunk-4-1.png" width="576" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>GeneSpeciesFromMixture &lt;- function(cm, org1.marker, org1.name, org2.name) {
   res &lt;- ifelse(substr(rownames(cm), 1, nchar(org1.marker)) == org1.marker, org1.name, org2.name)
   return(as.factor(res))
@@ -438,7 +438,7 @@ comparison_10x</code></pre>
   sort(decreasing=T)
 real_cbs &lt;- names(umis_per_cb)[1:1000]
 PlotCellsNumberLine(umis_per_cb[1:5000])</code></pre>
-<p><img src="figure/merge_targets_mixture.Rmd/unnamed-chunk-9-1.png" width="576" style="display: block; margin: auto;" /></p>
+<p><img src="figure/merge_targets_mixture.Rmd/unnamed-chunk-8-1.png" width="576" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>gene_species &lt;- GeneSpeciesFromMixture(validation_data$drop_seq$cms_raw$unmerged, 
                                        &#39;HUMAN&#39;, &#39;Human&#39;, &#39;Mouse&#39;)
 cell_species &lt;- CellSpeciesFromMixture(gene_species, 
@@ -531,7 +531,7 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-03-13</td>
+<td align="left">2018-03-19</td>
 </tr>
 </tbody>
 </table>
@@ -608,15 +608,15 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <td>12</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-03-13</td>
+<td align="left">2018-03-17</td>
 <td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="even">
 <td>13</td>
 <td align="left">dropestr</td>
-<td align="left">0.7.6</td>
-<td align="left">2018-03-13</td>
-<td align="left">local (<span class="citation">@0.7.6</span>)</td>
+<td align="left">0.7.7</td>
+<td align="left">2018-03-17</td>
+<td align="left">local (<span class="citation">@0.7.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>14</td>
@@ -747,9 +747,9 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <tr class="odd">
 <td>37</td>
 <td align="left">Rcpp</td>
-<td align="left">0.12.15</td>
-<td align="left">2018-01-20</td>
-<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+<td align="left">0.12.16</td>
+<td align="left">2018-03-13</td>
+<td align="left">cran (<span class="citation">@0.12.16</span>)</td>
 </tr>
 <tr class="even">
 <td>38</td>
