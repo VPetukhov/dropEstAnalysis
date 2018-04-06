@@ -1,5 +1,5 @@
 ---
-title: "Adjastment of UMI collisions on inDrop Bone Marrow dataset"
+title: "Adjastment of UMI collisions on inDrop"
 author: "Viktor Petukhov"
 date: 2018-02-11
 output: html_document
@@ -44,11 +44,12 @@ holder <- readRDS(paste0(kDataPath, 'SCG71.rds'))
 ```
 
 ```{r}
-umi_distribution <- GetUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi)
+umi_distribution <- GetUmisDistribution(holder$reads_per_umi_per_cell)
 umi_probs <- umi_distribution / sum(umi_distribution)
 max_umi_per_gene <- 4^nchar(names(umi_probs)[1])
 ```
 
+Distribution of UMIs:  
 ```{r}
 PlotUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi, bins=70)
 ```

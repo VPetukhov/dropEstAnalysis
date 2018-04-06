@@ -174,6 +174,7 @@ gg_repels <- lapply(1:3, function(i)
 gg_filt <- Reduce(`+`, gg_repels, init=gg)
 ```
 
+### t-SNE with noise
 ```{r, message=FALSE, fig.width=4.28, fig.height=6}
 plot_clusters <- setdiff(names(clusters_annotated), c(filtered_cbs, rescued_cbs))
 gg <- PlotFiltrationResults(r_rescued, clusters_annotated[plot_clusters],
@@ -196,6 +197,7 @@ gg_tsne_noise <- gg + theme_pdf(legend.pos=c(1, 1), show.ticks=F)
 gg_tsne_noise
 ```
 
+### Error sources
 ```{r}
 bc_data <- PrepareLqCellsDataPipeline(holder, mit.chromosome.name='MT', scale=F)
 ```
@@ -243,10 +245,22 @@ gg_distributions <- plot_grid(gg1, gg2, gg3, nrow=3, align='v', labels=c('B', 'C
                               label_x=0.025)
 ```
 
-```{r, fig.width=7.5, fig.height=6}
-plot_grid(gg_tsne_noise, gg_distributions, ncol=2, rel_widths=c(1, 0.75), 
+```{r, fig.width=3, fig.height=6}
+gg_distributions
+```
+
+### Final figure
+```{r}
+gg_noise_fig <- plot_grid(gg_tsne_noise, gg_distributions, ncol=2, rel_widths=c(1, 0.75), 
           labels=c('A', NULL))
-ggsave(paste0(kPlotsFolder, 'fig_pbmc8k_lq_cells.pdf'), width=7.5, height=6)
+```
+
+```{r, fig.width=7.5, fig.height=6}
+gg_noise_fig
+```
+
+```{r, fig.width=7.5, fig.height=6}
+ggsave(paste0(kPlotsFolder, 'fig_pbmc8k_lq_cells.pdf'), gg_noise_fig, width=7.5, height=6)
 ```
 
 ## Comparison with 10x
@@ -367,6 +381,7 @@ gg_10x <- plot_grid(gg_left, gg_right, labels=c('', 'D'), ncol=2) %>%
   plot_grid(gg_bottom, nrow=2, rel_heights=c(1, 0.21), align='v')
 ```
 
+### Supplementary figure
 ```{r, fig.width=7.5, fig.height=6}
 gg_10x
 ```
@@ -376,7 +391,7 @@ ggsave(paste0(kPlotsFolder, 'supp_comparison_with_10x.pdf'), gg_10x, width=7.5, 
 ```
 
 ### Initial labels and scores
-```{r, messages=FALSE}
+```{r, messages=FALSE, warning=FALSE}
 cbs_full <- names(scores)[1:20000]
 r_cm_full <- holder$cm_raw[, cbs_full]
 r_full <- GetPagoda(r_cm_full, n.cores=30)

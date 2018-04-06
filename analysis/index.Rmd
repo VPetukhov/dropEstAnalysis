@@ -16,17 +16,29 @@ output:
     2. [10x 1k 1:1 Mixture](human_mouse__hm_10x_1k.html)
     3. [10x 6k 1:1 Mixture](human_mouse__hm_10x_6k.html)
 3. Filtration of low-quality cells
+    1. [Robustness of classifier to noise](low_quality_cells__label_noise_robustness.html)
+    2. [Validation of inDrop Mouse BMCs](low_quality_cells__validation_bmc.html)
+    3. [Validation of inDrop Mouse PCs](low_quality_cells__validation_mouse_pcs.html)
+    4. [Validation of 10x Human BMMCs](low_quality_cells__validation_bmmc1.html)
+    5. [Validation of 10x 8k PBMCs](low_quality_cells__validation_pbmc8k.html)
 4. UMI corrections:
     1. [Correction effect on 10x BMMCs dataset](umi_correction__umi_bmmc1.html)
     2. [UMI trimming on 10x AML035 Post-transplant dataset](umi_correction__trim_aml_035_post.html)
 5. Cell barcode merge validation
+    1. [Merge of human/mouse mixtures](cell_barcode_correction__merge_targets_mixture.html)
+    2. [Number of molecules per cell](cell_barcode_correction__size_gain.html)
+    
+6. Runtimes
+  1. [inDrop ESCs](runtimes__indrop_esc.html)
+  2. [inDrop BMCs](runtimes__indrop_bmc.html)
 
 ## Content by figures
+Some figures were created with Python code and they are not published here. Please, write personally to request the code.
 
 ### Main figures
 1. [Figure 1. Skewed distribution of UMIs leads to increased number of UMI collisions.]
-    * A. Skewness of UMI distribution
-    * B. Uneven nucleotide frequencies
+    * ~~A. Skewness of UMI distribution~~
+    * ~~B. Uneven nucleotide frequencies~~
     * [C. Estimated number of collisions](umi_correction__trimmed_collisions.html#main_figure)
 2. [Figure 2. Comparison of UMI collision and sequencing error correction methods.](umi_correction__trim_aml_035_post.html#complete_figure)
     * [A. Collisions on trimmed UMIs](umi_correction__trim_aml_035_post.html#figure_a)
@@ -36,25 +48,55 @@ output:
     * [E. Magnitude of correction](umi_correction__umi_bmmc1.html#subset_for_main_figure)
 3. Figure 3. Correcting for Cellular Barcode errors.
     * [A. Origin of background cells](human_mouse__hm_drop_seq.html#figure)
-    * [B. Number of equidistant adjacent CBs]
+    * ~~B. Number of equidistant adjacent CBs~~
     * [C. Increase in #molecules per cell](cell_barcode_correction__size_gain.html#figure)
-4. 
+4. [Figure 4. Selection of the optimal size threshold for 10x BMMCs dataset.](low_quality_cells__validation_bmmc1.html#final_figure)
+    * [A. The distribution of molecular mass across CBs of different sizes](low_quality_cells__validation_bmmc1.html#plots)
+    * [B. Gene expression profiles of cluster-specific genes](low_quality_cells__validation_bmmc1.html#plots)
+    * [C. Gene expression profiles of cluster-specific genes](low_quality_cells__validation_bmmc1.html#plots)
+    * [D. t-SNE visualization](low_quality_cells__validation_bmmc1.html#rescued_cells)
+5. [Figure 5. Filtration of low-quality cells for the 10x 8k PBMCs dataset.](low_quality_cells__validation_pbmc8k.html#final_figure)
+    * [A. t-SNE visualization](low_quality_cells__validation_pbmc8k.html#t_sne_with_noise)
+    * [B. Cells with high mitochondrial fraction](low_quality_cells__validation_pbmc8k.html#error_sources)
+    * [C. Cells with high intergenic fraction](low_quality_cells__validation_pbmc8k.html#error_sources)
+    * [D. Cells with low #UMIs per gene](low_quality_cells__validation_pbmc8k.html#error_sources)
+6. Figure 6. Filtration of low-quality cells for the inDrop mouse BMCs dataset.
+    * [A. Gene expression profiles of cluster-specific genes]
+    * [B. Gene expression profiles of cluster-specific genes]
+    * [C. t-SNE visualization]
 
 ### Supplementary figures
-1. -
-2. [Supp. Fig. Frozen BMMCs filtration](low_quality_cells__validation_bmmc1.html#final_figure)
-5. [S5. Impact of non-uniform distribution on UMI collisions](umi_correction__trimmed_collisions.html#complete_figure)
-6. [S6. Collisions on trimmed data](umi_correction__trim_aml_035_post.html#supp._figure_collisions)
+1. ~~Figure S1. Skewness of UMI distributions.~~
+2. Figure S2. Simulation of UMI collision frequencies.
+3. Figure S3. Probability of observing adjacent UMIs in small genes.
+4. ~~Figure S4. Recognition of UMI errors by base calling quality.~~
+5. [Figure S5. Impact of non-uniform distribution on UMI collisions](umi_correction__trimmed_collisions.html#complete_figure)
+6. [Figure S6. UMI collisions on trimmed data](umi_correction__trim_aml_035_post.html#supp._figure_collisions)
 7. [S7. Magnitude of UMI correction.](umi_correction__umi_bmmc1.html#normalized_expression)
 8. [S8. Comparison of UMI correction algorithms on trimmed data](umi_correction__trim_aml_035_post.html#supp._figure_corrections)
-9. [S9. 10x Human/mouse mixture](human_mouse__hm_10x_6k.html#figure)
-13. [S13. Annotation of inDrop BMCs](annotation__annotation_bmc.html#expression_plots)
+9. Figure S9. Initial labeling of high-quality cells based on cell size distributions.
+10. [S10. Human and mouse cell mixture dataset by 10x](human_mouse__hm_10x_6k.html#figure)
+11. Figure S11. Robustness of different classifiers to training errors.
+12. Figure S12. Annotation of the 10x Frozen BMMCs dataset.
+13. Figure S13. Annotation of the 10x 8k PBMCs dataset.
+14. [Figure S14. Annotation of the inDrop BMCs dataset.](annotation__annotation_bmc.html#expression_plots)
+15. [Figure S15. Classification of low- and high-quality cells on 10x data.](low_quality_cells__validation_pbmc8k.html#supplementary_figure)
+16. [Figure S16. Comparison of the initial label assignments with the cell quality score predicted by the algorithm.](low_quality_cells__validation_pbmc8k.html#initial_labels_and_scores)
+17. Figure S17. Classification of low- and high-quality cells on inDrop mouse pancreatic cells data.
 
-## Used datasets
-* 10x
-    * BMMC1
-    * 8k PBMCs
-* InDrop
-    * SCG79
-* Drop-seq
-    * thousand
+## Content by tables
+### Main tables
+1. Table 1. Analysis of merge targets on human/mouse mixture datasets.
+2. Table 2. 5-fold CV results (mean ± sd).
+
+### Supplementary tables
+1. Table S1. Gene markers, used for annotation of the 10x Frozen BMMCs.
+2. Table S2. Gene markers, used for annotation of the 10x 8k PBMCs dataset.
+3. Table S3. Gene markers, used for annotation of the inDrop mouse BMCs dataset.
+4. Table S4. Fraction of rescued cells for the 10x Frozen BMMCs dataset.
+5. Table S5. Fraction of rescued cells for the 10x 8k PMMCs dataset.
+6. Table S6. Fraction of rescued cells for the inDrop mouse PCs dataset.
+7. Table S7. Fraction of rescued cells for the inDrop mouse BMCs dataset.
+8. Table S8. Runtimes of dropEst pipeline.
+    * inDrop Mouse BMCs
+    * inDrop Mouse ESCs
