@@ -5,6 +5,8 @@ date: 2018-01-23
 output: html_document
 ---
 
+**Source file\:** notebooks/low_quality_cells/validation_pbmc8k.Rmd
+
 ```{r read-chunk, include=FALSE, cache=FALSE}
 knitr::read_chunk("../../analysis/chunks.R")
 ```
@@ -307,13 +309,15 @@ seurat_clusters <- tested_clusts
 seurat_cm <- r_cm_rescued[, names(seurat_clusters)]
 seurat_cm <- seurat_cm[Matrix::rowSums(seurat_cm) > 200, ]
 
-srt <- CreateSeuratObject(raw.data = seurat_cm, project = "pbmc8k", display.progress=F)
-srt <- NormalizeData(object = srt, normalization.method = "LogNormalize", 
-                     scale.factor = 10000, display.progress=F)
-srt <- FindVariableGenes(object = srt, mean.function = ExpMean, 
-                         dispersion.function = LogVMR, x.low.cutoff = 0.0125, 
-                         x.high.cutoff = 3, y.cutoff = 1, do.plot=F, display.progress=F)
-srt <- ScaleData(object = srt, vars.to.regress = "nUMI", display.progress=F)
+# srt <- CreateSeuratObject(raw.data = seurat_cm, project = "pbmc8k", display.progress=F)
+# srt <- NormalizeData(object = srt, normalization.method = "LogNormalize", 
+#                      scale.factor = 10000, display.progress=F)
+# srt <- FindVariableGenes(object = srt, mean.function = ExpMean, 
+#                          dispersion.function = LogVMR, x.low.cutoff = 0.0125, 
+#                          x.high.cutoff = 3, y.cutoff = 1, do.plot=F, display.progress=F)
+# srt <- ScaleData(object = srt, vars.to.regress = "nUMI", display.progress=F)
+# save(srt, file="../../output/pbmc8k_srt.Rda")
+load("../../output/pbmc8k_srt.Rda")
 ```
 
 ```{r}
@@ -347,25 +351,25 @@ raster_width <-  3
 raster_height <- 3
 raster_dpi <- 100
 
-plot_df <- ExpressionMatrixToDataFrame(r_rescued$counts[names(tested_clusts), de_genes], 
-                                       umis_per_cb_subset, tested_clusts, 
+plot_df <- ExpressionMatrixToDataFrame(r_rescued$counts[names(tested_clusts), de_genes],
+                                       umis_per_cb_subset, tested_clusts,
                                        filtration.type=separation)
 plot_df <- plot_df %>% filter(UmisPerCb < 3.4)
 plot_dfs <- split(plot_df, plot_df$FiltrationType)
 
-ggs <- lapply(plot_dfs, HeatmapAnnotGG, umi.per.cell.limits=range(plot_df$UmisPerCb), 
+ggs <- lapply(plot_dfs, HeatmapAnnotGG, umi.per.cell.limits=range(plot_df$UmisPerCb),
               raster.width=raster_width, raster.height=raster_height, raster.dpi=raster_dpi)
 
-legend_guides <- list(HeatmapLegendGuide('Expression'), 
-                      HeatmapLegendGuide('Cell type', guide=guide_legend, ncol=3), 
+legend_guides <- list(HeatmapLegendGuide('Expression'),
+                      HeatmapLegendGuide('Cell type', guide=guide_legend, ncol=3),
                       HeatmapLegendGuide('log10(#molecules)'))
 gg_legends <- mapply(`+`, ggs$real, legend_guides, SIMPLIFY=F) %>%
   lapply(`+`, theme(legend.margin=margin(l=4, r=4, unit='pt'))) %>% lapply(get_legend)
 
 ggs$real$heatmap <- ggs$real$heatmap + rremove('xlab') + ylab('Cells')
 ggs$rescued$heatmap <- ggs$rescued$heatmap + labs(x = 'Genes', y = 'Cells')
-ggs_annot <- lapply(ggs, function(gg) 
-  plot_grid(plotlist=lapply(gg, `+`, theme(legend.position="none", plot.margin=margin())), 
+ggs_annot <- lapply(ggs, function(gg)
+  plot_grid(plotlist=lapply(gg, `+`, theme(legend.position="none", plot.margin=margin())),
             nrow=1, rel_widths=c(1.5, 0.1, 0.1), align='h'))
 
 gg_legends_plot <- plot_grid(plotlist=gg_legends, nrow=3, align='v')
@@ -373,11 +377,11 @@ gg_legends_plot <- plot_grid(plotlist=gg_legends, nrow=3, align='v')
 
 ```{r, fig.width=7.5, fig.height=6}
 gg_left <- plot_grid(ggs_annot$real, ggs_annot$rescued, nrow=2, labels=c('B', 'C'))
-gg_right <- gg_tsne + theme(plot.margin=margin(l=0.1, unit='in'), axis.text=element_blank(), 
+gg_right <- gg_tsne + theme(plot.margin=margin(l=0.1, unit='in'), axis.text=element_blank(),
                             axis.ticks=element_blank())
 gg_bottom <- plot_grid(plotlist=gg_legends[c(1, 3, 2)], ncol=3, rel_widths=c(1, 1, 2.6))
 
-gg_10x <- plot_grid(gg_left, gg_right, labels=c('', 'D'), ncol=2) %>% 
+gg_10x <- plot_grid(gg_left, gg_right, labels=c('', 'D'), ncol=2) %>%
   plot_grid(gg_bottom, nrow=2, rel_heights=c(1, 0.21), align='v')
 ```
 
