@@ -31,8 +31,15 @@ BuildPanel4 <- function(gg.plots, ylabel, xlabel, return.raw=F, show.ticks=T,
 }
 
 #' @export
-HeatmapAnnotGG <- function(df, umi.per.cell.limits=c(2, 4.5), raster.width=5, raster.height=5, annot.width=0.05,
+HeatmapAnnotGG <- function(df, umi.per.cell.limits=c(2, 4.5), raster=TRUE, raster.width=5, raster.height=5, annot.width=0.05,
                            raster.dpi=300, palette=colorRampPalette(rev(RColorBrewer::brewer.pal(n = 7, name = "RdYlBu")))(100)[1:80]) {
+  if (raster){
+    geom_tile <- function(..., width) ggrastr::geom_tile_rast(..., width=raster.width * width,
+                                                              height=raster.height, dpi=raster.dpi)
+  } else {
+    geom_tile <- function(..., width) ggplot2::geom_tile(...)
+  }
+
   gg <- ggplot2::ggplot(df, ggplot2::aes(y=Barcode)) +
     ggrastr::theme_pdf() +
     ggpubr::rremove('xy.text') + ggpubr::rremove('ticks')
@@ -46,21 +53,14 @@ HeatmapAnnotGG <- function(df, umi.per.cell.limits=c(2, 4.5), raster.width=5, ra
   }
 
   ggs <- list(
-    heatmap = gg +
-      ggrastr::geom_tile_rast(ggplot2::aes(x=Gene, fill=Expression),
-                              width=raster.width * heatmap.width,
-                              height=raster.height, dpi=raster.dpi) +
+    heatmap = gg + geom_tile(ggplot2::aes(x=Gene, fill=Expression), width=heatmap.width) +
       ggplot2::scale_fill_gradientn(colours=palette, values=),
-    clust = gg + ggrastr::geom_tile_rast(ggplot2::aes(x=1, fill=Cluster),
-                                         width=raster.width * annot.width,
-                                         height=raster.height, dpi=raster.dpi) +
+    clust = gg + geom_tile(ggplot2::aes(x=1, fill=Cluster), width=annot.width) +
       ggplot2::scale_x_continuous(expand = c(0, 0)) +
       ggplot2::scale_fill_discrete(drop=F) +
       ggplot2::theme(plot.margin=ggplot2::margin()) + ggpubr::rremove('xylab') +
       annotationLabel("Cell type"),
-    umis = gg + ggrastr::geom_tile_rast(ggplot2::aes(x=1, fill=UmisPerCb),
-                                        width=raster.width * annot.width,
-                                        height=raster.height, dpi=raster.dpi) +
+    umis = gg + geom_tile(ggplot2::aes(x=1, fill=UmisPerCb), width=annot.width) +
       ggplot2::scale_x_continuous(expand = c(0, 0)) +
       ggplot2::scale_fill_distiller(palette='OrRd', limits=umi.per.cell.limits, direction=1) +
       ggplot2::theme(plot.margin=ggplot2::margin()) + ggpubr::rremove('xylab') +

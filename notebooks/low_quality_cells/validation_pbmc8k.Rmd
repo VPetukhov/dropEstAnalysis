@@ -5,8 +5,6 @@ date: 2018-01-23
 output: html_document
 ---
 
-**Source file\:** notebooks/low_quality_cells/validation_pbmc8k.Rmd
-
 ```{r read-chunk, include=FALSE, cache=FALSE}
 knitr::read_chunk("../../analysis/chunks.R")
 ```
@@ -29,8 +27,6 @@ library(ggrastr)
 library(ggrepel)
 library(dplyr)
 library(parallel)
-library(reshape2)
-library(RColorBrewer)
 library(Seurat)
 library(dropestr)
 library(dropEstAnalysis)
@@ -309,15 +305,15 @@ seurat_clusters <- tested_clusts
 seurat_cm <- r_cm_rescued[, names(seurat_clusters)]
 seurat_cm <- seurat_cm[Matrix::rowSums(seurat_cm) > 200, ]
 
-# srt <- CreateSeuratObject(raw.data = seurat_cm, project = "pbmc8k", display.progress=F)
-# srt <- NormalizeData(object = srt, normalization.method = "LogNormalize", 
-#                      scale.factor = 10000, display.progress=F)
-# srt <- FindVariableGenes(object = srt, mean.function = ExpMean, 
-#                          dispersion.function = LogVMR, x.low.cutoff = 0.0125, 
-#                          x.high.cutoff = 3, y.cutoff = 1, do.plot=F, display.progress=F)
-# srt <- ScaleData(object = srt, vars.to.regress = "nUMI", display.progress=F)
-# save(srt, file="../../output/pbmc8k_srt.Rda")
-load("../../output/pbmc8k_srt.Rda")
+srt <- CreateSeuratObject(raw.data = seurat_cm, project = "pbmc8k", display.progress=F)
+srt <- NormalizeData(object = srt, normalization.method = "LogNormalize",
+                     scale.factor = 10000, display.progress=F)
+srt <- FindVariableGenes(object = srt, mean.function = ExpMean,
+                         dispersion.function = LogVMR, x.low.cutoff = 0.0125,
+                         x.high.cutoff = 3, y.cutoff = 1, do.plot=F, display.progress=F)
+srt <- ScaleData(object = srt, vars.to.regress = "nUMI", display.progress=F)
+save(srt, file="../../output/pbmc8k_srt.Rda")
+# load("../../output/pbmc8k_srt.Rda")
 ```
 
 ```{r}
@@ -396,9 +392,12 @@ ggsave(paste0(kPlotsFolder, 'supp_comparison_with_10x.pdf'), gg_10x, width=7.5, 
 
 ### Initial labels and scores
 ```{r, messages=FALSE, warning=FALSE}
+kEmbeddingType <- 'tSNE'
+# kEmbeddingType <- 'largeVis'
+
 cbs_full <- names(scores)[1:20000]
 r_cm_full <- holder$cm_raw[, cbs_full]
-r_full <- GetPagoda(r_cm_full, n.cores=30)
+r_full <- GetPagoda(r_cm_full, n.cores=1, embeding.type=kEmbeddingType)
 ```
 
 ```{r}
@@ -406,13 +405,13 @@ rast_width <- 7.5 / 2
 rast_height <- 5
 rast_dpi <- 150
 initial_labels <- dropestr:::EstimateCellsQuality(Matrix::colSums(r_cm_full))
-gg1 <- PlotPagodaEmbeding(r_full, clusters=initial_labels, mark.clusters=F, show.legend=T, alpha=0.6, 
+gg1 <- PlotPagodaEmbeding(r_full, clusters=initial_labels, mark.clusters=F, show.legend=T, alpha=0.6, embeding.type=kEmbeddingType,
                           size=0.5, raster=T, raster.width=rast_width, raster.height=rast_height, raster.dpi=rast_dpi) +
   scale_color_manual(values=scales::hue_pal(l=55)(3)[c(2, 1, 3)], name='Initial label') +
   guides(color=guide_legend(override.aes=list(size=1.2))) +
   theme_pdf(legend.pos=c(1, 1), show.ticks=F)
 
-gg2 <- PlotPagodaEmbeding(r_full, colors=scores, mark.clusters=F, show.legend=T, alpha=0.6, 
+gg2 <- PlotPagodaEmbeding(r_full, colors=scores, mark.clusters=F, show.legend=T, alpha=0.6, embeding.type=kEmbeddingType, 
                           size=0.5, raster=T, raster.width=rast_width, raster.height=rast_height, raster.dpi=rast_dpi) +
   scale_color_distiller(palette='RdYlBu', direction=1, limits=c(0, 1), name='Score') +
   theme_pdf(legend.pos=c(1, 1), show.ticks=F)
