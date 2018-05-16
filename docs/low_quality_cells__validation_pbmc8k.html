@@ -314,8 +314,8 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/low_quality_cells/validation_pbmc8k.Rmd</p>
-<p><strong>Last updated:</strong> 2018-03-13</p>
-<p><strong>Code version:</strong> 6992199</p>
+<p><strong>Last updated:</strong> 2018-05-16</p>
+<p><strong>Code version:</strong> 71117d5</p>
 <pre class="r"><code>library(cowplot)
 library(ggplot2)
 library(ggsci)
@@ -324,8 +324,6 @@ library(ggrastr)
 library(ggrepel)
 library(dplyr)
 library(parallel)
-library(reshape2)
-library(RColorBrewer)
 library(Seurat)
 library(dropestr)
 library(dropEstAnalysis)
@@ -438,6 +436,8 @@ gg_repels &lt;- lapply(1:3, function(i)
                    segment.color=labels_df$Color[i], fontface=&#39;bold&#39;))
 
 gg_filt &lt;- Reduce(`+`, gg_repels, init=gg)</code></pre>
+<div id="t-sne-with-noise" class="section level3">
+<h3>t-SNE with noise</h3>
 <pre class="r"><code>plot_clusters &lt;- setdiff(names(clusters_annotated), c(filtered_cbs, rescued_cbs))
 gg &lt;- PlotFiltrationResults(r_rescued, clusters_annotated[plot_clusters],
                             filtered.cbs=filtered_cbs, rescued.clusters=rescued_clusters, 
@@ -458,6 +458,9 @@ gg &lt;- Reduce(`+`, gg_repels, init=gg)
 gg_tsne_noise &lt;- gg + theme_pdf(legend.pos=c(1, 1), show.ticks=F)
 gg_tsne_noise</code></pre>
 <p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-16-1.png" width="410.88" style="display: block; margin: auto;" /></p>
+</div>
+<div id="error-sources" class="section level3">
+<h3>Error sources</h3>
 <pre class="r"><code>bc_data &lt;- PrepareLqCellsDataPipeline(holder, mit.chromosome.name=&#39;MT&#39;, scale=F)</code></pre>
 <pre class="r"><code>real_cell_color &lt;- &#39;#0faf00&#39;
 
@@ -499,9 +502,17 @@ gg3 &lt;- gg(0.6, label_colors[&#39;Low expression&#39;]) +
 
 gg_distributions &lt;- plot_grid(gg1, gg2, gg3, nrow=3, align=&#39;v&#39;, labels=c(&#39;B&#39;, &#39;C&#39;, &#39;D&#39;), 
                               label_x=0.025)</code></pre>
-<pre class="r"><code>plot_grid(gg_tsne_noise, gg_distributions, ncol=2, rel_widths=c(1, 0.75), 
-          labels=c(&#39;A&#39;, NULL))
-ggsave(paste0(kPlotsFolder, &#39;fig_pbmc8k_lq_cells.pdf&#39;), width=7.5, height=6)</code></pre>
+<pre class="r"><code>gg_distributions</code></pre>
+<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-19-1.png" width="288" style="display: block; margin: auto;" /></p>
+</div>
+<div id="final-figure" class="section level3">
+<h3>Final figure</h3>
+<pre class="r"><code>gg_noise_fig &lt;- plot_grid(gg_tsne_noise, gg_distributions, ncol=2, rel_widths=c(1, 0.75), 
+          labels=c(&#39;A&#39;, NULL))</code></pre>
+<pre class="r"><code>gg_noise_fig</code></pre>
+<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-21-1.png" width="720" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggsave(paste0(kPlotsFolder, &#39;fig_pbmc8k_lq_cells.pdf&#39;), gg_noise_fig, width=7.5, height=6)</code></pre>
+</div>
 </div>
 <div id="comparison-with-10x" class="section level2">
 <h2>Comparison with 10x</h2>
@@ -523,14 +534,15 @@ gg_tsne &lt;- PlotFiltrationResults(r_rescued, clusters=clusters_annotated[plot_
   theme_pdf(legend.pos=c(0, 1), show.ticks=F)
 
 gg_tsne</code></pre>
-<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-21-1.png" width="410.88" style="display: block; margin: auto;" /></p>
+<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-24-1.png" width="410.88" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>tested_clusts &lt;- sort(c(clusters_annotated[intersect_cbs], rescued_clusters))
 tested_clusts &lt;- as.factor(tested_clusts) %&gt;% setNames(names(tested_clusts))
 large_rescued &lt;- which(table(clusters_annotated[rescued_cbs]) &gt;= 10) %&gt;% names()
 tested_clusts &lt;- tested_clusts[tested_clusts %in% large_rescued]</code></pre>
 <div id="number-of-rescued-cells-per-cluster" class="section level3">
 <h3>Number of rescued cells per cluster</h3>
-<pre class="r"><code>rescued_table &lt;- TableOfRescuedCells(clusters_annotated_resc, rescued_cbs)
+<pre class="r"><code>rescued_table &lt;- TableOfRescuedCells(clusters_annotated_resc[c(intersect_cbs, rescued_cbs)], 
+                                     rescued_cbs)
 write.csv(rescued_table, paste0(kOutputFolder, &quot;tables/rescued_cbc_pbmc8k.csv&quot;), row.names=F)
 rescued_table</code></pre>
 <div class="kable-table">
@@ -538,6 +550,7 @@ rescued_table</code></pre>
 <thead>
 <tr class="header">
 <th align="left">Cell type</th>
+<th align="right">Total num. of cells</th>
 <th align="right">Num. of rescued</th>
 <th align="right">Fraction of rescued, %</th>
 </tr>
@@ -545,53 +558,69 @@ rescued_table</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">B cells</td>
+<td align="right">1239</td>
 <td align="right">23</td>
-<td align="right">1.751714</td>
+<td align="right">1.86</td>
 </tr>
 <tr class="even">
 <td align="left">CD14+ Monocytes</td>
+<td align="right">1833</td>
 <td align="right">40</td>
-<td align="right">1.916627</td>
+<td align="right">2.18</td>
 </tr>
 <tr class="odd">
 <td align="left">CD4+ T cells</td>
+<td align="right">956</td>
 <td align="right">15</td>
-<td align="right">1.470588</td>
+<td align="right">1.57</td>
 </tr>
 <tr class="even">
 <td align="left">CD8 T cells</td>
+<td align="right">972</td>
 <td align="right">16</td>
-<td align="right">1.608040</td>
+<td align="right">1.65</td>
 </tr>
 <tr class="odd">
 <td align="left">Cytotoxic T cells</td>
+<td align="right">1153</td>
 <td align="right">21</td>
-<td align="right">1.527273</td>
+<td align="right">1.82</td>
 </tr>
 <tr class="even">
 <td align="left">Dendritic cells</td>
+<td align="right">224</td>
 <td align="right">4</td>
-<td align="right">1.694915</td>
+<td align="right">1.79</td>
 </tr>
 <tr class="odd">
+<td align="left">FCGR3A+ Monocytes</td>
+<td align="right">197</td>
+<td align="right">0</td>
+<td align="right">0.00</td>
+</tr>
+<tr class="even">
 <td align="left">Megakaryocytes</td>
+<td align="right">44</td>
 <td align="right">5</td>
-<td align="right">4.385965</td>
-</tr>
-<tr class="even">
-<td align="left">Naive T cells</td>
-<td align="right">42</td>
-<td align="right">2.595797</td>
+<td align="right">11.36</td>
 </tr>
 <tr class="odd">
-<td align="left">NK cells 1</td>
-<td align="right">4</td>
-<td align="right">1.166181</td>
+<td align="left">Naive T cells</td>
+<td align="right">1452</td>
+<td align="right">42</td>
+<td align="right">2.89</td>
 </tr>
 <tr class="even">
+<td align="left">NK cells 1</td>
+<td align="right">322</td>
+<td align="right">4</td>
+<td align="right">1.24</td>
+</tr>
+<tr class="odd">
 <td align="left">NK cells 2</td>
+<td align="right">69</td>
 <td align="right">2</td>
-<td align="right">2.666667</td>
+<td align="right">2.90</td>
 </tr>
 </tbody>
 </table>
@@ -604,12 +633,14 @@ seurat_cm &lt;- r_cm_rescued[, names(seurat_clusters)]
 seurat_cm &lt;- seurat_cm[Matrix::rowSums(seurat_cm) &gt; 200, ]
 
 srt &lt;- CreateSeuratObject(raw.data = seurat_cm, project = &quot;pbmc8k&quot;, display.progress=F)
-srt &lt;- NormalizeData(object = srt, normalization.method = &quot;LogNormalize&quot;, 
+srt &lt;- NormalizeData(object = srt, normalization.method = &quot;LogNormalize&quot;,
                      scale.factor = 10000, display.progress=F)
-srt &lt;- FindVariableGenes(object = srt, mean.function = ExpMean, 
-                         dispersion.function = LogVMR, x.low.cutoff = 0.0125, 
+srt &lt;- FindVariableGenes(object = srt, mean.function = ExpMean,
+                         dispersion.function = LogVMR, x.low.cutoff = 0.0125,
                          x.high.cutoff = 3, y.cutoff = 1, do.plot=F, display.progress=F)
-srt &lt;- ScaleData(object = srt, vars.to.regress = &quot;nUMI&quot;, display.progress=F)</code></pre>
+srt &lt;- ScaleData(object = srt, vars.to.regress = &quot;nUMI&quot;, display.progress=F)
+save(srt, file=&quot;../../output/pbmc8k_srt.Rda&quot;)
+# load(&quot;../../output/pbmc8k_srt.Rda&quot;)</code></pre>
 <pre class="r"><code>srt@ident &lt;- as.factor(seurat_clusters[colnames(srt@raw.data)])
 names(srt@ident) &lt;- colnames(srt@raw.data)
 compared_clusters &lt;- unique(srt@ident) %&gt;% as.character()
@@ -637,68 +668,74 @@ de_genes &lt;- overexpressed_genes</code></pre>
 raster_height &lt;- 3
 raster_dpi &lt;- 100
 
-plot_df &lt;- ExpressionMatrixToDataFrame(r_rescued$counts[names(tested_clusts), de_genes], 
-                                       umis_per_cb_subset, tested_clusts, 
+plot_df &lt;- ExpressionMatrixToDataFrame(r_rescued$counts[names(tested_clusts), de_genes],
+                                       umis_per_cb_subset, tested_clusts,
                                        filtration.type=separation)
 plot_df &lt;- plot_df %&gt;% filter(UmisPerCb &lt; 3.4)
 plot_dfs &lt;- split(plot_df, plot_df$FiltrationType)
 
-ggs &lt;- lapply(plot_dfs, HeatmapAnnotGG, umi.per.cell.limits=range(plot_df$UmisPerCb), 
+ggs &lt;- lapply(plot_dfs, HeatmapAnnotGG, umi.per.cell.limits=range(plot_df$UmisPerCb),
               raster.width=raster_width, raster.height=raster_height, raster.dpi=raster_dpi)
 
-legend_guides &lt;- list(HeatmapLegendGuide(&#39;Expression&#39;), 
-                      HeatmapLegendGuide(&#39;Cell type&#39;, guide=guide_legend, ncol=3), 
+legend_guides &lt;- list(HeatmapLegendGuide(&#39;Expression&#39;),
+                      HeatmapLegendGuide(&#39;Cell type&#39;, guide=guide_legend, ncol=3),
                       HeatmapLegendGuide(&#39;log10(#molecules)&#39;))
 gg_legends &lt;- mapply(`+`, ggs$real, legend_guides, SIMPLIFY=F) %&gt;%
   lapply(`+`, theme(legend.margin=margin(l=4, r=4, unit=&#39;pt&#39;))) %&gt;% lapply(get_legend)
 
 ggs$real$heatmap &lt;- ggs$real$heatmap + rremove(&#39;xlab&#39;) + ylab(&#39;Cells&#39;)
 ggs$rescued$heatmap &lt;- ggs$rescued$heatmap + labs(x = &#39;Genes&#39;, y = &#39;Cells&#39;)
-ggs_annot &lt;- lapply(ggs, function(gg) 
-  plot_grid(plotlist=lapply(gg, `+`, theme(legend.position=&quot;none&quot;, plot.margin=margin())), 
+ggs_annot &lt;- lapply(ggs, function(gg)
+  plot_grid(plotlist=lapply(gg, `+`, theme(legend.position=&quot;none&quot;, plot.margin=margin())),
             nrow=1, rel_widths=c(1.5, 0.1, 0.1), align=&#39;h&#39;))
 
 gg_legends_plot &lt;- plot_grid(plotlist=gg_legends, nrow=3, align=&#39;v&#39;)</code></pre>
 <pre class="r"><code>gg_left &lt;- plot_grid(ggs_annot$real, ggs_annot$rescued, nrow=2, labels=c(&#39;B&#39;, &#39;C&#39;))
-gg_right &lt;- gg_tsne + theme(plot.margin=margin(l=0.1, unit=&#39;in&#39;), axis.text=element_blank(), 
+gg_right &lt;- gg_tsne + theme(plot.margin=margin(l=0.1, unit=&#39;in&#39;), axis.text=element_blank(),
                             axis.ticks=element_blank())
 gg_bottom &lt;- plot_grid(plotlist=gg_legends[c(1, 3, 2)], ncol=3, rel_widths=c(1, 1, 2.6))
 
-gg_10x &lt;- plot_grid(gg_left, gg_right, labels=c(&#39;&#39;, &#39;D&#39;), ncol=2) %&gt;% 
+gg_10x &lt;- plot_grid(gg_left, gg_right, labels=c(&#39;&#39;, &#39;D&#39;), ncol=2) %&gt;%
   plot_grid(gg_bottom, nrow=2, rel_heights=c(1, 0.21), align=&#39;v&#39;)</code></pre>
+</div>
+<div id="supplementary-figure" class="section level3">
+<h3>Supplementary figure</h3>
 <pre class="r"><code>gg_10x</code></pre>
-<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-29-1.png" width="720" style="display: block; margin: auto;" /></p>
+<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-32-1.png" width="720" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>ggsave(paste0(kPlotsFolder, &#39;supp_comparison_with_10x.pdf&#39;), gg_10x, width=7.5, height=6)</code></pre>
 </div>
 <div id="initial-labels-and-scores" class="section level3">
 <h3>Initial labels and scores</h3>
-<pre class="r"><code>cbs_full &lt;- names(scores)[1:20000]
+<pre class="r"><code>kEmbeddingType &lt;- &#39;tSNE&#39;
+# kEmbeddingType &lt;- &#39;largeVis&#39;
+
+cbs_full &lt;- names(scores)[1:20000]
 r_cm_full &lt;- holder$cm_raw[, cbs_full]
-r_full &lt;- GetPagoda(r_cm_full, n.cores=30)</code></pre>
+r_full &lt;- GetPagoda(r_cm_full, n.cores=1, embeding.type=kEmbeddingType)</code></pre>
 <pre><code>20000 cells, 14590 genes; normalizing ... using plain model winsorizing ... log scale ... done.
 calculating variance fit ... using gam 2460 overdispersed genes ... 2460 persisting ... done.
 running PCA using 1000 OD genes .... done
-calculating distance ... pearson ...running tSNE using 30 cores:
+calculating distance ... pearson ...running tSNE using 1 cores:
  - point 10000 of 20000
  - point 20000 of 20000</code></pre>
 <pre class="r"><code>rast_width &lt;- 7.5 / 2
 rast_height &lt;- 5
 rast_dpi &lt;- 150
 initial_labels &lt;- dropestr:::EstimateCellsQuality(Matrix::colSums(r_cm_full))
-gg1 &lt;- PlotPagodaEmbeding(r_full, clusters=initial_labels, mark.clusters=F, show.legend=T, alpha=0.6, 
+gg1 &lt;- PlotPagodaEmbeding(r_full, clusters=initial_labels, mark.clusters=F, show.legend=T, alpha=0.6, embeding.type=kEmbeddingType,
                           size=0.5, raster=T, raster.width=rast_width, raster.height=rast_height, raster.dpi=rast_dpi) +
   scale_color_manual(values=scales::hue_pal(l=55)(3)[c(2, 1, 3)], name=&#39;Initial label&#39;) +
   guides(color=guide_legend(override.aes=list(size=1.2))) +
   theme_pdf(legend.pos=c(1, 1), show.ticks=F)
 
-gg2 &lt;- PlotPagodaEmbeding(r_full, colors=scores, mark.clusters=F, show.legend=T, alpha=0.6, 
+gg2 &lt;- PlotPagodaEmbeding(r_full, colors=scores, mark.clusters=F, show.legend=T, alpha=0.6, embeding.type=kEmbeddingType, 
                           size=0.5, raster=T, raster.width=rast_width, raster.height=rast_height, raster.dpi=rast_dpi) +
   scale_color_distiller(palette=&#39;RdYlBu&#39;, direction=1, limits=c(0, 1), name=&#39;Score&#39;) +
   theme_pdf(legend.pos=c(1, 1), show.ticks=F)
 
 gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#39;, label_x=c(0, -0.05))</code></pre>
 <pre class="r"><code>gg_fig</code></pre>
-<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-33-1.png" width="720" style="display: block; margin: auto;" /></p>
+<p><img src="figure/validation_pbmc8k.Rmd/unnamed-chunk-36-1.png" width="720" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>ggsave(paste0(kPlotsFolder, &#39;supp_pbmc8k_initial_labeling.pdf&#39;), gg_fig, width=7.5, height=5)</code></pre>
 </div>
 </div>
@@ -743,7 +780,7 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-03-13</td>
+<td align="left">2018-05-16</td>
 </tr>
 </tbody>
 </table>
@@ -994,9 +1031,9 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="even">
 <td>37</td>
 <td align="left">digest</td>
-<td align="left">0.6.14</td>
-<td align="left">2018-01-14</td>
-<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
 </tr>
 <tr class="odd">
 <td>38</td>
@@ -1030,15 +1067,15 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <td>42</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-03-13</td>
+<td align="left">2018-05-16</td>
 <td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="even">
 <td>43</td>
 <td align="left">dropestr</td>
-<td align="left">0.7.6</td>
-<td align="left">2018-03-13</td>
-<td align="left">local (<span class="citation">@0.7.6</span>)</td>
+<td align="left">0.7.7</td>
+<td align="left">2018-03-17</td>
+<td align="left">local (<span class="citation">@0.7.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>44</td>
@@ -1267,9 +1304,9 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="odd">
 <td>79</td>
 <td align="left">igraph</td>
-<td align="left">1.1.2</td>
-<td align="left">2017-07-21</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.2.1</td>
+<td align="left">2018-03-10</td>
+<td align="left">cran (<span class="citation">@1.2.1</span>)</td>
 </tr>
 <tr class="even">
 <td>80</td>
@@ -1316,9 +1353,9 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="even">
 <td>86</td>
 <td align="left">knitr</td>
-<td align="left">1.18</td>
-<td align="left">2017-12-27</td>
-<td align="left">cran (<span class="citation">@1.18</span>)</td>
+<td align="left">1.20</td>
+<td align="left">2018-02-20</td>
+<td align="left">cran (<span class="citation">@1.20</span>)</td>
 </tr>
 <tr class="odd">
 <td>87</td>
@@ -1492,7 +1529,7 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <td>112</td>
 <td align="left">pagoda2</td>
 <td align="left">0.0.0.9002</td>
-<td align="left">2018-02-27</td>
+<td align="left">2018-04-08</td>
 <td align="left">local (<a href="mailto:hms-dbmi/pagoda2@NA">hms-dbmi/pagoda2@NA</a>)</td>
 </tr>
 <tr class="even">
@@ -1617,9 +1654,9 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="odd">
 <td>131</td>
 <td align="left">Rcpp</td>
-<td align="left">0.12.15</td>
-<td align="left">2018-01-20</td>
-<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+<td align="left">0.12.16</td>
+<td align="left">2018-03-13</td>
+<td align="left">cran (<span class="citation">@0.12.16</span>)</td>
 </tr>
 <tr class="even">
 <td>132</td>
@@ -1666,8 +1703,8 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="even">
 <td>138</td>
 <td align="left">rmarkdown</td>
-<td align="left">1.8</td>
-<td align="left">2017-11-17</td>
+<td align="left">1.9</td>
+<td align="left">2018-03-01</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="odd">
@@ -1799,16 +1836,16 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="odd">
 <td>160</td>
 <td align="left">stringi</td>
-<td align="left">1.1.6</td>
-<td align="left">2017-11-17</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.1.7</td>
+<td align="left">2018-03-12</td>
+<td align="left">cran (<span class="citation">@1.1.7</span>)</td>
 </tr>
 <tr class="even">
 <td>161</td>
 <td align="left">stringr</td>
-<td align="left">1.2.0</td>
-<td align="left">2017-02-18</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.3.0</td>
+<td align="left">2018-02-19</td>
+<td align="left">cran (<span class="citation">@1.3.0</span>)</td>
 </tr>
 <tr class="odd">
 <td>162</td>
@@ -1890,9 +1927,9 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="even">
 <td>175</td>
 <td align="left">withr</td>
-<td align="left">2.1.1</td>
-<td align="left">2017-12-19</td>
-<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+<td align="left">2.1.2</td>
+<td align="left">2018-03-15</td>
+<td align="left">cran (<span class="citation">@2.1.2</span>)</td>
 </tr>
 <tr class="odd">
 <td>176</td>
@@ -1904,9 +1941,9 @@ gg_fig &lt;- plot_grid(gg1, gg2 + rremove(&quot;ylab&quot;), labels=&#39;AUTO&#3
 <tr class="even">
 <td>177</td>
 <td align="left">yaml</td>
-<td align="left">2.1.16</td>
-<td align="left">2017-12-12</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">2.1.18</td>
+<td align="left">2018-03-08</td>
+<td align="left">cran (<span class="citation">@2.1.18</span>)</td>
 </tr>
 </tbody>
 </table>
