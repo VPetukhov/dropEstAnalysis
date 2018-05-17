@@ -36,7 +36,7 @@ output:
 Some figures were created with Python code and they are not published here. Please, write personally to request the code.
 
 ### Main figures
-1. [Figure 1. Skewed distribution of UMIs leads to increased number of UMI collisions.]
+1. Figure 1. Skewed distribution of UMIs leads to increased number of UMI collisions.
     * ~~A. Skewness of UMI distribution~~
     * ~~B. Uneven nucleotide frequencies~~
     * [C. Estimated number of collisions](umi_correction__trimmed_collisions.html#main_figure)
@@ -56,33 +56,33 @@ Some figures were created with Python code and they are not published here. Plea
     * [C. Gene expression profiles of cluster-specific genes](low_quality_cells__validation_bmmc1.html#plots)
     * [D. t-SNE visualization](low_quality_cells__validation_bmmc1.html#rescued_cells)
 5. [Figure 5. Filtration of low-quality cells for the 10x 8k PBMCs dataset.](low_quality_cells__validation_pbmc8k.html#final_figure)
-    * [A. t-SNE visualization](low_quality_cells__validation_pbmc8k.html#t_sne_with_noise)
+    * [A. t-SNE visualization](low_quality_cells__validation_pbmc8k.html#t-sne_with_noise)
     * [B. Cells with high mitochondrial fraction](low_quality_cells__validation_pbmc8k.html#error_sources)
     * [C. Cells with high intergenic fraction](low_quality_cells__validation_pbmc8k.html#error_sources)
     * [D. Cells with low #UMIs per gene](low_quality_cells__validation_pbmc8k.html#error_sources)
-6. Figure 6. Filtration of low-quality cells for the inDrop mouse BMCs dataset.
-    * [A. Gene expression profiles of cluster-specific genes]
-    * [B. Gene expression profiles of cluster-specific genes]
-    * [C. t-SNE visualization]
+6. [Figure 6. Filtration of low-quality cells for the inDrop mouse BMCs dataset.](low_quality_cells__validation_bmc.html#figure)
+    * [A. Gene expression profiles of cluster-specific genes](low_quality_cells__validation_bmc.html#heatmaps)
+    * [B. Gene expression profiles of cluster-specific genes](low_quality_cells__validation_bmc.html#heatmaps)
+    * [C. t-SNE visualization](low_quality_cells__validation_bmc.html#rescued_cells)
 
 ### Supplementary figures
-1. ~~Figure S1. Skewness of UMI distributions.~~
-2. Figure S2. Simulation of UMI collision frequencies.
-3. Figure S3. Probability of observing adjacent UMIs in small genes.
-4. ~~Figure S4. Recognition of UMI errors by base calling quality.~~
-5. [Figure S5. Impact of non-uniform distribution on UMI collisions](umi_correction__trimmed_collisions.html#complete_figure)
-6. [Figure S6. UMI collisions on trimmed data](umi_correction__trim_aml_035_post.html#supp._figure_collisions)
+1. ~~S1. Skewness of UMI distributions.~~
+2. S2. Simulation of UMI collision frequencies.
+3. S3. Probability of observing adjacent UMIs in small genes.
+4. ~~S4. Recognition of UMI errors by base calling quality.~~
+5. [S5. Impact of non-uniform distribution on UMI collisions](umi_correction__trimmed_collisions.html#complete_figure)
+6. [S6. UMI collisions on trimmed data](umi_correction__trim_aml_035_post.html#supp_figure_collisions)
 7. [S7. Magnitude of UMI correction.](umi_correction__umi_bmmc1.html#normalized_expression)
-8. [S8. Comparison of UMI correction algorithms on trimmed data](umi_correction__trim_aml_035_post.html#supp._figure_corrections)
-9. Figure S9. Initial labeling of high-quality cells based on cell size distributions.
+8. [S8. Comparison of UMI correction algorithms on trimmed data](umi_correction__trim_aml_035_post.html#supp_figure_corrections)
+9. S9. Initial labeling of high-quality cells based on cell size distributions.
 10. [S10. Human and mouse cell mixture dataset by 10x](human_mouse__hm_10x_6k.html#figure)
-11. Figure S11. Robustness of different classifiers to training errors.
-12. Figure S12. Annotation of the 10x Frozen BMMCs dataset.
-13. Figure S13. Annotation of the 10x 8k PBMCs dataset.
-14. [Figure S14. Annotation of the inDrop BMCs dataset.](annotation__annotation_bmc.html#expression_plots)
-15. [Figure S15. Classification of low- and high-quality cells on 10x data.](low_quality_cells__validation_pbmc8k.html#supplementary_figure)
-16. [Figure S16. Comparison of the initial label assignments with the cell quality score predicted by the algorithm.](low_quality_cells__validation_pbmc8k.html#initial_labels_and_scores)
-17. Figure S17. Classification of low- and high-quality cells on inDrop mouse pancreatic cells data.
+11. S11. Robustness of different classifiers to training errors.
+12. S12. Annotation of the 10x Frozen BMMCs dataset.
+13. S13. Annotation of the 10x 8k PBMCs dataset.
+14. [S14. Annotation of the inDrop BMCs dataset.](annotation__annotation_bmc.html#expression_plots)
+15. [S15. Classification of low- and high-quality cells on 10x data.](low_quality_cells__validation_pbmc8k.html#supplementary_figure)
+16. [S16. Comparison of the initial label assignments with the cell quality score predicted by the algorithm.](low_quality_cells__validation_pbmc8k.html#initial_labels_and_scores)
+17. S17. Classification of low- and high-quality cells on inDrop mouse pancreatic cells data.
 
 ## Content by tables
 ### Main tables
