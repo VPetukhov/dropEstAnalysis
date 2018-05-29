@@ -13,7 +13,7 @@
 
 <meta name="date" content="2018-02-11" />
 
-<title>Adjastment of UMI collisions on inDrop Bone Marrow dataset</title>
+<title>Adjastment of UMI collisions on inDrop</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -306,7 +306,7 @@ div.section {
 
 
 
-<h1 class="title toc-ignore">Adjastment of UMI collisions on inDrop Bone Marrow dataset</h1>
+<h1 class="title toc-ignore">Adjastment of UMI collisions on inDrop</h1>
 <h4 class="author"><em>Viktor Petukhov</em></h4>
 <h4 class="date"><em>2018-02-11</em></h4>
 
@@ -314,8 +314,8 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/umi_correction/umi_collisions.Rmd</p>
-<p><strong>Last updated:</strong> 2018-02-18</p>
-<p><strong>Code version:</strong> 9b6cffe</p>
+<p><strong>Last updated:</strong> 2018-05-29</p>
+<p><strong>Code version:</strong> 62ae7c4</p>
 <pre class="r"><code>library(ggplot2)
 library(ggrastr)
 library(ggridges)
@@ -333,10 +333,11 @@ kDataPath &lt;- &#39;../../data/dropest/SCG71/est_01_15_umi_quality/&#39;</code>
 <div id="data-loading" class="section level2">
 <h2>Data loading</h2>
 <pre class="r"><code>holder &lt;- readRDS(paste0(kDataPath, &#39;SCG71.rds&#39;))</code></pre>
-<pre class="r"><code>umi_distribution &lt;- GetUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi)
+<pre class="r"><code>umi_distribution &lt;- GetUmisDistribution(holder$reads_per_umi_per_cell)
 umi_probs &lt;- umi_distribution / sum(umi_distribution)
 max_umi_per_gene &lt;- 4^nchar(names(umi_probs)[1])</code></pre>
-<pre class="r"><code>PlotUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi, bins=70)</code></pre>
+<p>Distribution of UMIs:</p>
+<pre class="r"><code>PlotUmisDistribution(holder$reads_per_umi_per_cell, bins=70)</code></pre>
 <p><img src="figure/umi_collisions.Rmd/unnamed-chunk-5-1.png" width="576" style="display: block; margin: auto;" /></p>
 </div>
 <div id="modeling-of-collisions" class="section level2">
@@ -378,7 +379,7 @@ invisible(gc())</code></pre>
 <div id="aberrant-mononucleotide-stretches" class="section level2">
 <h2>Aberrant mononucleotide stretches</h2>
 <pre class="r"><code>kDataPath &lt;- &#39;../../data/dropest/10x/aml035_post_transplant/est_10_20_umi_quality/&#39;
-reads_per_umi &lt;- readRDS(paste0(kDataPath, &#39;reads_per_umi_per_cell.rds&#39;))$reads_per_umi</code></pre>
+reads_per_umi &lt;- readRDS(paste0(kDataPath, &#39;reads_per_umi_per_cell.rds&#39;))</code></pre>
 <pre class="r"><code>umi_distribution &lt;- GetUmisDistribution(reads_per_umi, smooth=0)
 umi_distribution &lt;- umi_distribution[umi_distribution &gt; 0]
 
@@ -456,7 +457,7 @@ gg_stretches</code></pre>
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-02-18</td>
+<td align="left">2018-05-29</td>
 </tr>
 </tbody>
 </table>
@@ -532,9 +533,9 @@ gg_stretches</code></pre>
 <tr class="odd">
 <td>12</td>
 <td align="left">digest</td>
-<td align="left">0.6.14</td>
-<td align="left">2018-01-14</td>
-<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
 </tr>
 <tr class="even">
 <td>13</td>
@@ -547,15 +548,15 @@ gg_stretches</code></pre>
 <td>14</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-02-18</td>
+<td align="left">2018-05-16</td>
 <td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="even">
 <td>15</td>
 <td align="left">dropestr</td>
-<td align="left">0.7.5</td>
-<td align="left">2018-02-18</td>
-<td align="left">local (<span class="citation">@0.7.5</span>)</td>
+<td align="left">0.7.7</td>
+<td align="left">2018-03-17</td>
+<td align="left">local (<span class="citation">@0.7.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>16</td>
@@ -630,9 +631,9 @@ gg_stretches</code></pre>
 <tr class="odd">
 <td>29</td>
 <td align="left">knitr</td>
-<td align="left">1.18</td>
-<td align="left">2017-12-27</td>
-<td align="left">cran (<span class="citation">@1.18</span>)</td>
+<td align="left">1.20</td>
+<td align="left">2018-02-20</td>
+<td align="left">cran (<span class="citation">@1.20</span>)</td>
 </tr>
 <tr class="even">
 <td>30</td>
@@ -686,9 +687,9 @@ gg_stretches</code></pre>
 <tr class="odd">
 <td>39</td>
 <td align="left">Rcpp</td>
-<td align="left">0.12.15</td>
-<td align="left">2018-01-20</td>
-<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+<td align="left">0.12.17</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.12.17</span>)</td>
 </tr>
 <tr class="even">
 <td>40</td>
@@ -707,8 +708,8 @@ gg_stretches</code></pre>
 <tr class="even">
 <td>42</td>
 <td align="left">rmarkdown</td>
-<td align="left">1.8</td>
-<td align="left">2017-11-17</td>
+<td align="left">1.9</td>
+<td align="left">2018-03-01</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="odd">
@@ -735,16 +736,16 @@ gg_stretches</code></pre>
 <tr class="even">
 <td>47</td>
 <td align="left">stringi</td>
-<td align="left">1.1.6</td>
-<td align="left">2017-11-17</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.1.7</td>
+<td align="left">2018-03-12</td>
+<td align="left">cran (<span class="citation">@1.1.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>48</td>
 <td align="left">stringr</td>
-<td align="left">1.2.0</td>
-<td align="left">2017-02-18</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.3.0</td>
+<td align="left">2018-02-19</td>
+<td align="left">cran (<span class="citation">@1.3.0</span>)</td>
 </tr>
 <tr class="even">
 <td>49</td>
@@ -756,16 +757,16 @@ gg_stretches</code></pre>
 <tr class="odd">
 <td>52</td>
 <td align="left">withr</td>
-<td align="left">2.1.1</td>
-<td align="left">2017-12-19</td>
-<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+<td align="left">2.1.2</td>
+<td align="left">2018-03-15</td>
+<td align="left">cran (<span class="citation">@2.1.2</span>)</td>
 </tr>
 <tr class="even">
 <td>53</td>
 <td align="left">yaml</td>
-<td align="left">2.1.16</td>
-<td align="left">2017-12-12</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">2.1.18</td>
+<td align="left">2018-03-08</td>
+<td align="left">cran (<span class="citation">@2.1.18</span>)</td>
 </tr>
 </tbody>
 </table>
