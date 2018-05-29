@@ -314,8 +314,8 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/low_quality_cells/validation_mouse_pc.Rmd</p>
-<p><strong>Last updated:</strong> 2018-03-13</p>
-<p><strong>Code version:</strong> 44f117f</p>
+<p><strong>Last updated:</strong> 2018-05-29</p>
+<p><strong>Code version:</strong> f478d2e</p>
 <pre class="r"><code>library(cowplot)
 library(ggplot2)
 library(ggpubr)
@@ -402,6 +402,26 @@ calculating distance ... pearson ...running tSNE using 10 cores:</code></pre>
 <p><img src="figure/validation_mouse_pc.Rmd/unnamed-chunk-8-1.png" width="576" style="display: block; margin: auto;" /></p>
 </div>
 </div>
+<div id="number-of-cells" class="section level2">
+<h2>Number of cells</h2>
+<pre class="r"><code>umi_counts_union_full &lt;- sort(colSums(cm_union), decreasing=T)
+umi_counts_union &lt;- umi_counts_union_full[1:5000]</code></pre>
+<pre class="r"><code>gg1 &lt;- PlotCellsNumberHist(umi_counts_union_full, breaks=80, estimate.cells.number=T) +
+  scale_x_continuous(name=&#39;#UMI in cell&#39;, labels=round(10^(2:4)), breaks=2:4) + 
+  theme_pdf()
+gg2 &lt;- PlotCellsNumberLine(umi_counts_union_full, breaks=80, estimate.cells.number=T) + 
+  theme_pdf() + theme(legend.position=&quot;none&quot;)
+gg3 &lt;- PlotCellsNumberLogLog(umi_counts_union_full, estimate.cells.number=T) + 
+  theme_pdf() + theme(legend.position=&quot;none&quot;)
+
+gg_cell_num &lt;- cowplot::plot_grid(gg1, gg2, gg3, ncol=1, nrow=3, labels=&quot;AUTO&quot;)
+
+ggsave(paste0(kOutputFolder, &#39;figures/supp_cell_num_srr3.pdf&#39;), gg_cell_num, 
+       width=5, height=7)
+
+gg_cell_num</code></pre>
+<p><img src="figure/validation_mouse_pc.Rmd/unnamed-chunk-10-1.png" width="480" style="display: block; margin: auto;" /></p>
+</div>
 <div id="rescued-cells" class="section level2">
 <h2>Rescued cells</h2>
 <pre class="r"><code>filtered_cbs &lt;- intersect(names(cluster_by_barcodes), 
@@ -430,10 +450,11 @@ gg_tsne &lt;- PlotFiltrationResults(r, clusters=plot_clusters,
   theme_pdf(legend.pos=c(0, 1), show.ticks=F)
 
 gg_tsne</code></pre>
-<p><img src="figure/validation_mouse_pc.Rmd/unnamed-chunk-11-1.png" width="384" style="display: block; margin: auto;" /></p>
+<p><img src="figure/validation_mouse_pc.Rmd/unnamed-chunk-13-1.png" width="384" style="display: block; margin: auto;" /></p>
 <div id="number-of-rescued-cells-per-cluster" class="section level3">
 <h3>Number of rescued cells per cluster</h3>
-<pre class="r"><code>rescued_table &lt;- TableOfRescuedCells(clusters_annotated_resc, rescued_cbs)
+<pre class="r"><code>rescued_table &lt;- TableOfRescuedCells(clusters_annotated_resc[c(intersect_cbs, rescued_cbs)], 
+                                     rescued_cbs)
 write.csv(rescued_table, paste0(kOutputFolder, &quot;tables/rescued_cbc_srr3.csv&quot;), row.names=F)
 rescued_table</code></pre>
 <div class="kable-table">
@@ -441,50 +462,89 @@ rescued_table</code></pre>
 <thead>
 <tr class="header">
 <th align="left">Cell type</th>
+<th align="right">Total num. of cells</th>
 <th align="right">Num. of rescued</th>
 <th align="right">Fraction of rescued, %</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">activated stellate</td>
+<td align="right">10</td>
+<td align="right">0</td>
+<td align="right">0.00</td>
+</tr>
+<tr class="even">
 <td align="left">alpha</td>
-<td align="right">18</td>
-<td align="right">9.045226</td>
+<td align="right">200</td>
+<td align="right">19</td>
+<td align="right">9.50</td>
+</tr>
+<tr class="odd">
+<td align="left">B cell</td>
+<td align="right">8</td>
+<td align="right">0</td>
+<td align="right">0.00</td>
 </tr>
 <tr class="even">
 <td align="left">beta</td>
-<td align="right">75</td>
-<td align="right">12.038523</td>
+<td align="right">622</td>
+<td align="right">74</td>
+<td align="right">11.90</td>
 </tr>
 <tr class="odd">
 <td align="left">delta</td>
+<td align="right">137</td>
 <td align="right">6</td>
-<td align="right">4.379562</td>
+<td align="right">4.38</td>
 </tr>
 <tr class="even">
 <td align="left">ductal</td>
+<td align="right">41</td>
 <td align="right">2</td>
-<td align="right">4.878049</td>
+<td align="right">4.88</td>
 </tr>
 <tr class="odd">
 <td align="left">endothelial</td>
+<td align="right">68</td>
 <td align="right">1</td>
-<td align="right">1.470588</td>
+<td align="right">1.47</td>
 </tr>
 <tr class="even">
 <td align="left">gamma</td>
+<td align="right">29</td>
 <td align="right">2</td>
-<td align="right">6.896552</td>
+<td align="right">6.90</td>
 </tr>
 <tr class="odd">
-<td align="left">macrophage</td>
-<td align="right">5</td>
-<td align="right">20.833333</td>
+<td align="left">immune other</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">0.00</td>
 </tr>
 <tr class="even">
+<td align="left">macrophage</td>
+<td align="right">24</td>
+<td align="right">5</td>
+<td align="right">20.83</td>
+</tr>
+<tr class="odd">
 <td align="left">quiescent stellate</td>
+<td align="right">18</td>
 <td align="right">1</td>
-<td align="right">5.555556</td>
+<td align="right">5.56</td>
+</tr>
+<tr class="even">
+<td align="left">schwann</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0.00</td>
+</tr>
+<tr class="odd">
+<td align="left">T cell</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">0.00</td>
 </tr>
 </tbody>
 </table>
@@ -509,7 +569,7 @@ overexpressed_genes &lt;- GetOverexpressedGenes(srt, compared_clusters, cluster_
                                              genes.from.cluster=50, 
                                              expression.threshold=0.3)
 length(overexpressed_genes)</code></pre>
-<pre><code>[1] 175</code></pre>
+<pre><code>[1] 174</code></pre>
 </div>
 </div>
 <div id="heatmaps" class="section level2">
@@ -557,7 +617,7 @@ gg_right &lt;- plot_grid(gg_tsne + theme(plot.margin=margin(l=0.1, unit=&#39;in&
 gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
   theme(plot.margin=margin(1, 1, 1, 1))</code></pre>
 <pre class="r"><code>gg_fig</code></pre>
-<p><img src="figure/validation_mouse_pc.Rmd/unnamed-chunk-19-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><img src="figure/validation_mouse_pc.Rmd/unnamed-chunk-21-1.png" width="672" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>ggsave(paste0(kOutputFolder, &#39;figures/supp_lq_srr3.pdf&#39;), gg_fig, width=7, height=6)</code></pre>
 </div>
 <div id="session-information" class="section level2">
@@ -601,7 +661,7 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-03-13</td>
+<td align="left">2018-05-29</td>
 </tr>
 </tbody>
 </table>
@@ -817,8 +877,8 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="odd">
 <td>32</td>
 <td align="left">DBI</td>
-<td align="left">0.7</td>
-<td align="left">2017-06-18</td>
+<td align="left">1.0.0</td>
+<td align="left">2018-05-02</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="even">
@@ -852,9 +912,9 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="even">
 <td>37</td>
 <td align="left">digest</td>
-<td align="left">0.6.14</td>
-<td align="left">2018-01-14</td>
-<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
 </tr>
 <tr class="odd">
 <td>38</td>
@@ -888,15 +948,15 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <td>42</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-03-13</td>
+<td align="left">2018-05-16</td>
 <td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="even">
 <td>43</td>
 <td align="left">dropestr</td>
-<td align="left">0.7.6</td>
-<td align="left">2018-03-13</td>
-<td align="left">local (<span class="citation">@0.7.6</span>)</td>
+<td align="left">0.7.7</td>
+<td align="left">2018-03-17</td>
+<td align="left">local (<span class="citation">@0.7.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>44</td>
@@ -1118,9 +1178,9 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="even">
 <td>78</td>
 <td align="left">igraph</td>
-<td align="left">1.1.2</td>
-<td align="left">2017-07-21</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.2.1</td>
+<td align="left">2018-03-10</td>
+<td align="left">cran (<span class="citation">@1.2.1</span>)</td>
 </tr>
 <tr class="odd">
 <td>79</td>
@@ -1167,9 +1227,9 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="odd">
 <td>85</td>
 <td align="left">knitr</td>
-<td align="left">1.18</td>
-<td align="left">2017-12-27</td>
-<td align="left">cran (<span class="citation">@1.18</span>)</td>
+<td align="left">1.20</td>
+<td align="left">2018-02-20</td>
+<td align="left">cran (<span class="citation">@1.20</span>)</td>
 </tr>
 <tr class="even">
 <td>86</td>
@@ -1336,7 +1396,7 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <td>110</td>
 <td align="left">pagoda2</td>
 <td align="left">0.0.0.9002</td>
-<td align="left">2018-02-27</td>
+<td align="left">2018-04-08</td>
 <td align="left">local (<a href="mailto:hms-dbmi/pagoda2@NA">hms-dbmi/pagoda2@NA</a>)</td>
 </tr>
 <tr class="even">
@@ -1454,9 +1514,9 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="even">
 <td>128</td>
 <td align="left">Rcpp</td>
-<td align="left">0.12.15</td>
-<td align="left">2018-01-20</td>
-<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+<td align="left">0.12.17</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.12.17</span>)</td>
 </tr>
 <tr class="odd">
 <td>129</td>
@@ -1489,9 +1549,9 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="odd">
 <td>133</td>
 <td align="left">rjson</td>
-<td align="left">0.2.15</td>
-<td align="left">2014-11-03</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">0.2.19</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.2.19</span>)</td>
 </tr>
 <tr class="even">
 <td>134</td>
@@ -1503,8 +1563,8 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="odd">
 <td>135</td>
 <td align="left">rmarkdown</td>
-<td align="left">1.8</td>
-<td align="left">2017-11-17</td>
+<td align="left">1.9</td>
+<td align="left">2018-03-01</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="even">
@@ -1636,16 +1696,16 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="even">
 <td>157</td>
 <td align="left">stringi</td>
-<td align="left">1.1.6</td>
-<td align="left">2017-11-17</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.1.7</td>
+<td align="left">2018-03-12</td>
+<td align="left">cran (<span class="citation">@1.1.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>158</td>
 <td align="left">stringr</td>
-<td align="left">1.2.0</td>
-<td align="left">2017-02-18</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.3.0</td>
+<td align="left">2018-02-19</td>
+<td align="left">cran (<span class="citation">@1.3.0</span>)</td>
 </tr>
 <tr class="even">
 <td>159</td>
@@ -1727,9 +1787,9 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="odd">
 <td>172</td>
 <td align="left">withr</td>
-<td align="left">2.1.1</td>
-<td align="left">2017-12-19</td>
-<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+<td align="left">2.1.2</td>
+<td align="left">2018-03-15</td>
+<td align="left">cran (<span class="citation">@2.1.2</span>)</td>
 </tr>
 <tr class="even">
 <td>173</td>
@@ -1741,9 +1801,9 @@ gg_fig &lt;- plot_grid(gg_left, gg_right, rel_widths=c(0.8, 1)) +
 <tr class="odd">
 <td>174</td>
 <td align="left">yaml</td>
-<td align="left">2.1.16</td>
-<td align="left">2017-12-12</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">2.1.18</td>
+<td align="left">2018-03-08</td>
+<td align="left">cran (<span class="citation">@2.1.18</span>)</td>
 </tr>
 </tbody>
 </table>
