@@ -48,7 +48,8 @@ mean(times_coll, trim=0.2)
 
 ## Error corrections directional
 ```{r}
-times_directional <- sapply(1:10, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 'directional', mc.cores=10))
+times_directional <- sapply(1:10, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 
+                                                            'directional', mc.cores=10))
 print(times_directional)
 mean(times_directional, trim=0.1)
 ```

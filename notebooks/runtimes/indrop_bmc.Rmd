@@ -35,7 +35,8 @@ kOutputFolder <- '../../output/'
 kDataPath <- '../../data/'
 kEstDataPath <- paste0(kDataPath, 'dropest/SCG71/runtimes/est_2018_03_15_real/')
 
-tag_stats <- readRDS(paste0(kEstDataPath, '../tag_2018_03_15/SCG_71_C2_S2_R1_001.fastq.gz.tagged.rds'))
+tag_stats <- kEstDataPath %>% 
+  paste0('../tag_2018_03_15/SCG_71_C2_S2_R1_001.fastq.gz.tagged.rds') %>% readRDS()
 ```
 
 ```{r}
@@ -50,7 +51,8 @@ mean(times_coll, trim=0.2)
 
 ## Error corrections directional
 ```{r}
-times_directional <- sapply(1:10, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 'directional', mc.cores=10))
+times_directional <- sapply(1:10, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 
+                                                            'directional', mc.cores=10))
 print(times_directional)
 mean(times_directional, trim=0.1)
 ```
@@ -65,7 +67,8 @@ mean(times_bayesian, trim=0.1)
 
 ## Quality scoring
 ```{r, warning=FALSE}
-times_quality <- sapply(1:10, function(i) TimeQuality(holder, mit.chromosome.name='chrM', tags.data=tag_stats))
+times_quality <- sapply(1:10, function(i) TimeQuality(holder, mit.chromosome.name='chrM', 
+                                                      tags.data=tag_stats))
 print(times_quality)
 mean(times_quality, trim=0.1)
 ```
