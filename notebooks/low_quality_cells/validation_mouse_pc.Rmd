@@ -114,6 +114,30 @@ PlotPagodaEmbeding(r, colors=mit_fracs, show.legend=T, title='Mitochondrial frac
   theme_pdf(legend.pos=c(1, 1))
 ```
 
+## Number of cells
+```{r}
+umi_counts_union_full <- sort(colSums(cm_union), decreasing=T)
+umi_counts_union <- umi_counts_union_full[1:5000]
+```
+
+```{r, fig.width=5, fig.height=7}
+gg1 <- PlotCellsNumberHist(umi_counts_union_full, breaks=80, estimate.cells.number=T) +
+  scale_x_continuous(name='#UMI in cell', labels=round(10^(2:4)), breaks=2:4) + 
+  theme_pdf()
+gg2 <- PlotCellsNumberLine(umi_counts_union_full, breaks=80, estimate.cells.number=T) + 
+  theme_pdf() + theme(legend.position="none")
+gg3 <- PlotCellsNumberLogLog(umi_counts_union_full, estimate.cells.number=T) + 
+  theme_pdf() + theme(legend.position="none")
+
+gg_cell_num <- cowplot::plot_grid(gg1, gg2, gg3, ncol=1, nrow=3, labels="AUTO")
+
+ggsave(paste0(kOutputFolder, 'figures/supp_cell_num_srr3.pdf'), gg_cell_num, 
+       width=5, height=7)
+
+gg_cell_num
+```
+
+
 ## Rescued cells
 ```{r}
 filtered_cbs <- intersect(names(cluster_by_barcodes), 
