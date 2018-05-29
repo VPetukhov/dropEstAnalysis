@@ -51,7 +51,7 @@ max_umi_per_gene <- 4^nchar(names(umi_probs)[1])
 
 Distribution of UMIs:  
 ```{r}
-PlotUmisDistribution(holder$reads_per_umi_per_cell$reads_per_umi, bins=70)
+PlotUmisDistribution(holder$reads_per_umi_per_cell, bins=70)
 ```
 
 ## Modeling of collisions
@@ -102,7 +102,7 @@ invisible(gc())
 ## Aberrant mononucleotide stretches
 ```{r}
 kDataPath <- '../../data/dropest/10x/aml035_post_transplant/est_10_20_umi_quality/'
-reads_per_umi <- readRDS(paste0(kDataPath, 'reads_per_umi_per_cell.rds'))$reads_per_umi
+reads_per_umi <- readRDS(paste0(kDataPath, 'reads_per_umi_per_cell.rds'))
 ```
 
 ```{r}
