@@ -314,8 +314,26 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/low_quality_cells/validation_bmmc1.Rmd</p>
-<p><strong>Last updated:</strong> 2018-03-09</p>
-<p><strong>Code version:</strong> 47007e4</p>
+<p><strong>Last updated:</strong> 2018-05-29</p>
+<p><strong>Code version:</strong> 33e615d</p>
+<pre class="r"><code>library(ggplot2)
+library(ggrastr)
+library(ggpubr)
+library(dplyr)
+library(parallel)
+library(Seurat)
+library(dropestr)
+library(dropEstAnalysis)
+
+theme_set(theme_base)
+
+set.seed(42)
+kOutputFolder &lt;- &#39;../../output/&#39;
+kDataPath &lt;- &#39;../../data/&#39;
+kEstDataPath &lt;- paste0(kDataPath, &#39;dropest/10x/frozen_bmmc_healthy_donor1/&#39;)
+kAnnotationDataPath &lt;- paste0(kDataPath, &#39;annotation/&#39;)
+kEstFolder &lt;- paste0(kEstDataPath, &#39;est_11_10_umi_quality/&#39;)
+k10xFolder &lt;- paste0(kEstDataPath, &#39;filtered_matrices_mex/hg19/&#39;)</code></pre>
 <div id="read-data" class="section level2">
 <h2>Read data</h2>
 <p><a href="https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/frozen_bmmc_healthy_donor1">Link to the original dataset</a>.</p>
@@ -377,69 +395,98 @@ gg_tsne &lt;- PlotFiltrationResults(r_rescued, plot_clusters, filtered.cbs=NULL,
 
 gg_tsne</code></pre>
 <p><img src="figure/validation_bmmc1.Rmd/unnamed-chunk-9-1.png" width="410.88" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>(table(clusters_annotated_resc[rescued_cbs]) / 
-  (table(clusters_annotated) + table(clusters_annotated_resc[rescued_cbs]))) %&gt;% 
-  as_tibble() %&gt;% mutate(n = round(100 * n, 1)) %&gt;%
-  `colnames&lt;-`(c(&quot;Cell type&quot;, &quot;Fraction of rescued, %&quot;))</code></pre>
+<div id="number-of-rescued-cells-per-cluster" class="section level3">
+<h3>Number of rescued cells per cluster</h3>
+<pre class="r"><code>rescued_table &lt;- TableOfRescuedCells(clusters_annotated_resc[c(intersect_cbs, rescued_cbs)], 
+                                     rescued_cbs)
+write.csv(rescued_table, paste0(kOutputFolder, &quot;tables/rescued_cbc_bmmc1.csv&quot;), row.names=F)
+rescued_table</code></pre>
 <div class="kable-table">
 <table>
 <thead>
 <tr class="header">
 <th align="left">Cell type</th>
+<th align="right">Total num. of cells</th>
+<th align="right">Num. of rescued</th>
 <th align="right">Fraction of rescued, %</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">CD14+ Monocytes</td>
-<td align="right">35.3</td>
+<td align="right">305</td>
+<td align="right">164</td>
+<td align="right">53.77</td>
 </tr>
 <tr class="even">
 <td align="left">Cytotoxic T cells</td>
-<td align="right">26.1</td>
+<td align="right">105</td>
+<td align="right">37</td>
+<td align="right">35.24</td>
 </tr>
 <tr class="odd">
 <td align="left">Dendritic cells</td>
-<td align="right">21.3</td>
+<td align="right">90</td>
+<td align="right">16</td>
+<td align="right">17.78</td>
 </tr>
 <tr class="even">
 <td align="left">Epithelial cells</td>
-<td align="right">16.7</td>
+<td align="right">136</td>
+<td align="right">23</td>
+<td align="right">16.91</td>
 </tr>
 <tr class="odd">
 <td align="left">Erythroblasts</td>
-<td align="right">38.0</td>
+<td align="right">509</td>
+<td align="right">263</td>
+<td align="right">51.67</td>
 </tr>
 <tr class="even">
 <td align="left">Immature B cells</td>
-<td align="right">32.8</td>
+<td align="right">277</td>
+<td align="right">133</td>
+<td align="right">48.01</td>
 </tr>
 <tr class="odd">
 <td align="left">Monocyte progenitors</td>
-<td align="right">17.8</td>
+<td align="right">157</td>
+<td align="right">33</td>
+<td align="right">21.02</td>
 </tr>
 <tr class="even">
 <td align="left">NK cells</td>
-<td align="right">21.1</td>
+<td align="right">179</td>
+<td align="right">47</td>
+<td align="right">26.26</td>
 </tr>
 <tr class="odd">
-<td align="left">Non-dividing Pro B cells</td>
-<td align="right">47.4</td>
+<td align="left">Non-dividing Pre B cells</td>
+<td align="right">93</td>
+<td align="right">82</td>
+<td align="right">88.17</td>
 </tr>
 <tr class="even">
-<td align="left">Pre-pro B cells</td>
-<td align="right">32.3</td>
+<td align="left">Pre B cells</td>
+<td align="right">76</td>
+<td align="right">8</td>
+<td align="right">10.53</td>
 </tr>
 <tr class="odd">
-<td align="left">Pro B cells</td>
-<td align="right">9.8</td>
+<td align="left">Pre-pro B cells</td>
+<td align="right">65</td>
+<td align="right">30</td>
+<td align="right">46.15</td>
 </tr>
 <tr class="even">
 <td align="left">T cells</td>
-<td align="right">19.8</td>
+<td align="right">1098</td>
+<td align="right">269</td>
+<td align="right">24.50</td>
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 </div>
 <div id="comparison-of-unchanged-and-rescued-cells" class="section level2">
@@ -564,7 +611,7 @@ gg_cell_number &lt;- PlotCellsNumberLine(Matrix::colSums(holder$cm_raw)) +
                              labels=c(&#39;A&#39;, &#39;&#39;)) +
   theme(plot.margin=margin(1, 1, 1, 1))
 
-ggsave(paste0(kPlotsFolder, &#39;fig_bmmc_filtration.pdf&#39;), gg_fig, width=7.5, height=7)
+ggsave(paste0(kOutputFolder, &#39;figures/fig_bmmc_filtration.pdf&#39;), gg_fig, width=7.5, height=7)
 
 gg_fig</code></pre>
 <p><img src="figure/validation_bmmc1.Rmd/unnamed-chunk-18-1.png" width="720" style="display: block; margin: auto;" /></p>
@@ -611,7 +658,7 @@ gg_fig</code></pre>
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-03-09</td>
+<td align="left">2018-05-29</td>
 </tr>
 </tbody>
 </table>
@@ -827,8 +874,8 @@ gg_fig</code></pre>
 <tr class="odd">
 <td>32</td>
 <td align="left">DBI</td>
-<td align="left">0.7</td>
-<td align="left">2017-06-18</td>
+<td align="left">1.0.0</td>
+<td align="left">2018-05-02</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="even">
@@ -862,9 +909,9 @@ gg_fig</code></pre>
 <tr class="even">
 <td>37</td>
 <td align="left">digest</td>
-<td align="left">0.6.14</td>
-<td align="left">2018-01-14</td>
-<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
 </tr>
 <tr class="odd">
 <td>38</td>
@@ -898,15 +945,15 @@ gg_fig</code></pre>
 <td>42</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-03-09</td>
+<td align="left">2018-05-16</td>
 <td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="even">
 <td>43</td>
 <td align="left">dropestr</td>
-<td align="left">0.7.6</td>
-<td align="left">2018-02-26</td>
-<td align="left">local (<span class="citation">@0.7.6</span>)</td>
+<td align="left">0.7.7</td>
+<td align="left">2018-03-17</td>
+<td align="left">local (<span class="citation">@0.7.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>44</td>
@@ -1128,9 +1175,9 @@ gg_fig</code></pre>
 <tr class="even">
 <td>78</td>
 <td align="left">igraph</td>
-<td align="left">1.1.2</td>
-<td align="left">2017-07-21</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.2.1</td>
+<td align="left">2018-03-10</td>
+<td align="left">cran (<span class="citation">@1.2.1</span>)</td>
 </tr>
 <tr class="odd">
 <td>79</td>
@@ -1177,9 +1224,9 @@ gg_fig</code></pre>
 <tr class="odd">
 <td>85</td>
 <td align="left">knitr</td>
-<td align="left">1.18</td>
-<td align="left">2017-12-27</td>
-<td align="left">cran (<span class="citation">@1.18</span>)</td>
+<td align="left">1.20</td>
+<td align="left">2018-02-20</td>
+<td align="left">cran (<span class="citation">@1.20</span>)</td>
 </tr>
 <tr class="even">
 <td>86</td>
@@ -1353,7 +1400,7 @@ gg_fig</code></pre>
 <td>111</td>
 <td align="left">pagoda2</td>
 <td align="left">0.0.0.9002</td>
-<td align="left">2018-02-27</td>
+<td align="left">2018-04-08</td>
 <td align="left">local (<a href="mailto:hms-dbmi/pagoda2@NA">hms-dbmi/pagoda2@NA</a>)</td>
 </tr>
 <tr class="odd">
@@ -1478,9 +1525,9 @@ gg_fig</code></pre>
 <tr class="even">
 <td>130</td>
 <td align="left">Rcpp</td>
-<td align="left">0.12.15</td>
-<td align="left">2018-01-20</td>
-<td align="left">cran (<span class="citation">@0.12.15</span>)</td>
+<td align="left">0.12.17</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.12.17</span>)</td>
 </tr>
 <tr class="odd">
 <td>131</td>
@@ -1513,9 +1560,9 @@ gg_fig</code></pre>
 <tr class="odd">
 <td>135</td>
 <td align="left">rjson</td>
-<td align="left">0.2.15</td>
-<td align="left">2014-11-03</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">0.2.19</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.2.19</span>)</td>
 </tr>
 <tr class="even">
 <td>136</td>
@@ -1527,8 +1574,8 @@ gg_fig</code></pre>
 <tr class="odd">
 <td>137</td>
 <td align="left">rmarkdown</td>
-<td align="left">1.8</td>
-<td align="left">2017-11-17</td>
+<td align="left">1.9</td>
+<td align="left">2018-03-01</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="even">
@@ -1660,16 +1707,16 @@ gg_fig</code></pre>
 <tr class="even">
 <td>159</td>
 <td align="left">stringi</td>
-<td align="left">1.1.6</td>
-<td align="left">2017-11-17</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.1.7</td>
+<td align="left">2018-03-12</td>
+<td align="left">cran (<span class="citation">@1.1.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>160</td>
 <td align="left">stringr</td>
-<td align="left">1.2.0</td>
-<td align="left">2017-02-18</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.3.0</td>
+<td align="left">2018-02-19</td>
+<td align="left">cran (<span class="citation">@1.3.0</span>)</td>
 </tr>
 <tr class="even">
 <td>161</td>
@@ -1751,9 +1798,9 @@ gg_fig</code></pre>
 <tr class="odd">
 <td>174</td>
 <td align="left">withr</td>
-<td align="left">2.1.1</td>
-<td align="left">2017-12-19</td>
-<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+<td align="left">2.1.2</td>
+<td align="left">2018-03-15</td>
+<td align="left">cran (<span class="citation">@2.1.2</span>)</td>
 </tr>
 <tr class="even">
 <td>175</td>
@@ -1765,9 +1812,9 @@ gg_fig</code></pre>
 <tr class="odd">
 <td>176</td>
 <td align="left">yaml</td>
-<td align="left">2.1.16</td>
-<td align="left">2017-12-12</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">2.1.18</td>
+<td align="left">2018-03-08</td>
+<td align="left">cran (<span class="citation">@2.1.18</span>)</td>
 </tr>
 </tbody>
 </table>

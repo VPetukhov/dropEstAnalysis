@@ -86,17 +86,17 @@ Some figures were created with Python code and they are not published here. Plea
     
 ## Content by tables
 ### Main tables
-1. Table 1. Analysis of merge targets on human/mouse mixture datasets.
-2. Table 2. 5-fold CV results (mean ± sd).
+1. Table 1. Analysis of merge targets on human/mouse mixture datasets
+2. Table 2. 5-fold CV results (mean ± sd)
 
 ### Supplementary tables
-1. Table S1. Gene markers, used for annotation of the 10x Frozen BMMCs.
-2. Table S2. Gene markers, used for annotation of the 10x 8k PBMCs dataset.
-3. Table S3. Gene markers, used for annotation of the inDrop mouse BMCs dataset.
-4. Table S4. Fraction of rescued cells for the 10x Frozen BMMCs dataset.
-5. Table S5. Fraction of rescued cells for the 10x 8k PMMCs dataset.
-6. Table S6. Fraction of rescued cells for the inDrop mouse PCs dataset.
-7. Table S7. Fraction of rescued cells for the inDrop mouse BMCs dataset.
-8. Table S8. Runtimes of dropEst pipeline.
+1. [Table S1. Gene markers, used for annotation of the 10x Frozen BMMCs](annotation__annotation_bmmc1.html#all_markers)
+2. [Table S2. Gene markers, used for annotation of the 10x 8k PBMCs dataset](annotation__annotation_pbmc8k.html#all_markers)
+3. [Table S3. Gene markers, used for annotation of the inDrop mouse BMCs dataset](annotation__annotation_bmc.html#cell_type_markers)
+4. [Table S4. Fraction of rescued cells for the 10x Frozen BMMCs dataset](low_quality_cells__validation_bmmc1.html#number_of_rescued_cells_per_cluster)
+5. [Table S5. Fraction of rescued cells for the 10x 8k PMMCs dataset](low_quality_cells__validation_pbmc8k.html#number_of_rescued_cells_per_cluster)
+6. Table S6. Fraction of rescued cells for the inDrop mouse PCs dataset
+7. Table S7. Fraction of rescued cells for the inDrop mouse BMCs dataset
+8. Table S8. Runtimes of dropEst pipeline
     * inDrop Mouse BMCs
     * inDrop Mouse ESCs
