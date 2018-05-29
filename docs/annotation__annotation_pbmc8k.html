@@ -27,7 +27,6 @@
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
-<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -179,7 +178,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1,h2,h3",
+      selectors: "h1,h2,h3,h4",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
@@ -290,10 +289,7 @@ div.tocify {
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-  <a href="https://github.com/jdblischak/workflowr">
-    <span class="fa fa-github"></span>
-     
-  </a>
+  <a href="https://github.com/VPetukhov/dropEstAnalysis">Source</a>
 </li>
       </ul>
     </div><!--/.nav-collapse -->
@@ -320,9 +316,9 @@ div.section {
 <p><strong>Source file:</strong> notebooks/annotation/annotation_pbmc8k.Rmd</p>
 <!-- Update knitr chunk options -->
 <!-- Insert the date the file was last updated -->
-<p><strong>Last updated:</strong> 2018-01-24</p>
+<p><strong>Last updated:</strong> 2018-05-29</p>
 <!-- Insert the code version (Git commit SHA1) if Git repository exists and R package git2r is installed -->
-<p><strong>Code version:</strong> 0f07cfa</p>
+<p><strong>Code version:</strong> 3ea6d7c</p>
 <div id="read-data" class="section level2">
 <h2>Read data</h2>
 <p><a href="https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.3.0/pbmc8k">Link to original dataset</a>.</p>
@@ -346,10 +342,10 @@ r_cm &lt;- r_cm[intersect(rownames(r_cm), names(gene_id_to_names)), ]
 rownames(r_cm) &lt;- gene_id_to_names[rownames(r_cm)]
 
 pgd &lt;- GetPagoda(r_cm, n.cores=30)</code></pre>
-<pre><code>8451 cells, 12931 genes; normalizing ... using plain model winsorizing ... done.
-calculating variance fit ... using gam 594 overdispersed genes ... 594 persisting ... done.
-calculating distance ... pearson ... done
-running tSNE using 30 cores:</code></pre>
+<pre><code>8451 cells, 12931 genes; normalizing ... using plain model winsorizing ... log scale ... done.
+calculating variance fit ... using gam 485 overdispersed genes ... 485 persisting ... done.
+running PCA using 1000 OD genes .... done
+calculating distance ... pearson ...running tSNE using 30 cores:</code></pre>
 <pre class="r"><code># clusters &lt;- pgd$clusters$PCA$infomap
 # write.csv(clusters, paste0(kAnnotationData, &#39;pbmc8k_clusters.csv&#39;))
 
@@ -532,181 +528,730 @@ t_markers_df</code></pre>
 </table>
 </div>
 <pre class="r"><code>clusters_annotated &lt;- AnnotateClusters(clusters, type_ids)
-PlotClustering(pgd, clusters_annotated)</code></pre>
-<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-13-1.png" width="576" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>write.csv(data.frame(Barcode=names(clusters_annotated), 
+
+write.csv(data.frame(Barcode=names(clusters_annotated), 
                      Type=as.vector(clusters_annotated)), 
           paste0(kAnnotationData, &#39;pbmc8k_clusters_annotated.csv&#39;))</code></pre>
 </div>
+<div id="all-markers" class="section level2">
+<h2>All markers</h2>
+<pre class="r"><code>all_markers_df &lt;- rbind(markers_df, t_markers_df)
+write.csv(all_markers_df[c(&#39;Type&#39;, &#39;Markers&#39;)], 
+          paste0(kOutputPath, &#39;tables/annotation_pbmc8k_markers.csv&#39;), row.names=F)
+all_markers_df</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">Type</th>
+<th align="left">Markers</th>
+<th align="left">Clusters</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">B cells</td>
+<td align="left">MS4A1</td>
+<td align="left">4, 8, 19, 22, 23, 28, 29, 33</td>
+</tr>
+<tr class="even">
+<td align="left">T cells</td>
+<td align="left">CD3D, CD3E</td>
+<td align="left">2, 3, 5, 6, 7, 10, 11, 14, 16, 17, 20, 21, 25, 27, 32, 35</td>
+</tr>
+<tr class="odd">
+<td align="left">CD14+ Monocytes</td>
+<td align="left">LYZ, CD14</td>
+<td align="left">1, 12, 13, 34</td>
+</tr>
+<tr class="even">
+<td align="left">NK cells 1</td>
+<td align="left">GNLY, NKG7</td>
+<td align="left">9, 29, 30</td>
+</tr>
+<tr class="odd">
+<td align="left">NK cells 2</td>
+<td align="left">GZMB, NKG7</td>
+<td align="left">26</td>
+</tr>
+<tr class="even">
+<td align="left">FCGR3A+ Monocytes</td>
+<td align="left">FCGR3A, MS4A7</td>
+<td align="left">15</td>
+</tr>
+<tr class="odd">
+<td align="left">Dendritic cells</td>
+<td align="left">FCER1A, CST3</td>
+<td align="left">18, 24</td>
+</tr>
+<tr class="even">
+<td align="left">Megakaryocytes</td>
+<td align="left">PPBP</td>
+<td align="left">31</td>
+</tr>
+<tr class="odd">
+<td align="left">Naive T cells</td>
+<td align="left">CCR7</td>
+<td align="left">2, 7, 21</td>
+</tr>
+<tr class="even">
+<td align="left">CD8 T cells</td>
+<td align="left">CD8A, CD8B</td>
+<td align="left">3</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4+ T cells</td>
+<td align="left">IL7R, CD4</td>
+<td align="left">5, 10, 14, 35</td>
+</tr>
+<tr class="even">
+<td align="left">Cytotoxic T cells</td>
+<td align="left">NKG7, GZMA, GZMH, GZMK</td>
+<td align="left">6, 11, 16, 17, 20, 25, 27, 32</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="expression-plots" class="section level2">
+<h2>Expression plots</h2>
+<pre class="r"><code>raster_width &lt;- 8 / 3
+raster_height &lt;- 8 / 4
+raster_dpi &lt;- 150
+
+long_type_names &lt;- c(&quot;CD14+ Monocytes&quot;, &quot;FCGR3A+ Monocytes&quot;, &quot;Dendritic cells&quot;,
+                     &quot;Naive T cells&quot;, &quot;Cytotoxic T cells&quot;, &quot;CD4+ T cells&quot;)
+for (type in long_type_names) {
+  clusters_annotated[clusters_annotated == type] &lt;- sub(&quot; &quot;, &quot;\n&quot;, type)
+}
+
+gg_annotation &lt;- PlotClustering(pgd, clusters_annotated, lineheight=0.7, size=0.2, 
+                                raster=T, raster.width=raster_width, 
+                                raster.height=raster_height, raster.dpi=raster_dpi) + 
+  theme_pdf(show.ticks=F) + ggpubr::rremove(&quot;xylab&quot;) +
+  scale_size_continuous(range=c(3, 3)) +
+  theme(plot.margin=margin())</code></pre>
+<pre class="r"><code>plot_mtx &lt;- apply(log_mtx, 2, function(vec) scales::rescale(rank(vec)))</code></pre>
+<pre class="r"><code>plot_genes &lt;- c(&#39;MS4A1&#39;, &#39;LYZ&#39;,
+                &#39;FCGR3A&#39;, &#39;FCER1A&#39;, &#39;PPBP&#39;,
+                &#39;CD3D&#39;, &#39;CCR7&#39;, &#39;CD8A&#39;, &#39;IL7R&#39;, 
+                &#39;NKG7&#39;, &#39;GZMB&#39;)
+
+gene_plots &lt;-  lapply(plot_genes, PlotGeneFraction, pgd, plot_mtx, title.x=0.04, 
+                      title.y=0.99, legend.position=&quot;none&quot;, size=0.2, 
+                      raster=T, raster.width=raster_width, 
+                      raster.height=raster_height, raster.dpi=raster_dpi)
+
+gene_plots &lt;- c(list(gg_annotation), gene_plots)
+
+gg_fig &lt;- cowplot::plot_grid(plotlist=gene_plots, ncol=3) +
+  theme(plot.margin=margin(1, 1, 1, 1))</code></pre>
+<pre class="r"><code>gg_fig</code></pre>
+<p><img src="figure/annotation_pbmc8k.Rmd/unnamed-chunk-18-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggsave(paste0(kOutputPath, &#39;figures/supp_annotation_pbmc8k.pdf&#39;), width=8, height=8)</code></pre>
+</div>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>
-<pre class="r"><code>sessioninfo::session_info()</code></pre>
-<pre><code>─ Session info ──────────────────────────────────────────────────────────
- setting  value                       
- version  R version 3.4.1 (2017-06-30)
- os       Ubuntu 14.04.5 LTS          
- system   x86_64, linux-gnu           
- ui       X11                         
- language (EN)                        
- collate  en_US.UTF-8                 
- tz       America/New_York            
- date     2018-01-24                  
-
-─ Packages ──────────────────────────────────────────────────────────────
- package         * version    date      
- AnnotationDbi     1.32.3     2016-01-28
- assertthat        0.2.0      2017-04-11
- backports         1.1.2      2017-12-13
- base64enc         0.1-3      2015-07-28
- bindr             0.1        2016-11-13
- bindrcpp        * 0.2        2017-06-17
- Biobase           2.30.0     2016-01-28
- BiocGenerics      0.16.1     2016-01-28
- bit               1.1-12     2014-04-09
- bit64             0.9-7      2017-05-08
- blob              1.1.0      2017-06-17
- brew              1.0-6      2011-04-13
- clisymbols        1.2.0      2017-05-21
- colorspace        1.3-2      2016-12-14
- DBI               0.7        2017-06-18
- dendsort          0.3.3      2015-12-14
- digest            0.6.14     2018-01-14
- dplyr           * 0.7.4      2017-09-28
- dropEstAnalysis * 0.6.0      2018-01-24
- dropestr        * 0.6.0      2018-01-23
- evaluate          0.10.1     2017-06-24
- ggplot2         * 2.2.1      2016-12-30
- ggrepel           0.7.0      2017-09-29
- git2r             0.21.0     2018-01-04
- glue              1.2.0      2017-10-29
- GO.db             3.2.2      2017-11-12
- gtable            0.2.0      2016-02-26
- highr             0.6        2016-05-09
- htmltools         0.3.6      2017-04-28
- igraph          * 1.1.2      2017-07-21
- IRanges           2.4.8      2016-09-15
- irlba           * 2.3.1      2017-10-18
- KernSmooth        2.23-15    2015-06-29
- knitr             1.18       2017-12-27
- ks                1.11.0     2018-01-16
- labeling          0.3        2014-08-23
- lattice           0.20-35    2017-03-25
- lazyeval          0.2.1      2017-10-29
- magrittr          1.5        2014-11-22
- MASS              7.3-47     2017-04-21
- Matrix          * 1.2-12     2017-11-16
- mclust            5.4        2017-11-22
- memoise           1.1.0      2017-04-21
- mgcv            * 1.8-22     2017-09-19
- munsell           0.4.3      2016-02-13
- mvtnorm           1.0-6      2017-03-02
- nlme            * 3.1-131    2017-02-06
- org.Hs.eg.db      3.2.3      2017-11-12
- org.Mm.eg.db      3.2.3      2016-01-28
- pagoda2           0.0.0.9002 2017-11-12
- pcaMethods        1.60.0     2017-11-12
- pcaPP             1.9-73     2018-01-14
- pheatmap          1.0.8      2015-12-11
- pkgconfig         2.0.1      2017-03-21
- plyr              1.8.4      2016-06-08
- R6                2.2.2      2017-06-17
- RColorBrewer      1.1-2      2014-12-07
- Rcpp              0.12.15    2018-01-20
- rjson             0.2.15     2014-11-03
- rlang             0.1.4      2017-11-05
- rmarkdown         1.8        2017-11-17
- RMTstat           0.3        2014-11-01
- Rook              1.1-1      2014-10-20
- rprojroot         1.3-2      2018-01-03
- RSQLite         * 2.0        2017-06-19
- Rtsne           * 0.14       2017-11-12
- S4Vectors         0.8.11     2016-01-30
- scales            0.5.0      2017-08-24
- sessioninfo       1.0.0      2017-06-21
- stringi           1.1.6      2017-11-17
- stringr           1.2.0      2017-02-18
- tibble            1.3.4      2017-08-22
- triebeard         0.3.0      2016-08-04
- urltools          1.6.0      2016-10-17
- withr             2.1.1      2017-12-19
- yaml              2.1.16     2017-12-12
- source                              
- Bioconductor                        
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- cran (@0.1-3)                       
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- Bioconductor                        
- Bioconductor                        
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- cran (@0.3.3)                       
- cran (@0.6.14)                      
- CRAN (R 3.4.1)                      
- local (VPetukhov/dropEstAnalysis@NA)
- Github (hms-dbmi/dropEst@0813284)   
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- cran (@0.21.0)                      
- CRAN (R 3.4.1)                      
- Bioconductor                        
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- Bioconductor                        
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.0)                      
- cran (@1.18)                        
- cran (@1.11.0)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.0)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.0)                      
- Bioconductor                        
- Bioconductor                        
- Github (hms-dbmi/pagoda2@a2d7523)   
- Bioconductor                        
- cran (@1.9-73)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- cran (@0.12.15)                     
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- cran (@1.3-2)                       
- CRAN (R 3.4.1)                      
- Github (jkrijthe/Rtsne@1d0f926)     
- Bioconductor                        
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- CRAN (R 3.4.1)                      
- cran (@0.3.0)                       
- cran (@1.6.0)                       
- cran (@2.1.1)                       
- CRAN (R 3.4.1)                      </code></pre>
+<pre class="r"><code>data.frame(value=unlist(sessioninfo::platform_info()))</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>version</td>
+<td align="left">R version 3.4.1 (2017-06-30)</td>
+</tr>
+<tr class="even">
+<td>os</td>
+<td align="left">Ubuntu 14.04.5 LTS</td>
+</tr>
+<tr class="odd">
+<td>system</td>
+<td align="left">x86_64, linux-gnu</td>
+</tr>
+<tr class="even">
+<td>ui</td>
+<td align="left">X11</td>
+</tr>
+<tr class="odd">
+<td>language</td>
+<td align="left">(EN)</td>
+</tr>
+<tr class="even">
+<td>collate</td>
+<td align="left">en_US.UTF-8</td>
+</tr>
+<tr class="odd">
+<td>tz</td>
+<td align="left">America/New_York</td>
+</tr>
+<tr class="even">
+<td>date</td>
+<td align="left">2018-05-29</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="r"><code>as.data.frame(sessioninfo::package_info())[c(&#39;package&#39;, &#39;loadedversion&#39;, &#39;date&#39;, &#39;source&#39;)]</code></pre>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">package</th>
+<th align="left">loadedversion</th>
+<th align="left">date</th>
+<th align="left">source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td align="left">AnnotationDbi</td>
+<td align="left">1.32.3</td>
+<td align="left">2016-01-28</td>
+<td align="left">Bioconductor</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td align="left">assertthat</td>
+<td align="left">0.2.0</td>
+<td align="left">2017-04-11</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td align="left">backports</td>
+<td align="left">1.1.2</td>
+<td align="left">2017-12-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td align="left">base64enc</td>
+<td align="left">0.1-3</td>
+<td align="left">2015-07-28</td>
+<td align="left">cran (<span class="citation">@0.1-3</span>)</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td align="left">bindr</td>
+<td align="left">0.1</td>
+<td align="left">2016-11-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td align="left">bindrcpp</td>
+<td align="left">0.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>8</td>
+<td align="left">Biobase</td>
+<td align="left">2.30.0</td>
+<td align="left">2016-01-28</td>
+<td align="left">Bioconductor</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td align="left">BiocGenerics</td>
+<td align="left">0.16.1</td>
+<td align="left">2016-01-28</td>
+<td align="left">Bioconductor</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td align="left">bit</td>
+<td align="left">1.1-12</td>
+<td align="left">2014-04-09</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td align="left">bit64</td>
+<td align="left">0.9-7</td>
+<td align="left">2017-05-08</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td align="left">blob</td>
+<td align="left">1.1.0</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td align="left">brew</td>
+<td align="left">1.0-6</td>
+<td align="left">2011-04-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td align="left">Cairo</td>
+<td align="left">1.5-9</td>
+<td align="left">2015-09-26</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>15</td>
+<td align="left">clisymbols</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-05-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td align="left">colorspace</td>
+<td align="left">1.3-2</td>
+<td align="left">2016-12-14</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>18</td>
+<td align="left">cowplot</td>
+<td align="left">0.9.2</td>
+<td align="left">2017-12-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td align="left">DBI</td>
+<td align="left">1.0.0</td>
+<td align="left">2018-05-02</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>21</td>
+<td align="left">dendsort</td>
+<td align="left">0.3.3</td>
+<td align="left">2015-12-14</td>
+<td align="left">cran (<span class="citation">@0.3.3</span>)</td>
+</tr>
+<tr class="odd">
+<td>22</td>
+<td align="left">digest</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
+</tr>
+<tr class="even">
+<td>23</td>
+<td align="left">dplyr</td>
+<td align="left">0.7.4</td>
+<td align="left">2017-09-28</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>24</td>
+<td align="left">dropEstAnalysis</td>
+<td align="left">0.6.0</td>
+<td align="left">2018-05-16</td>
+<td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
+</tr>
+<tr class="even">
+<td>25</td>
+<td align="left">dropestr</td>
+<td align="left">0.7.7</td>
+<td align="left">2018-03-17</td>
+<td align="left">local (<span class="citation">@0.7.7</span>)</td>
+</tr>
+<tr class="odd">
+<td>26</td>
+<td align="left">evaluate</td>
+<td align="left">0.10.1</td>
+<td align="left">2017-06-24</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>27</td>
+<td align="left">ggplot2</td>
+<td align="left">2.2.1</td>
+<td align="left">2016-12-30</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>28</td>
+<td align="left">ggpubr</td>
+<td align="left">0.1.6</td>
+<td align="left">2017-11-14</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>29</td>
+<td align="left">ggrastr</td>
+<td align="left">0.1.5</td>
+<td align="left">2017-12-28</td>
+<td align="left">Github (<a href="mailto:VPetukhov/ggrastr@cc56b45">VPetukhov/ggrastr@cc56b45</a>)</td>
+</tr>
+<tr class="odd">
+<td>30</td>
+<td align="left">ggrepel</td>
+<td align="left">0.7.0</td>
+<td align="left">2017-09-29</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>31</td>
+<td align="left">git2r</td>
+<td align="left">0.21.0</td>
+<td align="left">2018-01-04</td>
+<td align="left">cran (<span class="citation">@0.21.0</span>)</td>
+</tr>
+<tr class="odd">
+<td>32</td>
+<td align="left">glue</td>
+<td align="left">1.2.0</td>
+<td align="left">2017-10-29</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>33</td>
+<td align="left">GO.db</td>
+<td align="left">3.2.2</td>
+<td align="left">2017-11-12</td>
+<td align="left">Bioconductor</td>
+</tr>
+<tr class="odd">
+<td>37</td>
+<td align="left">gtable</td>
+<td align="left">0.2.0</td>
+<td align="left">2016-02-26</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>38</td>
+<td align="left">highr</td>
+<td align="left">0.6</td>
+<td align="left">2016-05-09</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>39</td>
+<td align="left">htmltools</td>
+<td align="left">0.3.6</td>
+<td align="left">2017-04-28</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td align="left">igraph</td>
+<td align="left">1.2.1</td>
+<td align="left">2018-03-10</td>
+<td align="left">cran (<span class="citation">@1.2.1</span>)</td>
+</tr>
+<tr class="odd">
+<td>41</td>
+<td align="left">IRanges</td>
+<td align="left">2.4.8</td>
+<td align="left">2016-09-15</td>
+<td align="left">Bioconductor</td>
+</tr>
+<tr class="even">
+<td>42</td>
+<td align="left">irlba</td>
+<td align="left">2.3.2</td>
+<td align="left">2018-01-11</td>
+<td align="left">cran (<span class="citation">@2.3.2</span>)</td>
+</tr>
+<tr class="odd">
+<td>43</td>
+<td align="left">KernSmooth</td>
+<td align="left">2.23-15</td>
+<td align="left">2015-06-29</td>
+<td align="left">CRAN (R 3.4.0)</td>
+</tr>
+<tr class="even">
+<td>44</td>
+<td align="left">knitr</td>
+<td align="left">1.20</td>
+<td align="left">2018-02-20</td>
+<td align="left">cran (<span class="citation">@1.20</span>)</td>
+</tr>
+<tr class="odd">
+<td>45</td>
+<td align="left">ks</td>
+<td align="left">1.11.0</td>
+<td align="left">2018-01-16</td>
+<td align="left">local (<a href="mailto:VPetukhov/ks@NA">VPetukhov/ks@NA</a>)</td>
+</tr>
+<tr class="even">
+<td>46</td>
+<td align="left">labeling</td>
+<td align="left">0.3</td>
+<td align="left">2014-08-23</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>47</td>
+<td align="left">lattice</td>
+<td align="left">0.20-35</td>
+<td align="left">2017-03-25</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>48</td>
+<td align="left">lazyeval</td>
+<td align="left">0.2.1</td>
+<td align="left">2017-10-29</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>49</td>
+<td align="left">magrittr</td>
+<td align="left">1.5</td>
+<td align="left">2014-11-22</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>50</td>
+<td align="left">MASS</td>
+<td align="left">7.3-47</td>
+<td align="left">2017-04-21</td>
+<td align="left">CRAN (R 3.4.0)</td>
+</tr>
+<tr class="odd">
+<td>51</td>
+<td align="left">Matrix</td>
+<td align="left">1.2-12</td>
+<td align="left">2017-11-16</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>52</td>
+<td align="left">mclust</td>
+<td align="left">5.4</td>
+<td align="left">2017-11-22</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>53</td>
+<td align="left">memoise</td>
+<td align="left">1.1.0</td>
+<td align="left">2017-04-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>55</td>
+<td align="left">mgcv</td>
+<td align="left">1.8-22</td>
+<td align="left">2017-09-19</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>56</td>
+<td align="left">munsell</td>
+<td align="left">0.4.3</td>
+<td align="left">2016-02-13</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>57</td>
+<td align="left">mvtnorm</td>
+<td align="left">1.0-7</td>
+<td align="left">2018-01-26</td>
+<td align="left">cran (<span class="citation">@1.0-7</span>)</td>
+</tr>
+<tr class="odd">
+<td>58</td>
+<td align="left">nlme</td>
+<td align="left">3.1-131</td>
+<td align="left">2017-02-06</td>
+<td align="left">CRAN (R 3.4.0)</td>
+</tr>
+<tr class="even">
+<td>59</td>
+<td align="left">pagoda2</td>
+<td align="left">0.0.0.9002</td>
+<td align="left">2018-04-08</td>
+<td align="left">local (<a href="mailto:hms-dbmi/pagoda2@NA">hms-dbmi/pagoda2@NA</a>)</td>
+</tr>
+<tr class="odd">
+<td>61</td>
+<td align="left">pcaMethods</td>
+<td align="left">1.60.0</td>
+<td align="left">2017-11-12</td>
+<td align="left">Bioconductor</td>
+</tr>
+<tr class="even">
+<td>62</td>
+<td align="left">pcaPP</td>
+<td align="left">1.9-73</td>
+<td align="left">2018-01-14</td>
+<td align="left">cran (<span class="citation">@1.9-73</span>)</td>
+</tr>
+<tr class="odd">
+<td>63</td>
+<td align="left">pheatmap</td>
+<td align="left">1.0.8</td>
+<td align="left">2015-12-11</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>64</td>
+<td align="left">pkgconfig</td>
+<td align="left">2.0.1</td>
+<td align="left">2017-03-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>65</td>
+<td align="left">plyr</td>
+<td align="left">1.8.4</td>
+<td align="left">2016-06-08</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>66</td>
+<td align="left">R6</td>
+<td align="left">2.2.2</td>
+<td align="left">2017-06-17</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>67</td>
+<td align="left">RColorBrewer</td>
+<td align="left">1.1-2</td>
+<td align="left">2014-12-07</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>68</td>
+<td align="left">Rcpp</td>
+<td align="left">0.12.17</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.12.17</span>)</td>
+</tr>
+<tr class="odd">
+<td>69</td>
+<td align="left">rjson</td>
+<td align="left">0.2.19</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.2.19</span>)</td>
+</tr>
+<tr class="even">
+<td>70</td>
+<td align="left">rlang</td>
+<td align="left">0.1.4</td>
+<td align="left">2017-11-05</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>71</td>
+<td align="left">rmarkdown</td>
+<td align="left">1.9</td>
+<td align="left">2018-03-01</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>72</td>
+<td align="left">Rook</td>
+<td align="left">1.1-1</td>
+<td align="left">2014-10-20</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>73</td>
+<td align="left">rprojroot</td>
+<td align="left">1.3-2</td>
+<td align="left">2018-01-03</td>
+<td align="left">cran (<span class="citation">@1.3-2</span>)</td>
+</tr>
+<tr class="even">
+<td>74</td>
+<td align="left">RSQLite</td>
+<td align="left">2.0</td>
+<td align="left">2017-06-19</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>75</td>
+<td align="left">Rtsne</td>
+<td align="left">0.14</td>
+<td align="left">2017-11-12</td>
+<td align="left">Github (<a href="mailto:jkrijthe/Rtsne@1d0f926">jkrijthe/Rtsne@1d0f926</a>)</td>
+</tr>
+<tr class="even">
+<td>76</td>
+<td align="left">S4Vectors</td>
+<td align="left">0.8.11</td>
+<td align="left">2016-01-30</td>
+<td align="left">Bioconductor</td>
+</tr>
+<tr class="odd">
+<td>77</td>
+<td align="left">scales</td>
+<td align="left">0.5.0</td>
+<td align="left">2017-08-24</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>78</td>
+<td align="left">sessioninfo</td>
+<td align="left">1.0.0</td>
+<td align="left">2017-06-21</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="odd">
+<td>81</td>
+<td align="left">stringi</td>
+<td align="left">1.1.7</td>
+<td align="left">2018-03-12</td>
+<td align="left">cran (<span class="citation">@1.1.7</span>)</td>
+</tr>
+<tr class="even">
+<td>82</td>
+<td align="left">stringr</td>
+<td align="left">1.3.0</td>
+<td align="left">2018-02-19</td>
+<td align="left">cran (<span class="citation">@1.3.0</span>)</td>
+</tr>
+<tr class="odd">
+<td>83</td>
+<td align="left">tibble</td>
+<td align="left">1.3.4</td>
+<td align="left">2017-08-22</td>
+<td align="left">CRAN (R 3.4.1)</td>
+</tr>
+<tr class="even">
+<td>85</td>
+<td align="left">triebeard</td>
+<td align="left">0.3.0</td>
+<td align="left">2016-08-04</td>
+<td align="left">cran (<span class="citation">@0.3.0</span>)</td>
+</tr>
+<tr class="odd">
+<td>86</td>
+<td align="left">urltools</td>
+<td align="left">1.7.0</td>
+<td align="left">2018-01-20</td>
+<td align="left">cran (<span class="citation">@1.7.0</span>)</td>
+</tr>
+<tr class="even">
+<td>88</td>
+<td align="left">withr</td>
+<td align="left">2.1.2</td>
+<td align="left">2018-03-15</td>
+<td align="left">cran (<span class="citation">@2.1.2</span>)</td>
+</tr>
+<tr class="odd">
+<td>89</td>
+<td align="left">yaml</td>
+<td align="left">2.1.18</td>
+<td align="left">2018-03-08</td>
+<td align="left">cran (<span class="citation">@2.1.18</span>)</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 
 <!-- Adjust MathJax settings so that all math formulae are shown using
