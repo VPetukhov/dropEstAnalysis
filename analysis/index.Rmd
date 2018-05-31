@@ -87,7 +87,9 @@ Some figures were created with Python code and they are not published here. Plea
 ## Content by tables
 ### Main tables
 1. Table 1. Analysis of merge targets on human/mouse mixture datasets
-2. Table 2. 5-fold CV results (mean ± sd)
+    * [10x](cell_barcode_correction__merge_targets_mixture.html#10x)
+    * [Drop-seq](cell_barcode_correction__merge_targets_mixture.html#drop-seq)
+2. [Table 2. 5-fold CV results (mean ± sd)](low_quality_cells__label_noise_robustness.html#cv_on_labeled_data)
 
 ### Supplementary tables
 1. [Table S1. Gene markers, used for annotation of the 10x Frozen BMMCs](annotation__annotation_bmmc1.html#all_markers)

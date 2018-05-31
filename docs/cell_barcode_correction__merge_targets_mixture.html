@@ -314,48 +314,51 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/cell_barcode_correction/merge_targets_mixture.Rmd</p>
-<p><strong>Last updated:</strong> 2018-03-19</p>
-<p><strong>Code version:</strong> ee0ca8e</p>
+<p><strong>Last updated:</strong> 2018-05-31</p>
+<p><strong>Code version:</strong> 35d0d5a</p>
 <pre class="r"><code>library(ggplot2)
 library(ggrastr)
 library(dplyr)
 library(parallel)
 library(dropestr)
 library(dropEstAnalysis)
+library(Matrix)
 
 theme_set(theme_base)</code></pre>
 <div id="load-data" class="section level2">
 <h2>Load data</h2>
 <pre class="r"><code>kDataPath &lt;- &#39;../../data/dropest/&#39;
 kTablesPath &lt;- &#39;../../output/tables/&#39;
-# k10xSubfolders &lt;- c(poisson=&#39;est_01_14_precise/&#39;, real=&#39;est_01_14_barcodes/&#39;, 
-#                     unmerged=&#39;est_01_14_unmerged/&#39;, merge_all=&#39;est_01_16_merge_all/&#39;)
-# 
-# kDropSeqSubolders &lt;- c(poisson=&#39;est_01_16_precise/&#39;, unmerged=&#39;est_01_16_unmerged/&#39;, 
-#                        merge_all=&#39;est_01_16_merge_all/&#39;)
-# kDataFiles &lt;- list(
-#   `10x`=paste0(kDataPath, &#39;10x/hgmm_6k/&#39;, k10xSubfolders, &quot;hgmm6k.rds&quot;) %&gt;% 
-#     setNames(names(k10xSubfolders)),
-#   drop_seq=paste0(kDataPath, &#39;dropseq/thousand/&#39;, kDropSeqSubolders, &quot;thousand.rds&quot;) %&gt;% 
-#     setNames(names(kDropSeqSubolders))
-# )</code></pre>
-<pre class="r"><code># holders &lt;- mclapply(kDataFiles, function(paths) mclapply(paths, readRDS, mc.cores=4),
-#                     mc.cores=2)
-# 
-# validation_data &lt;- lapply(holders, function(hs) list(
-#   merge_targets = lapply(hs, function(holder) unlist(holder$merge_targets)),
-#   cms_raw = lapply(hs, `[[`, &#39;cm_raw&#39;),
-#   cms = lapply(hs, `[[`, &#39;cm&#39;)
-# ))
-# 
-# 
-# validation_data$`10x`$cms_raw &lt;- lapply(validation_data$`10x`$cms_raw,
-#                                         function(cm) cm[grep(&quot;^[^;]+$&quot;, rownames(cm)),])
-# validation_data$`10x`$cms &lt;- lapply(validation_data$`10x`$cms,
-#                                     function(cm) cm[grep(&quot;^[^;]+$&quot;, rownames(cm)),])
-# 
+k10xSubfolders &lt;- c(poisson=&#39;est_01_14_precise/&#39;, real=&#39;est_01_14_barcodes/&#39;,
+                    unmerged=&#39;est_01_14_unmerged/&#39;, merge_all=&#39;est_01_16_merge_all/&#39;)
+
+kDropSeqSubolders &lt;- c(poisson=&#39;est_01_16_precise/&#39;, unmerged=&#39;est_01_16_unmerged/&#39;,
+                       merge_all=&#39;est_01_16_merge_all/&#39;)
+kDataFiles &lt;- list(
+  `10x`=paste0(kDataPath, &#39;10x/hgmm_6k/&#39;, k10xSubfolders, &quot;hgmm6k.rds&quot;) %&gt;%
+    setNames(names(k10xSubfolders)),
+  drop_seq=paste0(kDataPath, &#39;dropseq/thousand/&#39;, kDropSeqSubolders, &quot;thousand.rds&quot;) %&gt;%
+    setNames(names(kDropSeqSubolders))
+)</code></pre>
+<pre class="r"><code>holders &lt;- mclapply(kDataFiles, function(paths) mclapply(paths, readRDS, mc.cores=4),
+                    mc.cores=2)
+
+validation_data &lt;- mclapply(holders, function(hs) list(
+  merge_targets = lapply(hs, function(holder) unlist(holder$merge_targets)),
+  cms_raw = lapply(hs, `[[`, &#39;cm_raw&#39;),
+  cms = lapply(hs, `[[`, &#39;cm&#39;)
+), mc.cores=8)
+
+
+validation_data$`10x`$cms_raw &lt;- lapply(validation_data$`10x`$cms_raw,
+                                        function(cm) cm[grep(&quot;^[^;]+$&quot;, rownames(cm)),])
+validation_data$`10x`$cms &lt;- lapply(validation_data$`10x`$cms,
+                                    function(cm) cm[grep(&quot;^[^;]+$&quot;, rownames(cm)),])
+
+rm(holders)
+invisible(gc())
 # saveRDS(validation_data, paste0(kDataPath, &#39;human_mouse_mixture_validation_data.rds&#39;))
-validation_data &lt;- readRDS(paste0(kDataPath, &#39;human_mouse_mixture_validation_data.rds&#39;))</code></pre>
+# validation_data &lt;- readRDS(paste0(kDataPath, &#39;human_mouse_mixture_validation_data.rds&#39;))</code></pre>
 </div>
 <div id="x" class="section level2">
 <h2>10x</h2>
@@ -531,7 +534,7 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-03-19</td>
+<td align="left">2018-05-31</td>
 </tr>
 </tbody>
 </table>
@@ -593,9 +596,9 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <tr class="odd">
 <td>10</td>
 <td align="left">digest</td>
-<td align="left">0.6.14</td>
-<td align="left">2018-01-14</td>
-<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
 </tr>
 <tr class="even">
 <td>11</td>
@@ -608,7 +611,7 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <td>12</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-03-17</td>
+<td align="left">2018-05-16</td>
 <td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="even">
@@ -677,9 +680,9 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <tr class="odd">
 <td>25</td>
 <td align="left">knitr</td>
-<td align="left">1.18</td>
-<td align="left">2017-12-27</td>
-<td align="left">cran (<span class="citation">@1.18</span>)</td>
+<td align="left">1.20</td>
+<td align="left">2018-02-20</td>
+<td align="left">cran (<span class="citation">@1.20</span>)</td>
 </tr>
 <tr class="even">
 <td>26</td>
@@ -747,9 +750,9 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <tr class="odd">
 <td>37</td>
 <td align="left">Rcpp</td>
-<td align="left">0.12.16</td>
-<td align="left">2018-03-13</td>
-<td align="left">cran (<span class="citation">@0.12.16</span>)</td>
+<td align="left">0.12.17</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.12.17</span>)</td>
 </tr>
 <tr class="even">
 <td>38</td>
@@ -761,8 +764,8 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <tr class="odd">
 <td>39</td>
 <td align="left">rmarkdown</td>
-<td align="left">1.8</td>
-<td align="left">2017-11-17</td>
+<td align="left">1.9</td>
+<td align="left">2018-03-01</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="even">
@@ -789,16 +792,16 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <tr class="odd">
 <td>44</td>
 <td align="left">stringi</td>
-<td align="left">1.1.6</td>
-<td align="left">2017-11-17</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.1.7</td>
+<td align="left">2018-03-12</td>
+<td align="left">cran (<span class="citation">@1.1.7</span>)</td>
 </tr>
 <tr class="even">
 <td>45</td>
 <td align="left">stringr</td>
-<td align="left">1.2.0</td>
-<td align="left">2017-02-18</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.3.0</td>
+<td align="left">2018-02-19</td>
+<td align="left">cran (<span class="citation">@1.3.0</span>)</td>
 </tr>
 <tr class="odd">
 <td>46</td>
@@ -810,16 +813,16 @@ write.csv(complete_table, paste0(kTablesPath, &#39;merge_comparison.csv&#39;), r
 <tr class="even">
 <td>49</td>
 <td align="left">withr</td>
-<td align="left">2.1.1</td>
-<td align="left">2017-12-19</td>
-<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+<td align="left">2.1.2</td>
+<td align="left">2018-03-15</td>
+<td align="left">cran (<span class="citation">@2.1.2</span>)</td>
 </tr>
 <tr class="odd">
 <td>50</td>
 <td align="left">yaml</td>
-<td align="left">2.1.16</td>
-<td align="left">2017-12-12</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">2.1.18</td>
+<td align="left">2018-03-08</td>
+<td align="left">cran (<span class="citation">@2.1.18</span>)</td>
 </tr>
 </tbody>
 </table>
