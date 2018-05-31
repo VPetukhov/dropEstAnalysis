@@ -29,8 +29,8 @@ output:
     2. [Number of molecules per cell](cell_barcode_correction__size_gain.html)
     
 6. Runtimes
-  1. [inDrop ESCs](runtimes__indrop_esc.html)
-  2. [inDrop BMCs](runtimes__indrop_bmc.html)
+    1. [inDrop BMCs](runtimes__indrop_bmc.html)
+    2. [inDrop ESCs](runtimes__indrop_esc.html)
 
 ## Content by figures
 Some figures were created with Python code and they are not published here. Please, write personally to request the code.
@@ -95,8 +95,8 @@ Some figures were created with Python code and they are not published here. Plea
 3. [Table S3. Gene markers, used for annotation of the inDrop mouse BMCs dataset](annotation__annotation_bmc.html#cell_type_markers)
 4. [Table S4. Fraction of rescued cells for the 10x Frozen BMMCs dataset](low_quality_cells__validation_bmmc1.html#number_of_rescued_cells_per_cluster)
 5. [Table S5. Fraction of rescued cells for the 10x 8k PMMCs dataset](low_quality_cells__validation_pbmc8k.html#number_of_rescued_cells_per_cluster)
-6. Table S6. Fraction of rescued cells for the inDrop mouse PCs dataset
-7. Table S7. Fraction of rescued cells for the inDrop mouse BMCs dataset
+6. [Table S6. Fraction of rescued cells for the inDrop mouse PCs dataset](low_quality_cells__validation_mouse_pc.html#number_of_rescued_cells_per_cluster)
+7. [Table S7. Fraction of rescued cells for the inDrop mouse BMCs dataset](low_quality_cells__validation_bmc.html#number_of_rescued_cells_per_cluster)
 8. Table S8. Runtimes of dropEst pipeline
-    * inDrop Mouse BMCs
-    * inDrop Mouse ESCs
+    * [inDrop Mouse BMCs](runtimes__indrop_bmc.html)
+    * [inDrop Mouse ESCs](runtimes__indrop_esc.html)

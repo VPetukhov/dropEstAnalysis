@@ -314,8 +314,8 @@ div.section {
 
 
 <p><strong>Source file:</strong> notebooks/runtimes/indrop_bmc.Rmd</p>
-<p><strong>Last updated:</strong> 2018-03-17</p>
-<p><strong>Code version:</strong> dedcd85</p>
+<p><strong>Last updated:</strong> 2018-05-29</p>
+<p><strong>Code version:</strong> 5b1d31c</p>
 <pre class="r"><code>library(ggplot2)
 library(ggrastr)
 library(ggpubr)
@@ -332,45 +332,48 @@ kOutputFolder &lt;- &#39;../../output/&#39;
 kDataPath &lt;- &#39;../../data/&#39;
 kEstDataPath &lt;- paste0(kDataPath, &#39;dropest/SCG71/runtimes/est_2018_03_15_real/&#39;)
 
-tag_stats &lt;- readRDS(paste0(kEstDataPath, &#39;../tag_2018_03_15/SCG_71_C2_S2_R1_001.fastq.gz.tagged.rds&#39;))</code></pre>
+tag_stats &lt;- kEstDataPath %&gt;% 
+  paste0(&#39;../tag_2018_03_15/SCG_71_C2_S2_R1_001.fastq.gz.tagged.rds&#39;) %&gt;% readRDS()</code></pre>
 <pre class="r"><code>holder &lt;- readRDS(paste0(kEstDataPath, &#39;cell.counts.rds&#39;))</code></pre>
-<div id="umi-collisions" class="section level3">
-<h3>UMI collisions</h3>
+<div id="umi-collisions" class="section level2">
+<h2>UMI collisions</h2>
 <pre class="r"><code>times_coll &lt;- sapply(1:10, function(i) TimeCollisions(holder))
 mean(times_coll, trim=0.2)</code></pre>
-<pre><code>[1] 10.00783</code></pre>
+<pre><code>[1] 10.55667</code></pre>
 </div>
-<div id="error-corrections-directional" class="section level3">
-<h3>Error corrections directional</h3>
-<pre class="r"><code>times_directional &lt;- sapply(1:10, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, &#39;directional&#39;, mc.cores=10))
+<div id="error-corrections-directional" class="section level2">
+<h2>Error corrections directional</h2>
+<pre class="r"><code>times_directional &lt;- sapply(1:10, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 
+                                                            &#39;directional&#39;, mc.cores=10))
 print(times_directional)</code></pre>
 <pre><code>elapsed elapsed elapsed elapsed elapsed elapsed elapsed elapsed elapsed 
- 56.461  48.639  52.005  52.299  34.773  48.681  32.866  37.963  39.850 
+ 55.335  49.796  52.496  55.232  53.628  36.979  43.250  43.898  43.210 
 elapsed 
- 38.499 </code></pre>
+ 38.635 </code></pre>
 <pre class="r"><code>mean(times_directional, trim=0.1)</code></pre>
-<pre><code>[1] 44.08863</code></pre>
+<pre><code>[1] 47.51813</code></pre>
 </div>
-<div id="error-corrections-bayesian" class="section level3">
-<h3>Error corrections Bayesian</h3>
+<div id="error-corrections-bayesian" class="section level2">
+<h2>Error corrections Bayesian</h2>
 <pre class="r"><code>times_bayesian &lt;- sapply(1:5, function(i) TimeUmiErrors(holder$reads_per_umi_per_cell, 
                                                         mc.cores=10))
 print(times_bayesian)</code></pre>
 <pre><code>elapsed elapsed elapsed elapsed elapsed 
-615.307 552.141 688.125 589.169 660.674 </code></pre>
+617.838 553.578 642.265 591.075 657.493 </code></pre>
 <pre class="r"><code>mean(times_bayesian, trim=0.1)</code></pre>
-<pre><code>[1] 621.0832</code></pre>
+<pre><code>[1] 612.4498</code></pre>
 </div>
-<div id="quality-scoring" class="section level3">
-<h3>Quality scoring</h3>
-<pre class="r"><code>times_quality &lt;- sapply(1:10, function(i) TimeQuality(holder, mit.chromosome.name=&#39;chrM&#39;, tags.data=tag_stats))
+<div id="quality-scoring" class="section level2">
+<h2>Quality scoring</h2>
+<pre class="r"><code>times_quality &lt;- sapply(1:10, function(i) TimeQuality(holder, mit.chromosome.name=&#39;chrM&#39;, 
+                                                      tags.data=tag_stats))
 print(times_quality)</code></pre>
 <pre><code>elapsed elapsed elapsed elapsed elapsed elapsed elapsed elapsed elapsed 
- 11.600  13.122  10.401  10.605  13.988  10.413  12.161  23.029   9.698 
+ 11.648  13.393  10.490  10.778  14.109  10.453  12.177  22.946   9.951 
 elapsed 
-  9.396 </code></pre>
+  9.431 </code></pre>
 <pre class="r"><code>mean(times_quality, trim=0.1)</code></pre>
-<pre><code>[1] 11.4985</code></pre>
+<pre><code>[1] 11.62487</code></pre>
 </div>
 <div id="session-information" class="section level2">
 <h2>Session information</h2>
@@ -413,7 +416,7 @@ elapsed
 </tr>
 <tr class="even">
 <td>date</td>
-<td align="left">2018-03-17</td>
+<td align="left">2018-05-29</td>
 </tr>
 </tbody>
 </table>
@@ -475,9 +478,9 @@ elapsed
 <tr class="odd">
 <td>10</td>
 <td align="left">digest</td>
-<td align="left">0.6.14</td>
-<td align="left">2018-01-14</td>
-<td align="left">cran (<span class="citation">@0.6.14</span>)</td>
+<td align="left">0.6.15</td>
+<td align="left">2018-01-28</td>
+<td align="left">cran (<span class="citation">@0.6.15</span>)</td>
 </tr>
 <tr class="even">
 <td>11</td>
@@ -490,7 +493,7 @@ elapsed
 <td>12</td>
 <td align="left">dropEstAnalysis</td>
 <td align="left">0.6.0</td>
-<td align="left">2018-03-17</td>
+<td align="left">2018-05-16</td>
 <td align="left">local (<a href="mailto:VPetukhov/dropEstAnalysis@NA">VPetukhov/dropEstAnalysis@NA</a>)</td>
 </tr>
 <tr class="even">
@@ -573,9 +576,9 @@ elapsed
 <tr class="odd">
 <td>27</td>
 <td align="left">knitr</td>
-<td align="left">1.18</td>
-<td align="left">2017-12-27</td>
-<td align="left">cran (<span class="citation">@1.18</span>)</td>
+<td align="left">1.20</td>
+<td align="left">2018-02-20</td>
+<td align="left">cran (<span class="citation">@1.20</span>)</td>
 </tr>
 <tr class="even">
 <td>28</td>
@@ -664,9 +667,9 @@ elapsed
 <tr class="even">
 <td>42</td>
 <td align="left">Rcpp</td>
-<td align="left">0.12.16</td>
-<td align="left">2018-03-13</td>
-<td align="left">cran (<span class="citation">@0.12.16</span>)</td>
+<td align="left">0.12.17</td>
+<td align="left">2018-05-18</td>
+<td align="left">cran (<span class="citation">@0.12.17</span>)</td>
 </tr>
 <tr class="odd">
 <td>43</td>
@@ -678,8 +681,8 @@ elapsed
 <tr class="even">
 <td>44</td>
 <td align="left">rmarkdown</td>
-<td align="left">1.8</td>
-<td align="left">2017-11-17</td>
+<td align="left">1.9</td>
+<td align="left">2018-03-01</td>
 <td align="left">CRAN (R 3.4.1)</td>
 </tr>
 <tr class="odd">
@@ -706,16 +709,16 @@ elapsed
 <tr class="even">
 <td>49</td>
 <td align="left">stringi</td>
-<td align="left">1.1.6</td>
-<td align="left">2017-11-17</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.1.7</td>
+<td align="left">2018-03-12</td>
+<td align="left">cran (<span class="citation">@1.1.7</span>)</td>
 </tr>
 <tr class="odd">
 <td>50</td>
 <td align="left">stringr</td>
-<td align="left">1.2.0</td>
-<td align="left">2017-02-18</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">1.3.0</td>
+<td align="left">2018-02-19</td>
+<td align="left">cran (<span class="citation">@1.3.0</span>)</td>
 </tr>
 <tr class="even">
 <td>51</td>
@@ -727,16 +730,16 @@ elapsed
 <tr class="odd">
 <td>54</td>
 <td align="left">withr</td>
-<td align="left">2.1.1</td>
-<td align="left">2017-12-19</td>
-<td align="left">cran (<span class="citation">@2.1.1</span>)</td>
+<td align="left">2.1.2</td>
+<td align="left">2018-03-15</td>
+<td align="left">cran (<span class="citation">@2.1.2</span>)</td>
 </tr>
 <tr class="even">
 <td>55</td>
 <td align="left">yaml</td>
-<td align="left">2.1.16</td>
-<td align="left">2017-12-12</td>
-<td align="left">CRAN (R 3.4.1)</td>
+<td align="left">2.1.18</td>
+<td align="left">2018-03-08</td>
+<td align="left">cran (<span class="citation">@2.1.18</span>)</td>
 </tr>
 </tbody>
 </table>
