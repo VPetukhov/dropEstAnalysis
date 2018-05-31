@@ -25,6 +25,7 @@ library(dplyr)
 library(parallel)
 library(dropestr)
 library(dropEstAnalysis)
+library(Matrix)
 
 theme_set(theme_base)
 ```
@@ -33,37 +34,39 @@ theme_set(theme_base)
 ```{r}
 kDataPath <- '../../data/dropest/'
 kTablesPath <- '../../output/tables/'
-# k10xSubfolders <- c(poisson='est_01_14_precise/', real='est_01_14_barcodes/', 
-#                     unmerged='est_01_14_unmerged/', merge_all='est_01_16_merge_all/')
-# 
-# kDropSeqSubolders <- c(poisson='est_01_16_precise/', unmerged='est_01_16_unmerged/', 
-#                        merge_all='est_01_16_merge_all/')
-# kDataFiles <- list(
-#   `10x`=paste0(kDataPath, '10x/hgmm_6k/', k10xSubfolders, "hgmm6k.rds") %>% 
-#     setNames(names(k10xSubfolders)),
-#   drop_seq=paste0(kDataPath, 'dropseq/thousand/', kDropSeqSubolders, "thousand.rds") %>% 
-#     setNames(names(kDropSeqSubolders))
-# )
+k10xSubfolders <- c(poisson='est_01_14_precise/', real='est_01_14_barcodes/',
+                    unmerged='est_01_14_unmerged/', merge_all='est_01_16_merge_all/')
+
+kDropSeqSubolders <- c(poisson='est_01_16_precise/', unmerged='est_01_16_unmerged/',
+                       merge_all='est_01_16_merge_all/')
+kDataFiles <- list(
+  `10x`=paste0(kDataPath, '10x/hgmm_6k/', k10xSubfolders, "hgmm6k.rds") %>%
+    setNames(names(k10xSubfolders)),
+  drop_seq=paste0(kDataPath, 'dropseq/thousand/', kDropSeqSubolders, "thousand.rds") %>%
+    setNames(names(kDropSeqSubolders))
+)
 ```
 
 ```{r}
-# holders <- mclapply(kDataFiles, function(paths) mclapply(paths, readRDS, mc.cores=4),
-#                     mc.cores=2)
-# 
-# validation_data <- lapply(holders, function(hs) list(
-#   merge_targets = lapply(hs, function(holder) unlist(holder$merge_targets)),
-#   cms_raw = lapply(hs, `[[`, 'cm_raw'),
-#   cms = lapply(hs, `[[`, 'cm')
-# ))
-# 
-# 
-# validation_data$`10x`$cms_raw <- lapply(validation_data$`10x`$cms_raw,
-#                                         function(cm) cm[grep("^[^;]+$", rownames(cm)),])
-# validation_data$`10x`$cms <- lapply(validation_data$`10x`$cms,
-#                                     function(cm) cm[grep("^[^;]+$", rownames(cm)),])
-# 
+holders <- mclapply(kDataFiles, function(paths) mclapply(paths, readRDS, mc.cores=4),
+                    mc.cores=2)
+
+validation_data <- mclapply(holders, function(hs) list(
+  merge_targets = lapply(hs, function(holder) unlist(holder$merge_targets)),
+  cms_raw = lapply(hs, `[[`, 'cm_raw'),
+  cms = lapply(hs, `[[`, 'cm')
+), mc.cores=8)
+
+
+validation_data$`10x`$cms_raw <- lapply(validation_data$`10x`$cms_raw,
+                                        function(cm) cm[grep("^[^;]+$", rownames(cm)),])
+validation_data$`10x`$cms <- lapply(validation_data$`10x`$cms,
+                                    function(cm) cm[grep("^[^;]+$", rownames(cm)),])
+
+rm(holders)
+invisible(gc())
 # saveRDS(validation_data, paste0(kDataPath, 'human_mouse_mixture_validation_data.rds'))
-validation_data <- readRDS(paste0(kDataPath, 'human_mouse_mixture_validation_data.rds'))
+# validation_data <- readRDS(paste0(kDataPath, 'human_mouse_mixture_validation_data.rds'))
 ```
 
 ## 10x
