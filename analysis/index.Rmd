@@ -18,7 +18,7 @@ output:
 3. Filtration of low-quality cells
     1. [Robustness of classifier to noise](low_quality_cells__label_noise_robustness.html)
     2. [Validation of inDrop Mouse BMCs](low_quality_cells__validation_bmc.html)
-    3. [Validation of inDrop Mouse PCs](low_quality_cells__validation_mouse_pcs.html)
+    3. [Validation of inDrop Mouse PCs](low_quality_cells__validation_mouse_pc.html)
     4. [Validation of 10x Human BMMCs](low_quality_cells__validation_bmmc1.html)
     5. [Validation of 10x 8k PBMCs](low_quality_cells__validation_pbmc8k.html)
 4. UMI corrections:
